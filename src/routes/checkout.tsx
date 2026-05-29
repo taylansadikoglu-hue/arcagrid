@@ -20,7 +20,7 @@ const searchSchema = z.object({
 export const Route = createFileRoute("/checkout")({
   validateSearch: searchSchema,
   head: () => ({
-    meta: [{ title: "Checkout — BTX One-Click Miner" }],
+    meta: [{ title: "Provisioning Edge Cluster — ArcGrid" }],
   }),
   component: CheckoutPage,
 });
@@ -68,10 +68,10 @@ function CheckoutPage() {
           >
             ← Back to tiers
           </Link>
-          <h1 className="mt-3 text-3xl font-semibold tracking-tight">Checkout</h1>
+          <h1 className="mt-3 text-3xl font-semibold tracking-tight">Provisioning Edge Cluster</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            One-click launch. No GPU setup. Intelligent routing across the Sovereign
-            Distributed Grid Mesh begins the moment payment clears.
+            One-click initialization. No GPU setup. Intelligent routing across the
+            Sovereign Distributed Grid Mesh begins the moment payment clears.
           </p>
 
           <div className="mt-6 rounded-xl border border-border bg-card p-6">
@@ -166,7 +166,17 @@ function CheckoutPage() {
               disabled={paying}
               className="mt-5 w-full rounded-lg bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition-all hover:brightness-110 disabled:opacity-60"
             >
-              {paying ? "Provisioning…" : `Pay $${tier.price.toFixed(2)} & Launch`}
+              {paying ? "Initializing Grid Instance…" : `Pay $${tier.price.toFixed(2)} & Provision Cluster`}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setPaying(false);
+                navigate({ to: "/" });
+              }}
+              className="mt-2 w-full rounded-lg border border-border bg-secondary/40 px-4 py-2 text-xs font-medium text-muted-foreground transition-colors hover:border-border/80 hover:text-foreground"
+            >
+              Cancel & return to dashboard
             </button>
             <p className="mt-3 text-center text-[11px] text-muted-foreground">
               Demo checkout. Wire real Stripe once enabled — UI is ready.
