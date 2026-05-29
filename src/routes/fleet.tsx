@@ -246,9 +246,9 @@ function FleetConsole({ userId, email }: { userId: string; email: string }) {
     if (nodes.length > 0) return;
     (async () => {
       const seeds = [
-        { name: "Sydney Cluster A", location: "AU · Sydney", hardware: "RTX 4070 Ti", status: "active" as const },
-        { name: "Retail Node 01", location: "US · Dallas", hardware: "RTX 4070 Ti", status: "syncing" as const },
-        { name: "Retail Node 02", location: "EU · Frankfurt", hardware: "RTX 4070 Ti", status: "idle" as const },
+        { name: "Sydney Cluster A", location: "AU · Sydney", hardware: "Standard Hashrate", status: "active" as const },
+        { name: "Retail Node 01", location: "US · Dallas", hardware: "Standard Hashrate", status: "syncing" as const },
+        { name: "Retail Node 02", location: "EU · Frankfurt", hardware: "Pro Hashrate", status: "idle" as const },
       ];
       await supabase.from("nodes").insert(
         seeds.map((s) => ({
