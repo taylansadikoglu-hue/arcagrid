@@ -87,7 +87,7 @@ function DashboardPage() {
               <span className="font-mono-num text-foreground">{session.instanceId}</span>
             </p>
             <h1 className="mt-1 text-3xl font-semibold tracking-tight">
-              {tier.name} Rig · {tier.hardware}
+              {tier.name} Rig · {tier.tagline}
             </h1>
           </div>
           <StatusBadge mining={session.status === "mining"} />
@@ -119,7 +119,7 @@ function DashboardPage() {
               <Metric label="Uptime" value={fmtDuration(elapsed)} />
               <Metric label="Time left" value={fmtDuration(remaining)} />
               <Metric
-                label="Host cost"
+                label="Grid spot cost"
                 value={`$${session.hostCost.toFixed(2)}/24h`}
               />
             </div>
@@ -135,12 +135,14 @@ function DashboardPage() {
             </p>
             <div className="mt-6 border-t border-border pt-4">
               <h4 className="text-xs uppercase tracking-widest text-muted-foreground">
-                Container env
+                Production node parameters
               </h4>
               <ul className="font-mono-num mt-2 space-y-1 text-xs text-muted-foreground">
-                <li>BTX_MINE_BATCH_SIZE=20</li>
-                <li>BTX_MATMUL_SOLVE_BATCH_SIZE=4</li>
-                <li>PIPELINE_ASYNC=0</li>
+                <li>BTX_MATMUL_BACKEND=cuda</li>
+                <li>BTX_MATMUL_SOLVE_BATCH_SIZE=16</li>
+                <li>BTX_MINE_BATCH_SIZE=80</li>
+                <li>rpcport=19334 · ipv4-only</li>
+                <li>maxconnections=20 · guardminpeers=1</li>
               </ul>
             </div>
           </div>
@@ -155,7 +157,7 @@ function DashboardPage() {
               </h3>
               <p className="text-sm text-muted-foreground">
                 {session.status === "mining"
-                  ? "Stops the Vast.ai instance immediately. You'll keep what you mined."
+                  ? "Releases the grid node immediately. You'll keep what you mined."
                   : "Terminate to remove this session entirely."}
               </p>
             </div>

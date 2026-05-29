@@ -98,13 +98,13 @@ function CheckoutPage() {
             <div className="mt-6 grid gap-3 text-sm">
               <Row label="Duration" value={isMonthly ? "30 days" : "24 hours"} />
               <Row
-                label="Target Vast.ai host cost"
+                label="Target grid spot price"
                 value={
                   <span className="font-mono-num">${hostCost.toFixed(2)} / 24h</span>
                 }
               />
               <Row
-                label="Projected margin"
+                label="Guaranteed gross margin"
                 value={
                   <span className="font-mono-num text-primary">
                     {projectedMargin.toFixed(1)}%
@@ -123,12 +123,15 @@ function CheckoutPage() {
           </div>
 
           <div className="mt-4 rounded-xl border border-border bg-card/60 p-4 text-xs text-muted-foreground">
-            <p className="text-foreground">Injected environment</p>
+            <p className="text-foreground">Injected production node parameters</p>
             <ul className="font-mono-num mt-2 space-y-1">
               <li>USER_WALLET=&lt;your wallet&gt;</li>
-              <li>BTX_MINE_BATCH_SIZE=20</li>
-              <li>BTX_MATMUL_SOLVE_BATCH_SIZE=4</li>
-              <li>PIPELINE_ASYNC=0</li>
+              <li>BTX_MATMUL_BACKEND=cuda</li>
+              <li>BTX_MATMUL_SOLVE_BATCH_SIZE=16</li>
+              <li>BTX_MINE_BATCH_SIZE=80</li>
+              <li>btxd -daemon -rpcport=19334 -onlynet=ipv4</li>
+              <li>     -maxconnections=20 -miningchainguardminpeers=1</li>
+              <li>     -miningminoutboundpeers=1 -miningminsyncedoutboundpeers=1</li>
             </ul>
           </div>
         </section>

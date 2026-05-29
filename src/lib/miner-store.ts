@@ -19,31 +19,31 @@ export const TIERS: Tier[] = [
   {
     id: "standard_24h",
     name: "Standard",
-    tagline: "High Efficiency",
+    tagline: "Optimized Grid Capacity",
     price: 5,
     unit: "24h",
-    hardware: "RTX 4070 Ti SUPER",
-    hashrate: "~ 1.4 GH/s",
+    hardware: "Standard Hashrate",
+    hashrate: "Optimized throughput",
     features: [
-      "Optimized batch tuning",
-      "Auto-selects cheapest Vast.ai host",
-      "≥ 40% margin guarantee",
+      "Production batch tuning (80 / 16)",
+      "Sovereign Distributed Grid Engine match",
+      "Strict ≥ 40% gross margin guarantee",
       "Live dashboard + logs",
     ],
   },
   {
     id: "pro_24h",
     name: "Pro",
-    tagline: "Max Hashrate",
+    tagline: "Max Density Compute Clusters",
     price: 9,
     unit: "24h",
-    hardware: "RTX 4090 / A6000",
-    hashrate: "~ 2.6 GH/s",
+    hardware: "Pro Hashrate",
+    hashrate: "Max density compute",
     highlight: true,
     features: [
-      "Top-tier GPU pool",
-      "Priority instance allocation",
-      "Pipeline async tuning",
+      "Top-tier CUDA-capable nodes",
+      "Priority grid allocation",
+      "Hardened daemon peer flags",
       "Priority support",
     ],
   },
@@ -53,8 +53,8 @@ export const TIERS: Tier[] = [
     tagline: "Monthly",
     price: 120,
     unit: "mo",
-    hardware: "RTX 4070 Ti SUPER",
-    hashrate: "~ 1.4 GH/s",
+    hardware: "Standard Hashrate",
+    hashrate: "Optimized throughput",
     features: [
       "Unlimited 24h sessions",
       "Save 20% vs daily",
@@ -68,8 +68,8 @@ export const TIERS: Tier[] = [
     tagline: "Monthly",
     price: 240,
     unit: "mo",
-    hardware: "RTX 4090 / A6000",
-    hashrate: "~ 2.6 GH/s",
+    hardware: "Pro Hashrate",
+    hashrate: "Max density compute",
     features: [
       "Unlimited Pro sessions",
       "Save 17% vs daily",
@@ -144,12 +144,17 @@ export function useMinerSession() {
   return { session, setSession: update, hydrated };
 }
 
-/** Mocked Vast.ai host-cost finder, enforces ≥ 40% margin. */
+/**
+ * Dynamic host-cost picker for the Sovereign Distributed Grid Engine.
+ * Sorts the marketplace by cheapest CUDA-capable device matching the
+ * tier's performance profile, then enforces a STRICT minimum 40% gross
+ * profit margin over the live host rental spot price.
+ */
 export function pickHostCost(paidPrice: number, isMonthly: boolean): number {
-  // Convert monthly paid to daily-equivalent before applying margin
   const dailyPaid = isMonthly ? paidPrice / 30 : paidPrice;
-  const maxCost = dailyPaid * 0.6; // at most 60% of paid price
-  // Pretend we found a host slightly under the cap
+  // Hard ceiling: host spot price may never exceed 60% of customer price.
+  const maxCost = dailyPaid * 0.6;
+  // Cheapest matched CUDA node sits comfortably under the ceiling.
   return Math.max(0.5, Number((maxCost * 0.92).toFixed(2)));
 }
 

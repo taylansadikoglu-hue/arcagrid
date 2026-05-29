@@ -462,7 +462,7 @@ function NodeDetail({ node, userId }: { node: NodeRow; userId: string }) {
           accent="primary"
           history={live.hashHistory}
           target={883}
-          subtitle="Target ~883 N/s (RTX 4070 Ti)"
+          subtitle="Target ~883 N/s · RPC :19334"
         />
         <TelemetryCard
           label="Power Draw"
