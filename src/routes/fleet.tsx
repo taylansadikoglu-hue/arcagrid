@@ -98,11 +98,12 @@ function LoginPortal() {
             <p className="mt-4 max-w-md text-sm text-muted-foreground">
               Restricted to authorised data-centre operators. All sessions are
               signed, encrypted in transit, and pinned to your Golden Config —
-              CUDA 12.0 runtime, 160W cap, dynamic cluster matrix scaling.
+              CUDA 12.0 runtime, 160W cap, batch 80/16.
             </p>
             <ul className="font-mono-num mt-8 space-y-2 text-[11px] uppercase tracking-widest text-muted-foreground">
               <li>· BTX_MATMUL_BACKEND=cuda</li>
-              <li>· Dynamic Cluster Matrix Scaling · Live Network Difficulty Tiers</li>
+              <li>· BTX_MATMUL_SOLVE_BATCH_SIZE=16</li>
+              <li>· BTX_MINE_BATCH_SIZE=80</li>
               <li>· LD_LIBRARY_PATH=/usr/local/cuda-12.0/…</li>
               <li>· miningchainguardminpeers=1</li>
             </ul>
@@ -496,7 +497,8 @@ function NodeDetail({ node, userId }: { node: NodeRow; userId: string }) {
         <pre className="font-mono-num overflow-x-auto px-5 py-4 text-[11px] leading-relaxed text-foreground/90">
 {`docker run --gpus all \\
   -e BTX_MATMUL_BACKEND=${node.matmul_backend} \\
-  -e BTX_MATRIX_SCALE=dynamic-by-difficulty \\
+  -e BTX_MATMUL_SOLVE_BATCH_SIZE=${node.solve_batch_size} \\
+  -e BTX_MINE_BATCH_SIZE=${node.mine_batch_size} \\
   -e USER_WALLET=${node.wallet ?? "<your-wallet>"} \\
   -e LD_LIBRARY_PATH=${node.ld_library_path} \\
   arcagrid/btx-oneclick-miner:latest \\

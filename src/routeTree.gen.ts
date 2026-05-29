@@ -9,17 +9,11 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as GridRouteImport } from './routes/grid'
 import { Route as FleetRouteImport } from './routes/fleet'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as CheckoutRouteImport } from './routes/checkout'
 import { Route as IndexRouteImport } from './routes/index'
 
-const GridRoute = GridRouteImport.update({
-  id: '/grid',
-  path: '/grid',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const FleetRoute = FleetRouteImport.update({
   id: '/fleet',
   path: '/fleet',
@@ -46,14 +40,12 @@ export interface FileRoutesByFullPath {
   '/checkout': typeof CheckoutRoute
   '/dashboard': typeof DashboardRoute
   '/fleet': typeof FleetRoute
-  '/grid': typeof GridRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/checkout': typeof CheckoutRoute
   '/dashboard': typeof DashboardRoute
   '/fleet': typeof FleetRoute
-  '/grid': typeof GridRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -61,14 +53,13 @@ export interface FileRoutesById {
   '/checkout': typeof CheckoutRoute
   '/dashboard': typeof DashboardRoute
   '/fleet': typeof FleetRoute
-  '/grid': typeof GridRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/checkout' | '/dashboard' | '/fleet' | '/grid'
+  fullPaths: '/' | '/checkout' | '/dashboard' | '/fleet'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/checkout' | '/dashboard' | '/fleet' | '/grid'
-  id: '__root__' | '/' | '/checkout' | '/dashboard' | '/fleet' | '/grid'
+  to: '/' | '/checkout' | '/dashboard' | '/fleet'
+  id: '__root__' | '/' | '/checkout' | '/dashboard' | '/fleet'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -76,18 +67,10 @@ export interface RootRouteChildren {
   CheckoutRoute: typeof CheckoutRoute
   DashboardRoute: typeof DashboardRoute
   FleetRoute: typeof FleetRoute
-  GridRoute: typeof GridRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/grid': {
-      id: '/grid'
-      path: '/grid'
-      fullPath: '/grid'
-      preLoaderRoute: typeof GridRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/fleet': {
       id: '/fleet'
       path: '/fleet'
@@ -124,7 +107,6 @@ const rootRouteChildren: RootRouteChildren = {
   CheckoutRoute: CheckoutRoute,
   DashboardRoute: DashboardRoute,
   FleetRoute: FleetRoute,
-  GridRoute: GridRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -20,15 +20,15 @@ export const TIERS: Tier[] = [
   {
     id: "standard_24h",
     name: "Standard",
-    tagline: "Managed Optimized Capacity",
+    tagline: "Optimized Grid Capacity",
     price: 5,
     unit: "24h",
     hardware: "Standard Hashrate",
     hashrate: "Optimized throughput",
     description:
-      "Includes automated container flag optimization and automated watchdog optimization to eliminate underpowered states. Routed across the ARCA GRID mesh for sustained throughput.",
+      "Our proprietary intelligent routing layer dynamically matches your session with the highest-efficiency nodes across the global mesh, optimizing cryptographic throughput in real-time.",
     features: [
-      "Dynamic Cluster Matrix Scaling based on Live Network Difficulty Tiers",
+      "Production batch tuning (80 / 16)",
       "Sovereign Distributed Grid Mesh match",
       "Automated infrastructure load balancing",
       "Live dashboard + logs",
@@ -37,14 +37,14 @@ export const TIERS: Tier[] = [
   {
     id: "pro_24h",
     name: "Pro",
-    tagline: "High-Density Dedicated Compute",
+    tagline: "Max Density Compute Clusters",
     price: 12,
     unit: "24h",
     hardware: "Pro Hashrate",
     hashrate: "Max density compute",
     highlight: true,
     description:
-      "Dedicated high-density nodes with automated container flag optimization and automated watchdog optimization to eliminate underpowered states across enterprise workloads.",
+      "Allocates enterprise-grade compute nodes tailored for maximum cryptographic throughput and massive hardware density.",
     features: [
       "Top-tier CUDA-capable nodes",
       "Priority grid allocation",
@@ -55,13 +55,13 @@ export const TIERS: Tier[] = [
   {
     id: "standard_monthly",
     name: "Standard",
-    tagline: "Managed Optimized Capacity — Monthly",
+    tagline: "Monthly",
     price: 120,
     unit: "mo",
     hardware: "Standard Hashrate",
     hashrate: "Optimized throughput",
     description:
-      "Includes automated container flag optimization and automated watchdog optimization to eliminate underpowered states. Routed across the ARCA GRID mesh for sustained throughput.",
+      "Our proprietary intelligent routing layer dynamically matches your session with the highest-efficiency nodes across the global mesh, optimizing cryptographic throughput in real-time.",
     features: [
       "Unlimited 24h sessions",
       "Save 20% vs daily",
@@ -72,13 +72,13 @@ export const TIERS: Tier[] = [
   {
     id: "pro_monthly",
     name: "Pro",
-    tagline: "High-Density Dedicated Compute — Monthly",
+    tagline: "Monthly",
     price: 290,
     unit: "mo",
     hardware: "Pro Hashrate",
     hashrate: "Max density compute",
     description:
-      "Dedicated high-density nodes with automated container flag optimization and automated watchdog optimization to eliminate underpowered states across enterprise workloads.",
+      "Allocates enterprise-grade compute nodes tailored for maximum cryptographic throughput and massive hardware density.",
     features: [
       "Unlimited Pro sessions",
       "Save ~20% vs daily",
