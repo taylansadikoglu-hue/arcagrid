@@ -23,7 +23,7 @@ export const Route = createFileRoute("/")({
       {
         property: "og:description",
         content:
-          "One-click GPU mining for BTX on the Sovereign Distributed Grid Mesh, with a guaranteed gross profit margin.",
+          "Our proprietary intelligent routing layer dynamically matches your session with the highest-efficiency nodes across the global mesh, optimizing cryptographic throughput in real-time.",
       },
     ],
   }),
@@ -164,9 +164,10 @@ function LandingPage() {
               Pick your compute tier
             </h2>
             <p className="mt-3 text-muted-foreground">
-            Pay once for 24h or subscribe monthly. Automated infrastructure load
-              balancing across the Sovereign Distributed Grid Mesh routes every session
-              to the highest-efficiency compute nodes available.
+              Pay once for 24h or subscribe monthly. Our proprietary intelligent
+              routing layer dynamically matches your session with the
+              highest-efficiency nodes across the global mesh, optimizing
+              cryptographic throughput in real-time.
             </p>
           </div>
 
@@ -247,8 +248,8 @@ function LandingPage() {
               },
               {
                 step: "02",
-                title: "Pay & match a host",
-                body: "Stripe handles the charge. Our intelligent routing layer allocates a high-efficiency CUDA node on the Sovereign Distributed Grid Mesh.",
+                title: "Pay & route intelligently",
+                body: "Our proprietary intelligent routing layer dynamically matches your session with the highest-efficiency nodes across the global mesh, optimizing cryptographic throughput in real-time.",
               },
               {
                 step: "03",
