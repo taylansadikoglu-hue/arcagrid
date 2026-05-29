@@ -17,7 +17,7 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "Provision an edge compute cluster on the Sovereign Distributed Grid Mesh in one click. Intelligent routing, live telemetry, zero setup.",
+          "Provision an edge compute cluster on ARCA GRID in one click. Intelligent routing, live telemetry, zero setup.",
       },
       { property: "og:title", content: "ArcaGrid — Enterprise GPU Orchestration Layer" },
       {
@@ -83,7 +83,7 @@ function LandingPage() {
             </h1>
             <p className="mx-auto mt-5 max-w-xl text-balance text-base text-muted-foreground sm:text-lg">
               Spin up a tuned CUDA node on the{" "}
-              <span className="text-foreground">Sovereign Distributed Grid Mesh</span>{" "}
+              <span className="text-foreground">ARCA GRID</span>{" "}
               with our production-verified container. Our proprietary intelligent routing
               layer dynamically matches your session with the highest-efficiency nodes
               across the global mesh, optimizing cryptographic throughput in real-time.
@@ -150,9 +150,9 @@ function LandingPage() {
               </div>
 
               <div className="mt-6 grid grid-cols-3 gap-3 text-center">
-                <Stat label="Mine batch" value="80" />
-                <Stat label="Solve batch" value="16" />
-                <Stat label="Backend" value="cuda" />
+                <Stat label="Routing" value="Mesh" />
+                <Stat label="Runtime" value="CUDA" />
+                <Stat label="Telemetry" value="Live" />
               </div>
             </div>
           </div>
@@ -169,8 +169,8 @@ function LandingPage() {
             <p className="mt-3 text-muted-foreground">
               Pay once for 24h or subscribe monthly. Our proprietary intelligent
               routing layer dynamically matches your session with the
-              highest-efficiency nodes across the global mesh, optimizing
-              cryptographic throughput in real-time.
+              highest-efficiency nodes across ARCA GRID, optimizing cryptographic
+              throughput in real-time.
             </p>
           </div>
 
@@ -276,8 +276,8 @@ function LandingPage() {
       <footer className="border-t border-border/60 py-8">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-6 text-xs text-muted-foreground sm:flex-row">
           <span>© {new Date().getFullYear()} ARCA GRID</span>
-          <span className="font-mono-num">
-            BTX_MATMUL_BACKEND=cuda · BTX_MINE_BATCH_SIZE=80 · BTX_MATMUL_SOLVE_BATCH_SIZE=16
+          <span className="font-mono-num text-muted-foreground">
+            ARCA GRID · Enterprise GPU Orchestration Layer
           </span>
         </div>
       </footer>
