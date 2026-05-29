@@ -151,8 +151,7 @@ function DashboardPage() {
               </h4>
               <ul className="font-mono-num mt-2 space-y-1 text-xs text-muted-foreground">
                 <li>BTX_MATMUL_BACKEND=cuda</li>
-                <li>BTX_MATMUL_SOLVE_BATCH_SIZE=16</li>
-                <li>BTX_MINE_BATCH_SIZE=80</li>
+                <li>Dynamic Cluster Matrix Scaling based on Live Network Difficulty Tiers</li>
                 <li>rpcport=19334 · ipv4-only</li>
                 <li>maxconnections=20 · guardminpeers=1</li>
               </ul>
