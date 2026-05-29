@@ -49,7 +49,7 @@ function CheckoutPage() {
       wallet: prefs.wallet || "btx1qexample0000000000",
       mode: prefs.mode,
       tier: tier.id as TierId,
-      instanceId: `vast-${Math.random().toString(36).slice(2, 8)}`,
+      instanceId: `node-${Math.random().toString(36).slice(2, 8)}`,
       status: "mining",
       startedAt: now,
       expiresAt: now + durationMs,
