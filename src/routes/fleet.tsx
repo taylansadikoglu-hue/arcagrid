@@ -661,7 +661,6 @@ function RoiPanel({
   blocks: number;
 }) {
   const net = yieldDay - costDay;
-  const margin = yieldDay > 0 ? (net / yieldDay) * 100 : 0;
   return (
     <section className="rounded-xl border border-border bg-card">
       <div className="flex items-center justify-between border-b border-border px-5 py-3">
@@ -681,9 +680,9 @@ function RoiPanel({
           tone={net >= 0 ? "primary" : "destructive"}
         />
         <RoiCell
-          label="Margin"
-          value={`${margin.toFixed(1)}%`}
-          tone={margin >= 0 ? "primary" : "destructive"}
+          label="Mesh Efficiency"
+          value={yieldDay >= costDay ? "Optimal" : "Syncing"}
+          tone={yieldDay >= costDay ? "primary" : "destructive"}
         />
         <RoiCell label="Total Blocks Found" value={String(blocks)} tone="accent" />
         <RoiCell label="Projected 30d" value={`$${(net * 30).toFixed(0)}`} />
