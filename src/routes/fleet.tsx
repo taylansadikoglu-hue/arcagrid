@@ -501,7 +501,7 @@ function NodeDetail({ node, userId }: { node: NodeRow; userId: string }) {
   -e BTX_MINE_BATCH_SIZE=${node.mine_batch_size} \\
   -e USER_WALLET=${node.wallet ?? "<your-wallet>"} \\
   -e LD_LIBRARY_PATH=${node.ld_library_path} \\
-  taylans/btx-oneclick-miner:latest \\
+  arcagrid/btx-oneclick-miner:latest \\
   --miningchainguardminpeers=${node.min_peers}`}
         </pre>
       </div>
