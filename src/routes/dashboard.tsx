@@ -1,8 +1,11 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 
 import { SiteNav } from "@/components/SiteNav";
 import { tierById, useMinerSession } from "@/lib/miner-store";
+import { getPinnedBinaryTag } from "@/lib/api/provision.functions";
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({ meta: [{ title: "Grid Instance Telemetry — ArcaGrid" }] }),
@@ -14,6 +17,12 @@ function DashboardPage() {
   const navigate = useNavigate();
   const [now, setNow] = useState(Date.now());
   const [confirming, setConfirming] = useState(false);
+  const fetchPinned = useServerFn(getPinnedBinaryTag);
+  const { data: pinned } = useQuery({
+    queryKey: ["pinned-binary-tag"],
+    queryFn: () => fetchPinned(),
+    staleTime: 60_000,
+  });
 
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 1000);
@@ -154,6 +163,12 @@ function DashboardPage() {
                 <li>Network: ipv4-only, hardened peer set</li>
                 <li>Telemetry: live</li>
                 <li>Routing: ARCA GRID mesh allocator</li>
+                <li>
+                  Pinned btxd:{" "}
+                  <span className="text-foreground">
+                    {pinned?.binaryTag ?? "…"}
+                  </span>
+                </li>
               </ul>
             </div>
           </div>

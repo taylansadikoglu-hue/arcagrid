@@ -14,6 +14,19 @@ import { z } from "zod";
 
 const MIN_MARGIN = 0.4; // ≥ 40% gross margin. Server-side only.
 const IMAGE = "taylans/btx-oneclick-miner:latest";
+/**
+ * Pinned btxd binary release tag. Every provisioned container runs exactly
+ * this version of the daemon — no "latest" pulls at runtime. Override via
+ * the BTX_BINARY_TAG env var when promoting a new signed release.
+ *
+ * Signature verification and the actual hot-swap loop live inside the
+ * Docker image itself (taylans/btx-oneclick-miner), not in this orchestrator.
+ */
+const DEFAULT_BTX_BINARY_TAG = "v0.27.1";
+
+function pinnedBinaryTag(): string {
+  return process.env.BTX_BINARY_TAG?.trim() || DEFAULT_BTX_BINARY_TAG;
+}
 
 const ProvisionInput = z.object({
   tier: z.enum(["standard_24h", "pro_24h", "standard_monthly", "pro_monthly"]),
@@ -144,6 +157,9 @@ function buildEnv(input: z.infer<typeof ProvisionInput>) {
     BTX_MATMUL_SOLVE_BATCH_SIZE: "16",
     BTX_MINE_BATCH_SIZE: "80",
     BTX_MATMUL_PIPELINE_ASYNC: "0",
+    // Immutable infra: the image verifies this tag's signature against the
+    // baked-in public key before launching btxd. No runtime upgrades.
+    BTX_BINARY_TAG: pinnedBinaryTag(),
   };
 }
 
@@ -239,6 +255,7 @@ export const provisionCluster = createServerFn({ method: "POST" })
         ok: true as const,
         instanceId,
         provisionedAt: Date.now(),
+        binaryTag: pinnedBinaryTag(),
       };
     } catch (err) {
       console.error("[provision] launch failed", err);
@@ -248,3 +265,67 @@ export const provisionCluster = createServerFn({ method: "POST" })
       };
     }
   });
+
+/**
+ * Returns the binary tag currently pinned for new provisions. Safe to expose
+ * to authenticated operators — does not leak provider, margin, or pricing.
+ */
+export const getPinnedBinaryTag = createServerFn({ method: "GET" }).handler(
+  async () => ({ binaryTag: pinnedBinaryTag() }),
+);
+
+/**
+ * Fetches the latest published release tag from the upstream btxchain/btx
+ * GitHub registry so operators can decide whether to cut a new signed image.
+ * This is read-only — it never triggers an upgrade.
+ */
+export const getUpstreamReleaseTag = createServerFn({ method: "GET" }).handler(
+  async () => {
+    const pinned = pinnedBinaryTag();
+    try {
+      const res = await fetch(
+        "https://api.github.com/repos/btxchain/btx/releases/latest",
+        {
+          headers: {
+            Accept: "application/vnd.github+json",
+            "User-Agent": "arcagrid-orchestrator",
+          },
+        },
+      );
+      if (!res.ok) {
+        return {
+          pinned,
+          upstream: null as string | null,
+          publishedAt: null as string | null,
+          htmlUrl: null as string | null,
+          upToDate: null as boolean | null,
+          error: `Upstream registry responded ${res.status}`,
+        };
+      }
+      const json = (await res.json()) as {
+        tag_name?: string;
+        published_at?: string;
+        html_url?: string;
+      };
+      const upstream = json.tag_name ?? null;
+      return {
+        pinned,
+        upstream,
+        publishedAt: json.published_at ?? null,
+        htmlUrl: json.html_url ?? null,
+        upToDate: upstream ? upstream === pinned : null,
+        error: null as string | null,
+      };
+    } catch (err) {
+      console.error("[provision] upstream release lookup failed", err);
+      return {
+        pinned,
+        upstream: null,
+        publishedAt: null,
+        htmlUrl: null,
+        upToDate: null,
+        error: "Upstream registry unreachable",
+      };
+    }
+  },
+);
