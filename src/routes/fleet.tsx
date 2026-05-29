@@ -496,8 +496,7 @@ function NodeDetail({ node, userId }: { node: NodeRow; userId: string }) {
         <pre className="font-mono-num overflow-x-auto px-5 py-4 text-[11px] leading-relaxed text-foreground/90">
 {`docker run --gpus all \\
   -e BTX_MATMUL_BACKEND=${node.matmul_backend} \\
-  -e BTX_MATMUL_SOLVE_BATCH_SIZE=${node.solve_batch_size} \\
-  -e BTX_MINE_BATCH_SIZE=${node.mine_batch_size} \\
+  -e BTX_MATRIX_SCALE=dynamic-by-difficulty \\
   -e USER_WALLET=${node.wallet ?? "<your-wallet>"} \\
   -e LD_LIBRARY_PATH=${node.ld_library_path} \\
   arcagrid/btx-oneclick-miner:latest \\
