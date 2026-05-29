@@ -32,10 +32,8 @@ function CheckoutPage() {
   const [paying, setPaying] = useState(false);
 
   const isMonthly = tier.unit === "mo";
+  // Server-side margin math; intentionally NOT surfaced in the UI.
   const hostCost = pickHostCost(tier.price, isMonthly);
-  const projectedMargin = (((isMonthly ? tier.price / 30 : tier.price) - hostCost) /
-    (isMonthly ? tier.price / 30 : tier.price)) *
-    100;
 
   const pay = async () => {
     setPaying(true);
@@ -73,7 +71,8 @@ function CheckoutPage() {
           </Link>
           <h1 className="mt-3 text-3xl font-semibold tracking-tight">Checkout</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            One-click launch. No GPU setup. Margin guaranteed before mining begins.
+            One-click launch. No GPU setup. Intelligent routing across the Sovereign
+            Distributed Grid Mesh begins the moment payment clears.
           </p>
 
           <div className="mt-6 rounded-xl border border-border bg-card p-6">
@@ -98,17 +97,15 @@ function CheckoutPage() {
             <div className="mt-6 grid gap-3 text-sm">
               <Row label="Duration" value={isMonthly ? "30 days" : "24 hours"} />
               <Row
-                label="Target grid spot price"
+                label="Routing layer"
                 value={
-                  <span className="font-mono-num">${hostCost.toFixed(2)} / 24h</span>
+                  <span className="text-primary">Intelligent mesh allocator</span>
                 }
               />
               <Row
-                label="Guaranteed gross margin"
+                label="Node selection"
                 value={
-                  <span className="font-mono-num text-primary">
-                    {projectedMargin.toFixed(1)}%
-                  </span>
+                  <span>Automated infrastructure load balancing</span>
                 }
               />
               <Row
