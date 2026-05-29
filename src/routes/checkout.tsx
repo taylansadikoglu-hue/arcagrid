@@ -87,8 +87,8 @@ function CheckoutPage() {
           </Link>
           <h1 className="mt-3 text-3xl font-semibold tracking-tight">Provisioning Edge Cluster</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            One-click initialization. No GPU setup. Intelligent routing across the
-            Sovereign Distributed Grid Mesh begins the moment payment clears.
+            One-click initialization. No GPU setup. Intelligent routing across
+            ARCA GRID begins the moment payment clears.
           </p>
 
           <div className="mt-6 rounded-xl border border-border bg-card p-6">
