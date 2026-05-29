@@ -191,10 +191,6 @@ function LoginPortal() {
                     : "Request access"}
               </button>
             </form>
-
-            <p className="mt-6 text-center text-[11px] text-muted-foreground">
-              Protected by Lovable Cloud · TLS 1.3 · SOC2-ready
-            </p>
           </div>
         </div>
       </div>
