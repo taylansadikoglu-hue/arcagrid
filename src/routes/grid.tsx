@@ -81,12 +81,7 @@ function GridConsole() {
     <div className="min-h-screen bg-background text-foreground">
       <SiteNav />
       <main className="relative">
-        <div className="bg-grid pointer-events-none absolute inset-0 opacity-30" />
-        <div
-          className="pointer-events-none absolute inset-0"
-          style={{ background: "var(--gradient-glow)" }}
-        />
-        <div className="relative mx-auto max-w-7xl px-6 py-10">
+        <div className="relative mx-auto max-w-7xl px-6 py-8">
           <Header nodes={nodes} />
           <FleetTable nodes={nodes} />
           <div className="mt-6 grid gap-5 lg:grid-cols-5">
@@ -109,11 +104,11 @@ function Header({ nodes }: { nodes: FleetNode[] }) {
   return (
     <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
       <div>
-        <p className="font-mono-num text-[11px] uppercase tracking-widest text-primary">
-          Sovereign Distributed Grid Mesh · Console
+        <p className="font-mono-num text-[10px] uppercase tracking-[0.25em] text-primary">
+          ARCAGRID // SOVEREIGN MESH CONSOLE
         </p>
-        <h1 className="mt-1 text-3xl font-bold tracking-tight">
-          Grid Orchestration <span className="text-primary">Telemetry</span>
+        <h1 className="font-mono-num mt-1 text-2xl font-semibold uppercase tracking-tight">
+          Grid Orchestration Telemetry
         </h1>
       </div>
       <div className="flex gap-2">
