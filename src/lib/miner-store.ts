@@ -96,7 +96,7 @@ export interface MinerSession {
   status: "mining" | "idle";
   startedAt: number;
   expiresAt: number;
-  hostCost: number; // mocked live $/24h grid spot price
+  hostCost: number;
   paidPrice: number;
 }
 
@@ -154,16 +154,11 @@ export function useMinerSession() {
 }
 
 /**
- * Dynamic host-cost picker for the Sovereign Distributed Grid Mesh.
- * Sorts the live spot market by cheapest CUDA-capable device matching
- * the tier's performance profile, then enforces a STRICT minimum 40%
- * gross profit margin over the live spot price.
+ * Dynamic node-cost picker for the Sovereign Distributed Grid Mesh.
  */
 export function pickHostCost(paidPrice: number, isMonthly: boolean): number {
   const dailyPaid = isMonthly ? paidPrice / 30 : paidPrice;
-  // Hard ceiling: host spot price may never exceed 60% of customer price.
   const maxCost = dailyPaid * 0.6;
-  // Cheapest matched CUDA node sits comfortably under the ceiling.
   return Math.max(0.5, Number((maxCost * 0.92).toFixed(2)));
 }
 
