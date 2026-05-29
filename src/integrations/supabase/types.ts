@@ -14,7 +14,113 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      node_telemetry: {
+        Row: {
+          gpu_temp_c: number
+          hashrate_ns: number
+          id: number
+          node_id: string
+          power_w: number
+          recorded_at: string
+          user_id: string
+          vram_temp_c: number
+        }
+        Insert: {
+          gpu_temp_c: number
+          hashrate_ns: number
+          id?: number
+          node_id: string
+          power_w: number
+          recorded_at?: string
+          user_id: string
+          vram_temp_c: number
+        }
+        Update: {
+          gpu_temp_c?: number
+          hashrate_ns?: number
+          id?: number
+          node_id?: string
+          power_w?: number
+          recorded_at?: string
+          user_id?: string
+          vram_temp_c?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "node_telemetry_node_id_fkey"
+            columns: ["node_id"]
+            isOneToOne: false
+            referencedRelation: "nodes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      nodes: {
+        Row: {
+          blocks_found: number
+          created_at: string
+          cuda_runtime_pin: string
+          daily_cost_usd: number
+          hardware: string
+          id: string
+          idle_redirect: boolean
+          ld_library_path: string
+          location: string
+          matmul_backend: string
+          min_peers: number
+          mine_batch_size: number
+          name: string
+          power_cap_w: number
+          solve_batch_size: number
+          status: Database["public"]["Enums"]["node_status"]
+          updated_at: string
+          user_id: string
+          wallet: string | null
+        }
+        Insert: {
+          blocks_found?: number
+          created_at?: string
+          cuda_runtime_pin?: string
+          daily_cost_usd?: number
+          hardware?: string
+          id?: string
+          idle_redirect?: boolean
+          ld_library_path?: string
+          location: string
+          matmul_backend?: string
+          min_peers?: number
+          mine_batch_size?: number
+          name: string
+          power_cap_w?: number
+          solve_batch_size?: number
+          status?: Database["public"]["Enums"]["node_status"]
+          updated_at?: string
+          user_id: string
+          wallet?: string | null
+        }
+        Update: {
+          blocks_found?: number
+          created_at?: string
+          cuda_runtime_pin?: string
+          daily_cost_usd?: number
+          hardware?: string
+          id?: string
+          idle_redirect?: boolean
+          ld_library_path?: string
+          location?: string
+          matmul_backend?: string
+          min_peers?: number
+          mine_batch_size?: number
+          name?: string
+          power_cap_w?: number
+          solve_batch_size?: number
+          status?: Database["public"]["Enums"]["node_status"]
+          updated_at?: string
+          user_id?: string
+          wallet?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +129,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      node_status: "active" | "syncing" | "idle" | "offline"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +256,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      node_status: ["active", "syncing", "idle", "offline"],
+    },
   },
 } as const
