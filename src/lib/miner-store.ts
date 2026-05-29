@@ -13,6 +13,7 @@ export interface Tier {
   hashrate: string;
   features: string[];
   highlight?: boolean;
+  description?: string;
 }
 
 export const TIERS: Tier[] = [
@@ -24,9 +25,11 @@ export const TIERS: Tier[] = [
     unit: "24h",
     hardware: "Standard Hashrate",
     hashrate: "Optimized throughput",
+    description:
+      "Dynamically hooks into highly optimized multi-GPU arrays (targeting 3080Ti/4070Ti baseline efficiencies).",
     features: [
       "Production batch tuning (80 / 16)",
-      "Sovereign Distributed Grid Engine match",
+      "Sovereign Distributed Grid Mesh match",
       "Strict ≥ 40% gross margin guarantee",
       "Live dashboard + logs",
     ],
@@ -35,11 +38,13 @@ export const TIERS: Tier[] = [
     id: "pro_24h",
     name: "Pro",
     tagline: "Max Density Compute Clusters",
-    price: 9,
+    price: 12,
     unit: "24h",
     hardware: "Pro Hashrate",
     hashrate: "Max density compute",
     highlight: true,
+    description:
+      "Allocates enterprise-grade compute nodes tailored for maximum cryptographic throughput and massive hardware density.",
     features: [
       "Top-tier CUDA-capable nodes",
       "Priority grid allocation",
@@ -55,6 +60,8 @@ export const TIERS: Tier[] = [
     unit: "mo",
     hardware: "Standard Hashrate",
     hashrate: "Optimized throughput",
+    description:
+      "Dynamically hooks into highly optimized multi-GPU arrays (targeting 3080Ti/4070Ti baseline efficiencies).",
     features: [
       "Unlimited 24h sessions",
       "Save 20% vs daily",
@@ -66,13 +73,15 @@ export const TIERS: Tier[] = [
     id: "pro_monthly",
     name: "Pro",
     tagline: "Monthly",
-    price: 240,
+    price: 290,
     unit: "mo",
     hardware: "Pro Hashrate",
     hashrate: "Max density compute",
+    description:
+      "Allocates enterprise-grade compute nodes tailored for maximum cryptographic throughput and massive hardware density.",
     features: [
       "Unlimited Pro sessions",
-      "Save 17% vs daily",
+      "Save ~20% vs daily",
       "Dedicated host pool",
       "1:1 onboarding",
     ],
@@ -87,7 +96,7 @@ export interface MinerSession {
   status: "mining" | "idle";
   startedAt: number;
   expiresAt: number;
-  hostCost: number; // mocked $/24h paid to Vast.ai
+  hostCost: number; // mocked live $/24h grid spot price
   paidPrice: number;
 }
 
@@ -145,10 +154,10 @@ export function useMinerSession() {
 }
 
 /**
- * Dynamic host-cost picker for the Sovereign Distributed Grid Engine.
- * Sorts the marketplace by cheapest CUDA-capable device matching the
- * tier's performance profile, then enforces a STRICT minimum 40% gross
- * profit margin over the live host rental spot price.
+ * Dynamic host-cost picker for the Sovereign Distributed Grid Mesh.
+ * Sorts the live spot market by cheapest CUDA-capable device matching
+ * the tier's performance profile, then enforces a STRICT minimum 40%
+ * gross profit margin over the live spot price.
  */
 export function pickHostCost(paidPrice: number, isMonthly: boolean): number {
   const dailyPaid = isMonthly ? paidPrice / 30 : paidPrice;
