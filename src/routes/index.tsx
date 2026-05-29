@@ -22,7 +22,8 @@ export const Route = createFileRoute("/")({
       { property: "og:title", content: "BTX One-Click Miner" },
       {
         property: "og:description",
-        content: "One-click GPU mining for BTX with guaranteed profit margin.",
+        content:
+          "One-click GPU mining for BTX on the Sovereign Distributed Grid Engine, with a guaranteed gross profit margin.",
       },
     ],
   }),
@@ -75,9 +76,11 @@ function LandingPage() {
               Profit on every session.
             </h1>
             <p className="mx-auto mt-5 max-w-xl text-balance text-base text-muted-foreground sm:text-lg">
-              Spin up a tuned GPU rig on Vast.ai with our pre-built Docker image. We
-              auto-select a host at <span className="text-foreground">≥ 40% below your price</span>,
-              so margin is guaranteed before mining starts.
+              Spin up a tuned CUDA node on the{" "}
+              <span className="text-foreground">Sovereign Distributed Grid Engine</span>{" "}
+              with our production-verified container. We auto-select the cheapest matched
+              host and lock a <span className="text-foreground">strict ≥ 40% gross margin</span>{" "}
+              before mining starts.
             </p>
           </div>
 
@@ -134,9 +137,9 @@ function LandingPage() {
               </div>
 
               <div className="mt-6 grid grid-cols-3 gap-3 text-center">
-                <Stat label="Batch size" value="20" />
-                <Stat label="Solve batch" value="4" />
-                <Stat label="Pipeline" value="async-0" />
+                <Stat label="Mine batch" value="80" />
+                <Stat label="Solve batch" value="16" />
+                <Stat label="Backend" value="cuda" />
               </div>
             </div>
           </div>
@@ -151,8 +154,9 @@ function LandingPage() {
               Pick your compute tier
             </h2>
             <p className="mt-3 text-muted-foreground">
-              Pay once for 24h or subscribe monthly. Every tier auto-targets a Vast.ai
-              host priced ≥ 40% below your fee.
+              Pay once for 24h or subscribe monthly. Every tier auto-targets the cheapest
+              matched node on the Sovereign Distributed Grid Engine, with a strict ≥ 40%
+              gross margin locked in before launch.
             </p>
           </div>
 
@@ -187,7 +191,7 @@ function LandingPage() {
                   <span className="text-sm text-muted-foreground">/ {tier.unit}</span>
                 </div>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  {tier.hardware} · <span className="text-primary/90">{tier.hashrate}</span>
+                  <span className="text-primary/90">{tier.hardware}</span>
                 </p>
                 <ul className="mt-5 space-y-2.5 text-sm">
                   {tier.features.map((f) => (
@@ -229,7 +233,7 @@ function LandingPage() {
               {
                 step: "02",
                 title: "Pay & match a host",
-                body: "Stripe handles the charge. Our matcher locks a Vast.ai GPU priced ≥ 40% below your tier.",
+                body: "Stripe handles the charge. Our matcher locks the cheapest CUDA node on the Sovereign Distributed Grid Engine, ≥ 40% below your tier.",
               },
               {
                 step: "03",
@@ -254,7 +258,7 @@ function LandingPage() {
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-6 text-xs text-muted-foreground sm:flex-row">
           <span>© {new Date().getFullYear()} BTX One-Click Miner</span>
           <span className="font-mono-num">
-            BTX_MINE_BATCH_SIZE=20 · BTX_MATMUL_SOLVE_BATCH_SIZE=4
+            BTX_MATMUL_BACKEND=cuda · BTX_MINE_BATCH_SIZE=80 · BTX_MATMUL_SOLVE_BATCH_SIZE=16
           </span>
         </div>
       </footer>
