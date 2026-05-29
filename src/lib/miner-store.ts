@@ -30,7 +30,7 @@ export const TIERS: Tier[] = [
     features: [
       "Production batch tuning (80 / 16)",
       "Sovereign Distributed Grid Mesh match",
-      "Strict ≥ 40% gross margin guarantee",
+      "Automated infrastructure load balancing",
       "Live dashboard + logs",
     ],
   },
