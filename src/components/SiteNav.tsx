@@ -39,6 +39,13 @@ export function SiteNav() {
           >
             Fleet
           </Link>
+          <Link
+            to="/grid"
+            className="rounded-md px-3 py-1.5 text-muted-foreground transition-colors hover:text-foreground"
+            activeProps={{ className: "text-foreground" }}
+          >
+            Grid Console
+          </Link>
           {user ? (
             <button
               onClick={() => signOut()}
