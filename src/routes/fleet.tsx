@@ -227,6 +227,12 @@ interface NodeRow {
 
 function FleetConsole({ userId, email }: { userId: string; email: string }) {
   const qc = useQueryClient();
+  const fetchPinned = useServerFn(getPinnedBinaryTag);
+  const { data: pinned } = useQuery({
+    queryKey: ["pinned-binary-tag"],
+    queryFn: () => fetchPinned(),
+    staleTime: 60_000,
+  });
   const { data: nodes = [], isLoading } = useQuery({
     queryKey: ["nodes", userId],
     queryFn: async () => {
