@@ -133,10 +133,7 @@ function DashboardPage() {
               <Metric label="Earned" value={`${earned.toFixed(6)} BTX`} />
               <Metric label="Uptime" value={fmtDuration(elapsed)} />
               <Metric label="Time left" value={fmtDuration(remaining)} />
-              <Metric
-                label="Grid spot cost"
-                value={`$${session.hostCost.toFixed(2)}/24h`}
-              />
+              <Metric label="Routing" value="Mesh allocator" />
             </div>
           </div>
 
