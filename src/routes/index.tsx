@@ -1,8 +1,8 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState, type FormEvent } from "react";
+import { useMemo, useState, type FormEvent } from "react";
 
 import { SiteNav } from "@/components/SiteNav";
-import { TIERS, loadPrefs, savePrefs, type TierId } from "@/lib/miner-store";
+import { loadPrefs, savePrefs } from "@/lib/miner-store";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -36,7 +36,7 @@ function LandingPage() {
         <div className="bg-grid pointer-events-none absolute inset-0 opacity-40" />
         <div className="relative mx-auto max-w-7xl px-6 py-14">
           <Hero />
-          <PricingGrid />
+          <TierGrid />
           <RequestAccess />
         </div>
       </main>
@@ -51,72 +51,137 @@ function Hero() {
       <p className="font-mono-num text-[11px] uppercase tracking-widest text-primary">
         Autonomous Remote Cluster Architecture
       </p>
-      <h1 className="mt-3 text-4xl font-bold tracking-tight sm:text-5xl">
+      <h1 className="mt-3 text-4xl font-bold uppercase tracking-tight sm:text-5xl">
         Enterprise GPU Grid <span className="text-primary">Orchestration Layer</span>
       </h1>
       <p className="mt-4 text-sm text-muted-foreground sm:text-base">
-        Dynamic Configuration & Self-Healing Telemetry for large-scale compute
-        fleets. 100% non-custodial. ARCA GRID acts as an automated management
-        abstraction layer for distributed hardware nodes — Dynamic Cluster
-        Matrix Scaling based on Live Network Difficulty Tiers.
+        Dynamic Configuration & Self-Healing Telemetry for Large-Scale Compute
+        Fleets. 100% Non-Custodial.
       </p>
     </section>
   );
 }
 
-function PricingGrid() {
-  const tiers = TIERS.filter((t) => t.unit === "24h");
+const ENTERPRISE_TIERS = [
+  {
+    name: "ARCA Edge Engine",
+    bullets: [
+      "Dynamic Profile Injection via API",
+      "Automated Watchdog Daemon",
+      "GPU Utilization Optimization",
+      "Dynamic Cluster Matrix Scaling",
+    ],
+    seed: 1,
+  },
+  {
+    name: "ARCA Cluster Enterprise",
+    bullets: [
+      "Dynamic Profile Injection via API",
+      "Automated Watchdog Daemon",
+      "GPU Utilization Optimization",
+      "Self-Healing Telemetry Fabric",
+    ],
+    seed: 2,
+  },
+] as const;
+
+function TierGrid() {
   return (
-    <section id="pricing" className="grid gap-5 sm:grid-cols-2">
-      {tiers.map((tier) => (
-        <PricingCard key={tier.id} tier={tier} />
+    <section className="grid gap-5 sm:grid-cols-2">
+      {ENTERPRISE_TIERS.map((t) => (
+        <TierCard key={t.name} name={t.name} bullets={t.bullets} seed={t.seed} />
       ))}
     </section>
   );
 }
 
-function PricingCard({ tier }: { tier: (typeof TIERS)[number] }) {
-  const navigate = useNavigate();
+function TierCard({
+  name,
+  bullets,
+  seed,
+}: {
+  name: string;
+  bullets: readonly string[];
+  seed: number;
+}) {
   return (
     <div
-      className={`rounded-2xl border bg-card/70 p-6 ${
-        tier.highlight ? "border-primary/50" : "border-border"
-      }`}
-      style={{
-        boxShadow: tier.highlight
-          ? "var(--shadow-glow), var(--shadow-card)"
-          : "var(--shadow-card)",
-      }}
+      className="rounded-2xl border border-border bg-card/70 p-6"
+      style={{ boxShadow: "var(--shadow-card)" }}
     >
-      <div className="flex items-baseline justify-between">
-        <h3 className="text-lg font-semibold tracking-tight">{tier.tagline}</h3>
-        {tier.highlight && (
-          <span className="font-mono-num rounded-full border border-primary/40 bg-primary/10 px-2 py-0.5 text-[10px] uppercase tracking-widest text-primary">
-            Recommended
-          </span>
-        )}
-      </div>
-      <p className="mt-2 text-xs text-muted-foreground">{tier.description}</p>
-      <div className="font-mono-num mt-5 flex items-baseline gap-1">
-        <span className="text-3xl font-bold text-foreground">${tier.price}</span>
-        <span className="text-xs text-muted-foreground">/ {tier.unit}</span>
-      </div>
-      <ul className="mt-5 space-y-2 text-xs text-muted-foreground">
-        {tier.features.map((f) => (
-          <li key={f} className="flex gap-2">
-            <span className="text-primary">·</span>
-            <span>{f}</span>
+      <h3 className="text-xl font-semibold tracking-tight">{name}</h3>
+      <ul className="mt-4 space-y-1.5 text-sm text-muted-foreground">
+        {bullets.map((b) => (
+          <li key={b} className="flex gap-2">
+            <span className="text-primary">•</span>
+            <span>{b}</span>
           </li>
         ))}
       </ul>
-      <button
-        onClick={() =>
-          navigate({ to: "/checkout", search: { tier: tier.id as TierId } })
-        }
-        className="mt-6 w-full rounded-md bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-all hover:brightness-110"
-      >
-        Provision {tier.name}
-      </button>
+      <PerfGraph seed={seed} />
+    </div>
+  );
+}
+
+function PerfGraph({ seed }: { seed: number }) {
+  // Deterministic abstract performance curve
+  const points = useMemo(() => {
+    const N = 24;
+    const arr: number[] = [];
+    for (let i = 0; i < N; i++) {
+      const base = 0.25 + (i / N) * 0.55;
+      const wobble =
+        Math.sin((i + seed * 3) / 2.2) * 0.12 +
+        Math.cos((i + seed) / 1.4) * 0.06;
+      arr.push(Math.max(0.08, Math.min(0.95, base + wobble)));
+    }
+    return arr;
+  }, [seed]);
+
+  const W = 320;
+  const H = 90;
+  const step = W / (points.length - 1);
+  const toY = (v: number) => H - v * H;
+  const path = points
+    .map((v, i) => `${i === 0 ? "M" : "L"}${(i * step).toFixed(1)},${toY(v).toFixed(1)}`)
+    .join(" ");
+  const area = `${path} L${W},${H} L0,${H} Z`;
+  const gradId = `g-${seed}`;
+
+  return (
+    <div className="mt-5 rounded-md border border-border/70 bg-background/50 p-3">
+      <svg viewBox={`0 0 ${W} ${H}`} className="block h-24 w-full">
+        <defs>
+          <linearGradient id={gradId} x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0%" stopColor="oklch(0.84 0.16 200)" stopOpacity="0.45" />
+            <stop offset="100%" stopColor="oklch(0.84 0.16 200)" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        {[0.25, 0.5, 0.75].map((g) => (
+          <line
+            key={g}
+            x1="0"
+            x2={W}
+            y1={H * g}
+            y2={H * g}
+            stroke="oklch(1 0 0 / 0.05)"
+            strokeDasharray="2 4"
+          />
+        ))}
+        <path d={area} fill={`url(#${gradId})`} />
+        <path
+          d={path}
+          fill="none"
+          stroke="oklch(0.84 0.16 200)"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+      <div className="font-mono-num mt-1 flex justify-between text-[10px] uppercase tracking-widest text-muted-foreground">
+        <span>Throughput</span>
+        <span>Live · Optimized</span>
+      </div>
     </div>
   );
 }
@@ -137,8 +202,11 @@ function RequestAccess() {
   };
 
   return (
-    <section className="mt-10 rounded-2xl border border-border bg-card/70 p-6">
-      <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
+    <section
+      className="mt-10 rounded-2xl border border-primary/30 bg-card/70 p-6"
+      style={{ boxShadow: "var(--shadow-glow), var(--shadow-card)" }}
+    >
+      <h2 className="text-base font-semibold uppercase tracking-widest text-foreground">
         Request Cluster Deployment / Demo
       </h2>
       <form
@@ -164,8 +232,8 @@ function RequestAccess() {
         </button>
       </form>
       <p className="mt-3 text-[11px] text-muted-foreground">
-        100% Non-Custodial: Your mining payout address is utilized solely to
-        route mining rewards directly from the chain pool architecture.
+        <span className="text-primary">▲</span> Addresses verified solely for
+        direct pool mining reward routing. Non-custodial.
       </p>
     </section>
   );
