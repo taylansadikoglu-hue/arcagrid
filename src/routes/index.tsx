@@ -13,13 +13,13 @@ import {
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "ArcGrid — Enterprise GPU Orchestration" },
+      { title: "ArcaGrid — Enterprise GPU Orchestration Layer" },
       {
         name: "description",
         content:
           "Provision an edge compute cluster on the Sovereign Distributed Grid Mesh in one click. Intelligent routing, live telemetry, zero setup.",
       },
-      { property: "og:title", content: "ArcGrid — Enterprise GPU Orchestration" },
+      { property: "og:title", content: "ArcaGrid — Enterprise GPU Orchestration Layer" },
       {
         property: "og:description",
         content:
@@ -74,9 +74,12 @@ function LandingPage() {
               Optimized Compute · Live
             </span>
             <h1 className="mt-6 text-balance text-5xl font-semibold tracking-tight sm:text-6xl">
-              Provision an <span className="text-primary">edge cluster.</span>
+              <span className="text-primary">ARCA:</span> Autonomous Remote
+              Cluster Architecture
               <br />
-              In a single click.
+              <span className="text-muted-foreground">
+                High-Density GPU Grid Orchestration.
+              </span>
             </h1>
             <p className="mx-auto mt-5 max-w-xl text-balance text-base text-muted-foreground sm:text-lg">
               Spin up a tuned CUDA node on the{" "}
@@ -99,7 +102,7 @@ function LandingPage() {
                   Configure rig
                 </h2>
                 <span className="font-mono-num text-xs text-muted-foreground">
-                  taylans/btx-oneclick-miner:latest
+                  arcagrid/btx-oneclick-miner:latest
                 </span>
               </div>
 
@@ -272,7 +275,7 @@ function LandingPage() {
 
       <footer className="border-t border-border/60 py-8">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-6 text-xs text-muted-foreground sm:flex-row">
-          <span>© {new Date().getFullYear()} ArcGrid</span>
+          <span>© {new Date().getFullYear()} ARCA GRID</span>
           <span className="font-mono-num">
             BTX_MATMUL_BACKEND=cuda · BTX_MINE_BATCH_SIZE=80 · BTX_MATMUL_SOLVE_BATCH_SIZE=16
           </span>
@@ -424,7 +427,7 @@ function WalletHelpModal({
         </div>
 
         <p className="mt-5 text-[11px] text-muted-foreground">
-          ArcGrid never takes custody of your funds. Wallet addresses are
+          ARCA GRID never takes custody of your funds. Wallet addresses are
           injected into the provisioned cluster as <span className="font-mono-num">USER_WALLET</span>.
         </p>
       </div>
