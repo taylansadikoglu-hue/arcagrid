@@ -5,7 +5,7 @@ import { SiteNav } from "@/components/SiteNav";
 import { tierById, useMinerSession } from "@/lib/miner-store";
 
 export const Route = createFileRoute("/dashboard")({
-  head: () => ({ meta: [{ title: "Grid Instance Telemetry — ArcGrid" }] }),
+  head: () => ({ meta: [{ title: "Grid Instance Telemetry — ArcaGrid" }] }),
   component: DashboardPage,
 });
 

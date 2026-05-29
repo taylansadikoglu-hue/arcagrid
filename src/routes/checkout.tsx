@@ -20,7 +20,7 @@ const searchSchema = z.object({
 export const Route = createFileRoute("/checkout")({
   validateSearch: searchSchema,
   head: () => ({
-    meta: [{ title: "Provisioning Edge Cluster — ArcGrid" }],
+    meta: [{ title: "Provisioning Edge Cluster — ArcaGrid" }],
   }),
   component: CheckoutPage,
 });
@@ -111,7 +111,7 @@ function CheckoutPage() {
                 label="Docker image"
                 value={
                   <span className="font-mono-num text-xs">
-                    taylans/btx-oneclick-miner:latest
+                    arcagrid/btx-oneclick-miner:latest
                   </span>
                 }
               />
