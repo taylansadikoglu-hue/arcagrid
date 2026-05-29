@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   signInWithPassword,
   signUpWithPassword,
+  resetPasswordForEmail,
   useAuth,
 } from "@/lib/use-auth";
 import {
@@ -59,7 +60,7 @@ function FleetPage() {
 /* -------------------------------------------------------------------------- */
 
 function LoginPortal() {
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const [mode, setMode] = useState<"signin" | "signup" | "forgot">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
@@ -71,6 +72,18 @@ function LoginPortal() {
     setBusy(true);
     setErr(null);
     setMsg(null);
+    if (mode === "forgot") {
+      const { error } = await resetPasswordForEmail(email.trim());
+      setBusy(false);
+      if (error) {
+        setErr(error.message);
+        return;
+      }
+      setMsg(
+        "If an account exists for that address, a recovery link is on its way.",
+      );
+      return;
+    }
     const fn = mode === "signin" ? signInWithPassword : signUpWithPassword;
     const { error } = await fn(email.trim(), password);
     setBusy(false);
@@ -121,7 +134,11 @@ function LoginPortal() {
           >
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold">
-                {mode === "signin" ? "Operator sign in" : "Provision access"}
+                {mode === "signin"
+                  ? "Operator sign in"
+                  : mode === "signup"
+                    ? "Provision access"
+                    : "Recover passphrase"}
               </h2>
               <button
                 onClick={() => {
@@ -150,23 +167,41 @@ function LoginPortal() {
                   className="font-mono-num mt-1.5 w-full rounded-lg border border-input bg-background/60 px-4 py-3 text-sm outline-none transition-colors placeholder:text-muted-foreground/50 focus:border-primary/60 focus:ring-2 focus:ring-primary/20"
                 />
               </label>
-              <label className="block">
-                <span className="text-xs uppercase tracking-widest text-muted-foreground">
-                  Passphrase
-                </span>
-                <input
-                  type="password"
-                  autoComplete={
-                    mode === "signin" ? "current-password" : "new-password"
-                  }
-                  required
-                  minLength={8}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="font-mono-num mt-1.5 w-full rounded-lg border border-input bg-background/60 px-4 py-3 text-sm outline-none transition-colors placeholder:text-muted-foreground/50 focus:border-primary/60 focus:ring-2 focus:ring-primary/20"
-                />
-              </label>
+              {mode !== "forgot" && (
+                <label className="block">
+                  <span className="text-xs uppercase tracking-widest text-muted-foreground">
+                    Passphrase
+                  </span>
+                  <input
+                    type="password"
+                    autoComplete={
+                      mode === "signin" ? "current-password" : "new-password"
+                    }
+                    required
+                    minLength={8}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="font-mono-num mt-1.5 w-full rounded-lg border border-input bg-background/60 px-4 py-3 text-sm outline-none transition-colors placeholder:text-muted-foreground/50 focus:border-primary/60 focus:ring-2 focus:ring-primary/20"
+                  />
+                </label>
+              )}
+
+              {mode === "signin" && (
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMode("forgot");
+                      setErr(null);
+                      setMsg(null);
+                    }}
+                    className="text-xs text-muted-foreground hover:text-primary"
+                  >
+                    Forgot passphrase?
+                  </button>
+                </div>
+              )}
 
               {err && (
                 <p className="rounded border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
@@ -188,8 +223,24 @@ function LoginPortal() {
                   ? "…"
                   : mode === "signin"
                     ? "Enter console"
-                    : "Request access"}
+                    : mode === "signup"
+                      ? "Request access"
+                      : "Send recovery link"}
               </button>
+
+              {mode === "forgot" && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMode("signin");
+                    setErr(null);
+                    setMsg(null);
+                  }}
+                  className="w-full text-center text-xs text-muted-foreground hover:text-foreground"
+                >
+                  ← Back to sign in
+                </button>
+              )}
             </form>
           </div>
         </div>
