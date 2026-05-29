@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useState } from "react";
 
 import { SiteNav } from "@/components/SiteNav";
@@ -9,6 +10,10 @@ import {
   signUpWithPassword,
   useAuth,
 } from "@/lib/use-auth";
+import {
+  getPinnedBinaryTag,
+  getUpstreamReleaseTag,
+} from "@/lib/api/provision.functions";
 
 export const Route = createFileRoute("/fleet")({
   head: () => ({
