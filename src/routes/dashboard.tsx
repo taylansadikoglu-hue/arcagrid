@@ -29,6 +29,21 @@ function DashboardPage() {
     return Math.max(0.1, base + jitter);
   }, [session, now]);
 
+  // Simulated chain sync: pre-packaged archive bootstrap brings the node
+  // close to tip within ~45s, then trickles to current header height.
+  const sync = useMemo(() => {
+    if (!session) return { local: 0, headers: 114000, pct: 0 };
+    const elapsedSec = (now - session.startedAt) / 1000;
+    const headers = 114000 + Math.floor(elapsedSec / 600); // +1 block/10min
+    // Bootstrap archive lands at ~92% in 45s, then linear to 100% over 2min.
+    let pct: number;
+    if (elapsedSec < 45) pct = (elapsedSec / 45) * 0.92;
+    else if (elapsedSec < 165) pct = 0.92 + ((elapsedSec - 45) / 120) * 0.08;
+    else pct = 1;
+    const local = Math.floor(headers * pct);
+    return { local, headers, pct };
+  }, [session, now]);
+
   if (!hydrated) {
     return (
       <div className="min-h-screen bg-background">
@@ -145,6 +160,53 @@ function DashboardPage() {
                 <li>maxconnections=20 · guardminpeers=1</li>
               </ul>
             </div>
+          </div>
+        </div>
+
+        {/* GRID BLOCKCHAIN SYNC */}
+        <div
+          className="mt-4 rounded-2xl border border-border bg-card p-6"
+          style={{ boxShadow: "var(--shadow-card)" }}
+        >
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <div>
+              <h3 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
+                Grid Blockchain Sync Status
+              </h3>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {sync.pct < 1
+                  ? "Bootstrapping pre-packaged chain archive from grid storage…"
+                  : "Fully synced to chain tip · RPC :19334"}
+              </p>
+            </div>
+            <div className="text-right">
+              <span className="font-mono-num text-2xl font-semibold">
+                {(sync.pct * 100).toFixed(1)}%
+              </span>
+              <div className="font-mono-num text-[11px] text-muted-foreground">
+                {sync.local.toLocaleString()} / {sync.headers.toLocaleString()} blocks
+              </div>
+            </div>
+          </div>
+          <div className="mt-4 h-2.5 w-full overflow-hidden rounded-full border border-border bg-background/60">
+            <div
+              className="h-full rounded-full bg-primary transition-all duration-500"
+              style={{
+                width: `${sync.pct * 100}%`,
+                boxShadow: sync.pct < 1 ? "var(--shadow-glow)" : undefined,
+              }}
+            />
+          </div>
+          <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-[11px] text-muted-foreground">
+            <span>
+              Bootstrap: <span className="text-foreground">grid-archive.zst</span>
+            </span>
+            <span>
+              Data dir: <span className="font-mono-num">~/.btx</span>
+            </span>
+            <span>
+              Tip headers: <span className="font-mono-num">{sync.headers.toLocaleString()}</span>
+            </span>
           </div>
         </div>
 

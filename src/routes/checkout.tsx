@@ -49,7 +49,7 @@ function CheckoutPage() {
       wallet: prefs.wallet || "btx1qexample0000000000",
       mode: prefs.mode,
       tier: tier.id as TierId,
-      instanceId: `vast-${Math.random().toString(36).slice(2, 8)}`,
+      instanceId: `node-${Math.random().toString(36).slice(2, 8)}`,
       status: "mining",
       startedAt: now,
       expiresAt: now + durationMs,
@@ -129,6 +129,8 @@ function CheckoutPage() {
               <li>BTX_MATMUL_BACKEND=cuda</li>
               <li>BTX_MATMUL_SOLVE_BATCH_SIZE=16</li>
               <li>BTX_MINE_BATCH_SIZE=80</li>
+              <li># bootstrap chain archive → ~/.btx (fast-sync)</li>
+              <li>curl -sL grid://snapshots/btx-latest.tar.zst | zstd -dc | tar -x</li>
               <li>btxd -daemon -rpcport=19334 -onlynet=ipv4</li>
               <li>     -maxconnections=20 -miningchainguardminpeers=1</li>
               <li>     -miningminoutboundpeers=1 -miningminsyncedoutboundpeers=1</li>

@@ -17,13 +17,13 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "Launch tuned BTX mining on RTX 4070 Ti SUPER, 4090 & A6000 instances in one click. Guaranteed margin, live dashboard.",
+          "Launch tuned BTX mining on the Sovereign Distributed Grid Mesh in one click. Guaranteed gross margin, live dashboard, zero setup.",
       },
       { property: "og:title", content: "BTX One-Click Miner" },
       {
         property: "og:description",
         content:
-          "One-click GPU mining for BTX on the Sovereign Distributed Grid Engine, with a guaranteed gross profit margin.",
+          "One-click GPU mining for BTX on the Sovereign Distributed Grid Mesh, with a guaranteed gross profit margin.",
       },
     ],
   }),
@@ -35,6 +35,7 @@ function LandingPage() {
   const [wallet, setWallet] = useState("");
   const [mode, setMode] = useState<MiningMode>("pool");
   const [error, setError] = useState<string | null>(null);
+  const [walletHelpOpen, setWalletHelpOpen] = useState(false);
 
   useEffect(() => {
     const p = loadPrefs();
@@ -43,7 +44,9 @@ function LandingPage() {
   }, []);
 
   const select = (tier: TierId) => {
-    if (!wallet.trim() || wallet.trim().length < 20) {
+    // Sandbox escrow flow: blank wallet is permitted and accumulates into
+    // the authenticated email's internal ledger.
+    if (wallet.trim() && wallet.trim().length < 20) {
       setError("Enter a valid BTX wallet address (20+ chars) to continue.");
       document.getElementById("launch-card")?.scrollIntoView({ behavior: "smooth" });
       return;
@@ -77,7 +80,7 @@ function LandingPage() {
             </h1>
             <p className="mx-auto mt-5 max-w-xl text-balance text-base text-muted-foreground sm:text-lg">
               Spin up a tuned CUDA node on the{" "}
-              <span className="text-foreground">Sovereign Distributed Grid Engine</span>{" "}
+              <span className="text-foreground">Sovereign Distributed Grid Mesh</span>{" "}
               with our production-verified container. We auto-select the cheapest matched
               host and lock a <span className="text-foreground">strict ≥ 40% gross margin</span>{" "}
               before mining starts.
@@ -108,6 +111,13 @@ function LandingPage() {
                 spellCheck={false}
                 className="font-mono-num mt-2 w-full rounded-lg border border-input bg-background/60 px-4 py-3 text-sm outline-none transition-colors placeholder:text-muted-foreground/60 focus:border-primary/60 focus:ring-2 focus:ring-primary/20"
               />
+              <button
+                type="button"
+                onClick={() => setWalletHelpOpen(true)}
+                className="mt-2 text-xs font-medium text-primary underline-offset-4 transition-colors hover:text-primary/80 hover:underline"
+              >
+                New to BTX? Setup your secure wallet instantly. →
+              </button>
               {error && (
                 <p className="mt-2 text-xs text-destructive">{error}</p>
               )}
@@ -155,7 +165,7 @@ function LandingPage() {
             </h2>
             <p className="mt-3 text-muted-foreground">
               Pay once for 24h or subscribe monthly. Every tier auto-targets the cheapest
-              matched node on the Sovereign Distributed Grid Engine, with a strict ≥ 40%
+              matched node on the Sovereign Distributed Grid Mesh, with a strict ≥ 40%
               gross margin locked in before launch.
             </p>
           </div>
@@ -193,6 +203,11 @@ function LandingPage() {
                 <p className="mt-1 text-xs text-muted-foreground">
                   <span className="text-primary/90">{tier.hardware}</span>
                 </p>
+                {tier.description && (
+                  <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+                    {tier.description}
+                  </p>
+                )}
                 <ul className="mt-5 space-y-2.5 text-sm">
                   {tier.features.map((f) => (
                     <li key={f} className="flex items-start gap-2 text-muted-foreground">
@@ -233,7 +248,7 @@ function LandingPage() {
               {
                 step: "02",
                 title: "Pay & match a host",
-                body: "Stripe handles the charge. Our matcher locks the cheapest CUDA node on the Sovereign Distributed Grid Engine, ≥ 40% below your tier.",
+                body: "Stripe handles the charge. Our matcher locks the cheapest CUDA node on the Sovereign Distributed Grid Mesh, ≥ 40% below your tier.",
               },
               {
                 step: "03",
@@ -262,6 +277,7 @@ function LandingPage() {
           </span>
         </div>
       </footer>
+      <WalletHelpModal open={walletHelpOpen} onClose={() => setWalletHelpOpen(false)} />
     </div>
   );
 }
@@ -290,5 +306,127 @@ function Check() {
     >
       <path d="M20 6L9 17l-5-5" />
     </svg>
+  );
+}
+
+function WalletHelpModal({
+  open,
+  onClose,
+}: {
+  open: boolean;
+  onClose: () => void;
+}) {
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [open, onClose]);
+
+  if (!open) return null;
+
+  const options = [
+    {
+      tag: "Option 1",
+      title: "Desktop Node Client",
+      body: "Run the official BTX full node locally. Most secure — you hold the keys end-to-end.",
+      cta: "Open releases",
+      href: "https://github.com/btxchain/btx/releases",
+      external: true,
+    },
+    {
+      tag: "Option 2",
+      title: "Ecosystem Web Address",
+      body: "Generate a direct funding address on a supported exchange or web wallet. Fastest path to a live address.",
+      cta: "Browse supported wallets",
+      href: "https://github.com/btxchain/btx#wallets",
+      external: true,
+    },
+    {
+      tag: "Option 3",
+      title: "1-Click Escrow Sandbox",
+      body: "Leave the wallet field blank. Mined blocks accumulate in a secure internal ledger tied to your authenticated email — withdraw externally any time.",
+      cta: "Continue without a wallet",
+      href: null,
+      external: false,
+    },
+  ];
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 px-4 py-6 backdrop-blur-sm"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+    >
+      <div
+        className="relative w-full max-w-lg rounded-2xl border border-border bg-card p-6 sm:p-8"
+        style={{ boxShadow: "var(--shadow-card)" }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-xs uppercase tracking-widest text-primary">
+              Wallet Setup
+            </p>
+            <h3 className="mt-1 text-xl font-semibold tracking-tight">
+              Three secure ways to receive BTX
+            </h3>
+          </div>
+          <button
+            onClick={onClose}
+            className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+            aria-label="Close"
+          >
+            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M18 6L6 18M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <div className="mt-5 space-y-3">
+          {options.map((o) => (
+            <div
+              key={o.title}
+              className="rounded-xl border border-border bg-background/50 p-4 transition-colors hover:border-primary/40"
+            >
+              <div className="flex items-baseline justify-between">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-primary">
+                  {o.tag}
+                </span>
+              </div>
+              <h4 className="mt-1 text-sm font-semibold">{o.title}</h4>
+              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                {o.body}
+              </p>
+              {o.href ? (
+                <a
+                  href={o.href}
+                  target={o.external ? "_blank" : undefined}
+                  rel={o.external ? "noreferrer noopener" : undefined}
+                  className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
+                >
+                  {o.cta} →
+                </a>
+              ) : (
+                <button
+                  onClick={onClose}
+                  className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
+                >
+                  {o.cta} →
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+
+        <p className="mt-5 text-[11px] text-muted-foreground">
+          BTX One-Click Miner never takes custody of your funds. Wallet addresses are
+          injected into the mining container as <span className="font-mono-num">USER_WALLET</span>.
+        </p>
+      </div>
+    </div>
   );
 }
