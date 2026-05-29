@@ -53,3 +53,13 @@ export async function signUpWithPassword(email: string, password: string) {
 export async function signOut() {
   return supabase.auth.signOut();
 }
+
+export async function resetPasswordForEmail(email: string) {
+  return supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${window.location.origin}/reset-password`,
+  });
+}
+
+export async function updatePassword(password: string) {
+  return supabase.auth.updateUser({ password });
+}
