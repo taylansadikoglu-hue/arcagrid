@@ -13,13 +13,13 @@ import {
 export const Route = createFileRoute("/fleet")({
   head: () => ({
     meta: [
-      { title: "Fleet Console — BTX Enterprise Orchestration" },
+      { title: "Fleet Console — ArcGrid Enterprise Orchestration" },
       {
         name: "description",
         content:
-          "Institutional GPU fleet orchestration, live telemetry, and ROI tracking for high-density BTX compute.",
+          "Institutional GPU fleet orchestration, live telemetry, and ROI tracking for high-density compute clusters on ArcGrid.",
       },
-      { property: "og:title", content: "BTX Fleet Console" },
+      { property: "og:title", content: "ArcGrid Fleet Console" },
       {
         property: "og:description",
         content: "Bloomberg-grade telemetry for enterprise GPU mining fleets.",

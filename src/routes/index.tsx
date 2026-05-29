@@ -13,13 +13,13 @@ import {
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "BTX One-Click Miner — Optimized GPU Mining" },
+      { title: "ArcGrid — Enterprise GPU Orchestration" },
       {
         name: "description",
         content:
-          "Launch tuned BTX mining on the Sovereign Distributed Grid Mesh in one click. Intelligent routing, live dashboard, zero setup.",
+          "Provision an edge compute cluster on the Sovereign Distributed Grid Mesh in one click. Intelligent routing, live telemetry, zero setup.",
       },
-      { property: "og:title", content: "BTX One-Click Miner" },
+      { property: "og:title", content: "ArcGrid — Enterprise GPU Orchestration" },
       {
         property: "og:description",
         content:
@@ -74,9 +74,9 @@ function LandingPage() {
               Optimized Compute · Live
             </span>
             <h1 className="mt-6 text-balance text-5xl font-semibold tracking-tight sm:text-6xl">
-              Mine BTX in <span className="text-primary">one click.</span>
+              Provision an <span className="text-primary">edge cluster.</span>
               <br />
-              Profit on every session.
+              In a single click.
             </h1>
             <p className="mx-auto mt-5 max-w-xl text-balance text-base text-muted-foreground sm:text-lg">
               Spin up a tuned CUDA node on the{" "}
@@ -248,12 +248,12 @@ function LandingPage() {
               },
               {
                 step: "02",
-                title: "Pay & route intelligently",
+              title: "Initialize Grid Instance",
                 body: "Our proprietary intelligent routing layer dynamically matches your session with the highest-efficiency nodes across the global mesh, optimizing cryptographic throughput in real-time.",
               },
               {
                 step: "03",
-                title: "Mine, monitor, withdraw",
+              title: "Monitor & withdraw",
                 body: "Live status, batch metrics, and a one-tap Stop button. Rewards stream to your wallet.",
               },
             ].map((s) => (
@@ -272,7 +272,7 @@ function LandingPage() {
 
       <footer className="border-t border-border/60 py-8">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-6 text-xs text-muted-foreground sm:flex-row">
-          <span>© {new Date().getFullYear()} BTX One-Click Miner</span>
+          <span>© {new Date().getFullYear()} ArcGrid</span>
           <span className="font-mono-num">
             BTX_MATMUL_BACKEND=cuda · BTX_MINE_BATCH_SIZE=80 · BTX_MATMUL_SOLVE_BATCH_SIZE=16
           </span>
@@ -424,8 +424,8 @@ function WalletHelpModal({
         </div>
 
         <p className="mt-5 text-[11px] text-muted-foreground">
-          BTX One-Click Miner never takes custody of your funds. Wallet addresses are
-          injected into the mining container as <span className="font-mono-num">USER_WALLET</span>.
+          ArcGrid never takes custody of your funds. Wallet addresses are
+          injected into the provisioned cluster as <span className="font-mono-num">USER_WALLET</span>.
         </p>
       </div>
     </div>
