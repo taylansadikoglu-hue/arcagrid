@@ -513,10 +513,121 @@ function NodeDetail({ node, userId }: { node: NodeRow; userId: string }) {
 {`docker run --gpus all \\
   -e BTX_MINING_MODE=pool \\
   -e USER_WALLET=${node.wallet ?? "<your-wallet>"} \\
+  -e BTX_BINARY_TAG=<pinned-by-orchestrator> \\
   arcagrid/btx-oneclick-miner:latest`}
         </pre>
       </div>
     </section>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/*  UPSTREAM RELEASE AUDIT                                                    */
+/* -------------------------------------------------------------------------- */
+
+function UpstreamReleasePanel() {
+  const fetchUpstream = useServerFn(getUpstreamReleaseTag);
+  const { data, isLoading, refetch, isFetching } = useQuery({
+    queryKey: ["upstream-release"],
+    queryFn: () => fetchUpstream(),
+    staleTime: 5 * 60_000,
+  });
+
+  const status: "loading" | "match" | "drift" | "unknown" = isLoading
+    ? "loading"
+    : data?.upToDate === true
+      ? "match"
+      : data?.upToDate === false
+        ? "drift"
+        : "unknown";
+
+  const chip =
+    status === "match"
+      ? "border-primary/40 bg-primary/10 text-primary"
+      : status === "drift"
+        ? "border-accent/40 bg-accent/10 text-accent"
+        : "border-border bg-secondary text-muted-foreground";
+
+  const label =
+    status === "match"
+      ? "PINNED MATCHES UPSTREAM"
+      : status === "drift"
+        ? "UPSTREAM AHEAD · MANUAL ROLLOUT REQUIRED"
+        : status === "loading"
+          ? "QUERYING REGISTRY…"
+          : "UPSTREAM UNAVAILABLE";
+
+  return (
+    <div className="rounded-xl border border-border bg-card">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-5 py-3">
+        <div>
+          <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+            btxd Release Audit · btxchain/btx
+          </h3>
+          <p className="mt-1 text-[11px] text-muted-foreground">
+            Operator-controlled. New tags require a signed image rebuild before
+            they reach the grid — never auto-rolled.
+          </p>
+        </div>
+        <button
+          onClick={() => refetch()}
+          disabled={isFetching}
+          className="rounded-md border border-border bg-secondary px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-foreground transition-colors hover:bg-secondary/70 disabled:opacity-50"
+        >
+          {isFetching ? "Checking…" : "Recheck"}
+        </button>
+      </div>
+      <div className="grid gap-4 px-5 py-4 sm:grid-cols-3">
+        <div>
+          <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
+            Pinned (grid)
+          </div>
+          <div className="font-mono-num mt-1 text-lg text-foreground">
+            {data?.pinned ?? "…"}
+          </div>
+        </div>
+        <div>
+          <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
+            Upstream latest
+          </div>
+          <div className="font-mono-num mt-1 text-lg text-foreground">
+            {data?.upstream ?? "—"}
+          </div>
+          {data?.publishedAt && (
+            <div className="font-mono-num mt-0.5 text-[10px] text-muted-foreground">
+              {new Date(data.publishedAt).toISOString().slice(0, 10)}
+            </div>
+          )}
+        </div>
+        <div>
+          <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
+            Status
+          </div>
+          <span
+            className={`font-mono-num mt-1 inline-flex rounded-full border px-2 py-1 text-[10px] uppercase tracking-wider ${chip}`}
+          >
+            {label}
+          </span>
+          {data?.htmlUrl && (
+            <div className="mt-2">
+              <a
+                href={data.htmlUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="text-[11px] text-primary hover:underline"
+              >
+                View release notes →
+              </a>
+            </div>
+          )}
+        </div>
+      </div>
+      {data?.error && (
+        <div className="border-t border-border px-5 py-2 text-[11px] text-muted-foreground">
+          {data.error}
+        </div>
+      )}
+    </div>
   );
 }
 
