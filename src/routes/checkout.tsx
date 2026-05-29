@@ -3,10 +3,10 @@ import { useState } from "react";
 import { z } from "zod";
 
 import { SiteNav } from "@/components/SiteNav";
+import { provisionCluster } from "@/lib/api/provision.functions";
 import {
   type TierId,
   loadPrefs,
-  pickHostCost,
   saveSession,
   tierById,
 } from "@/lib/miner-store";
@@ -30,30 +30,47 @@ function CheckoutPage() {
   const navigate = useNavigate();
   const tier = tierById(tierId);
   const [paying, setPaying] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const isMonthly = tier.unit === "mo";
-  const hostCost = pickHostCost(tier.price, isMonthly);
 
   const pay = async () => {
     setPaying(true);
-    // Mock Stripe checkout — in production this calls a createServerFn that
-    // creates a Stripe Checkout Session and returns the redirect URL.
-    await new Promise((r) => setTimeout(r, 1400));
+    setError(null);
     const prefs = loadPrefs();
-    const now = Date.now();
-    const durationMs = isMonthly ? 30 * 24 * 3600 * 1000 : 24 * 3600 * 1000;
-    saveSession({
-      wallet: prefs.wallet || "btx1qexample0000000000",
-      mode: prefs.mode,
-      tier: tier.id as TierId,
-      instanceId: `node-${Math.random().toString(36).slice(2, 8)}`,
-      status: "mining",
-      startedAt: now,
-      expiresAt: now + durationMs,
-      hostCost,
-      paidPrice: tier.price,
-    });
-    navigate({ to: "/dashboard" });
+    try {
+      const result = await provisionCluster({
+        data: {
+          tier: tier.id as TierId,
+          paidPriceUsd: tier.price,
+          wallet: prefs.wallet || "",
+          mode: prefs.mode,
+        },
+      });
+      if (!result.ok) {
+        setError(result.error);
+        setPaying(false);
+        return;
+      }
+      const now = Date.now();
+      const durationMs = isMonthly ? 30 * 24 * 3600 * 1000 : 24 * 3600 * 1000;
+      saveSession({
+        wallet: prefs.wallet || "btx1qexample0000000000",
+        mode: prefs.mode,
+        tier: tier.id as TierId,
+        instanceId: result.instanceId,
+        status: "mining",
+        startedAt: now,
+        expiresAt: now + durationMs,
+        hostCost: 0,
+        paidPrice: tier.price,
+      });
+      navigate({ to: "/dashboard" });
+    } catch (err) {
+      console.error(err);
+      setError("Provisioning failed. Please try again.");
+      setPaying(false);
+    }
   };
 
   return (
@@ -122,14 +139,10 @@ function CheckoutPage() {
             <p className="text-foreground">Injected production node parameters</p>
             <ul className="font-mono-num mt-2 space-y-1">
               <li>USER_WALLET=&lt;your wallet&gt;</li>
-              <li>BTX_MATMUL_BACKEND=cuda</li>
-              <li>BTX_MATMUL_SOLVE_BATCH_SIZE=16</li>
-              <li>BTX_MINE_BATCH_SIZE=80</li>
-              <li># bootstrap chain archive → ~/.btx (fast-sync)</li>
-              <li>curl -sL grid://snapshots/btx-latest.tar.zst | zstd -dc | tar -x</li>
-              <li>btxd -daemon -rpcport=19334 -onlynet=ipv4</li>
-              <li>     -maxconnections=20 -miningchainguardminpeers=1</li>
-              <li>     -miningminoutboundpeers=1 -miningminsyncedoutboundpeers=1</li>
+              <li>BTX_MINING_MODE=&lt;pool | solo&gt;</li>
+              <li>BTX_POOL_ADDRESS=&lt;assigned at provision&gt;</li>
+              <li># Bootstrap chain archive → ~/.btx (fast-sync)</li>
+              <li># Hardened daemon flags applied server-side</li>
             </ul>
           </div>
         </section>
@@ -161,6 +174,11 @@ function CheckoutPage() {
               </span>
             </div>
 
+            {error && (
+              <p className="mt-3 rounded border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+                {error}
+              </p>
+            )}
             <button
               onClick={pay}
               disabled={paying}

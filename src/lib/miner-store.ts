@@ -26,10 +26,10 @@ export const TIERS: Tier[] = [
     hardware: "Standard Hashrate",
     hashrate: "Optimized throughput",
     description:
-      "Our proprietary intelligent routing layer dynamically matches your session with the highest-efficiency nodes across the global mesh, optimizing cryptographic throughput in real-time.",
+      "Our proprietary intelligent routing layer dynamically matches your session with the highest-efficiency nodes across ARCA GRID, optimizing cryptographic throughput in real-time.",
     features: [
-      "Production batch tuning (80 / 16)",
-      "Sovereign Distributed Grid Mesh match",
+      "Production-tuned CUDA runtime",
+      "ARCA GRID intelligent routing",
       "Automated infrastructure load balancing",
       "Live dashboard + logs",
     ],
@@ -61,7 +61,7 @@ export const TIERS: Tier[] = [
     hardware: "Standard Hashrate",
     hashrate: "Optimized throughput",
     description:
-      "Our proprietary intelligent routing layer dynamically matches your session with the highest-efficiency nodes across the global mesh, optimizing cryptographic throughput in real-time.",
+      "Our proprietary intelligent routing layer dynamically matches your session with the highest-efficiency nodes across ARCA GRID, optimizing cryptographic throughput in real-time.",
     features: [
       "Unlimited 24h sessions",
       "Save 20% vs daily",
@@ -154,7 +154,7 @@ export function useMinerSession() {
 }
 
 /**
- * Dynamic node-cost picker for the Sovereign Distributed Grid Mesh.
+ * Dynamic node-cost picker for ARCA GRID.
  */
 export function pickHostCost(paidPrice: number, isMonthly: boolean): number {
   const dailyPaid = isMonthly ? paidPrice / 30 : paidPrice;

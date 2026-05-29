@@ -147,14 +147,13 @@ function DashboardPage() {
             </p>
             <div className="mt-6 border-t border-border pt-4">
               <h4 className="text-xs uppercase tracking-widest text-muted-foreground">
-                Production node parameters
+                Routing profile
               </h4>
               <ul className="font-mono-num mt-2 space-y-1 text-xs text-muted-foreground">
-                <li>BTX_MATMUL_BACKEND=cuda</li>
-                <li>BTX_MATMUL_SOLVE_BATCH_SIZE=16</li>
-                <li>BTX_MINE_BATCH_SIZE=80</li>
-                <li>rpcport=19334 · ipv4-only</li>
-                <li>maxconnections=20 · guardminpeers=1</li>
+                <li>Runtime: CUDA (production-tuned)</li>
+                <li>Network: ipv4-only, hardened peer set</li>
+                <li>Telemetry: live</li>
+                <li>Routing: ARCA GRID mesh allocator</li>
               </ul>
             </div>
           </div>

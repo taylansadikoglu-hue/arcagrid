@@ -101,11 +101,11 @@ function LoginPortal() {
               CUDA 12.0 runtime, 160W cap, batch 80/16.
             </p>
             <ul className="font-mono-num mt-8 space-y-2 text-[11px] uppercase tracking-widest text-muted-foreground">
-              <li>· BTX_MATMUL_BACKEND=cuda</li>
-              <li>· BTX_MATMUL_SOLVE_BATCH_SIZE=16</li>
-              <li>· BTX_MINE_BATCH_SIZE=80</li>
-              <li>· LD_LIBRARY_PATH=/usr/local/cuda-12.0/…</li>
-              <li>· miningchainguardminpeers=1</li>
+              <li>· Runtime: CUDA (pinned)</li>
+              <li>· Routing: ARCA GRID mesh allocator</li>
+              <li>· Telemetry: live · TLS 1.3</li>
+              <li>· Peer set: hardened</li>
+              <li>· Idle-redirect: per-node</li>
             </ul>
           </div>
 
