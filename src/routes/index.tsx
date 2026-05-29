@@ -248,12 +248,12 @@ function LandingPage() {
               },
               {
                 step: "02",
-                title: "Pay & route intelligently",
+              title: "Initialize Grid Instance",
                 body: "Our proprietary intelligent routing layer dynamically matches your session with the highest-efficiency nodes across the global mesh, optimizing cryptographic throughput in real-time.",
               },
               {
                 step: "03",
-                title: "Mine, monitor, withdraw",
+              title: "Monitor & withdraw",
                 body: "Live status, batch metrics, and a one-tap Stop button. Rewards stream to your wallet.",
               },
             ].map((s) => (
