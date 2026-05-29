@@ -17,7 +17,7 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "Launch tuned BTX mining on the Sovereign Distributed Grid Mesh in one click. Guaranteed gross margin, live dashboard, zero setup.",
+          "Launch tuned BTX mining on the Sovereign Distributed Grid Mesh in one click. Intelligent routing, live dashboard, zero setup.",
       },
       { property: "og:title", content: "BTX One-Click Miner" },
       {
@@ -81,9 +81,9 @@ function LandingPage() {
             <p className="mx-auto mt-5 max-w-xl text-balance text-base text-muted-foreground sm:text-lg">
               Spin up a tuned CUDA node on the{" "}
               <span className="text-foreground">Sovereign Distributed Grid Mesh</span>{" "}
-              with our production-verified container. We auto-select the cheapest matched
-              host and lock a <span className="text-foreground">strict ≥ 40% gross margin</span>{" "}
-              before mining starts.
+              with our production-verified container. Our proprietary intelligent routing
+              layer dynamically matches your session with the highest-efficiency nodes
+              across the global mesh, optimizing cryptographic throughput in real-time.
             </p>
           </div>
 
@@ -164,9 +164,9 @@ function LandingPage() {
               Pick your compute tier
             </h2>
             <p className="mt-3 text-muted-foreground">
-              Pay once for 24h or subscribe monthly. Every tier auto-targets the cheapest
-              matched node on the Sovereign Distributed Grid Mesh, with a strict ≥ 40%
-              gross margin locked in before launch.
+            Pay once for 24h or subscribe monthly. Automated infrastructure load
+              balancing across the Sovereign Distributed Grid Mesh routes every session
+              to the highest-efficiency compute nodes available.
             </p>
           </div>
 
@@ -248,7 +248,7 @@ function LandingPage() {
               {
                 step: "02",
                 title: "Pay & match a host",
-                body: "Stripe handles the charge. Our matcher locks the cheapest CUDA node on the Sovereign Distributed Grid Mesh, ≥ 40% below your tier.",
+                body: "Stripe handles the charge. Our intelligent routing layer allocates a high-efficiency CUDA node on the Sovereign Distributed Grid Mesh.",
               },
               {
                 step: "03",
