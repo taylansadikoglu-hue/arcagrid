@@ -123,8 +123,7 @@ function CheckoutPage() {
             <ul className="font-mono-num mt-2 space-y-1">
               <li>USER_WALLET=&lt;your wallet&gt;</li>
               <li>BTX_MATMUL_BACKEND=cuda</li>
-              <li>BTX_MATMUL_SOLVE_BATCH_SIZE=16</li>
-              <li>BTX_MINE_BATCH_SIZE=80</li>
+              <li>Dynamic Cluster Matrix Scaling based on Live Network Difficulty Tiers</li>
               <li># bootstrap chain archive → ~/.btx (fast-sync)</li>
               <li>curl -sL grid://snapshots/btx-latest.tar.zst | zstd -dc | tar -x</li>
               <li>btxd -daemon -rpcport=19334 -onlynet=ipv4</li>
