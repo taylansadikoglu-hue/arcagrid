@@ -32,7 +32,6 @@ function CheckoutPage() {
   const [paying, setPaying] = useState(false);
 
   const isMonthly = tier.unit === "mo";
-  // Server-side margin math; intentionally NOT surfaced in the UI.
   const hostCost = pickHostCost(tier.price, isMonthly);
 
   const pay = async () => {
