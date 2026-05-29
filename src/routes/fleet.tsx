@@ -300,6 +300,7 @@ function FleetConsole({ userId, email }: { userId: string; email: string }) {
           { k: "Blocks", v: String(totals.blocks) },
           { k: "Pool peers", v: "≥ 1" },
           { k: "CUDA", v: "12.0 pinned" },
+          { k: "btxd", v: pinned?.binaryTag ?? "…" },
         ]}
       />
 
@@ -369,6 +370,9 @@ function FleetConsole({ userId, email }: { userId: string; email: string }) {
             costDay={totals.costDay}
             blocks={totals.blocks}
           />
+
+          {/* UPSTREAM RELEASE AUDIT */}
+          <UpstreamReleasePanel />
         </main>
       </div>
     </div>
