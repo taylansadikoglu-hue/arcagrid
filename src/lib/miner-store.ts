@@ -26,7 +26,7 @@ export const TIERS: Tier[] = [
     hardware: "Standard Hashrate",
     hashrate: "Optimized throughput",
     description:
-      "Dynamically hooks into highly optimized multi-GPU arrays (targeting 3080Ti/4070Ti baseline efficiencies).",
+      "Our proprietary intelligent routing layer dynamically matches your session with the highest-efficiency nodes across the global mesh, optimizing cryptographic throughput in real-time.",
     features: [
       "Production batch tuning (80 / 16)",
       "Sovereign Distributed Grid Mesh match",
@@ -61,7 +61,7 @@ export const TIERS: Tier[] = [
     hardware: "Standard Hashrate",
     hashrate: "Optimized throughput",
     description:
-      "Dynamically hooks into highly optimized multi-GPU arrays (targeting 3080Ti/4070Ti baseline efficiencies).",
+      "Our proprietary intelligent routing layer dynamically matches your session with the highest-efficiency nodes across the global mesh, optimizing cryptographic throughput in real-time.",
     features: [
       "Unlimited 24h sessions",
       "Save 20% vs daily",
@@ -82,7 +82,7 @@ export const TIERS: Tier[] = [
     features: [
       "Unlimited Pro sessions",
       "Save ~20% vs daily",
-      "Dedicated host pool",
+      "Priority mesh routing",
       "1:1 onboarding",
     ],
   },
