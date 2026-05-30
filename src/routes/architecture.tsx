@@ -9,13 +9,13 @@ export const Route = createFileRoute("/architecture")({
       {
         name: "description",
         content:
-          "How the Arca Grid sovereign mesh is built: pinned CUDA runtimes, immutable signed releases, and bootstrapped fast-sync archives.",
+          "How ARCA — Autonomous Remote Cluster Architecture — is built: pinned CUDA runtimes, immutable signed releases, and bootstrapped fast-sync archives.",
       },
       { property: "og:title", content: "Architecture — Arca Grid" },
       {
         property: "og:description",
         content:
-          "Pinned CUDA runtimes, immutable signed releases, autonomous spot-market allocation. The technical spine of the sovereign distributed grid mesh.",
+          "Pinned CUDA runtimes, immutable signed releases, autonomous spot-market allocation. The technical spine of ARCA — Autonomous Remote Cluster Architecture.",
       },
     ],
   }),
@@ -84,7 +84,7 @@ function ArchitecturePage() {
             Technical Documentation
           </span>
           <h1 className="mt-6 text-balance text-4xl font-semibold tracking-tight sm:text-5xl">
-            The sovereign distributed grid mesh,
+            Autonomous Remote Cluster Architecture,
             <br />
             <span className="text-muted-foreground">layer by layer.</span>
           </h1>
@@ -161,7 +161,7 @@ function ArchitecturePage() {
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-6 text-xs text-muted-foreground sm:flex-row">
           <span>© {new Date().getFullYear()} Arca Grid</span>
           <span className="font-mono-num text-muted-foreground">
-            Arca Grid · Sovereign Distributed Grid Mesh
+            Arca Grid · Autonomous Remote Cluster Architecture
           </span>
         </div>
       </footer>
