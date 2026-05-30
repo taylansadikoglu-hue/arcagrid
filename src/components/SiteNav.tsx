@@ -23,7 +23,21 @@ export function SiteNav() {
             activeOptions={{ exact: true }}
             activeProps={{ className: "text-foreground" }}
           >
-            Launch
+            Gateway
+          </Link>
+          <Link
+            to="/architecture"
+            className="rounded-md px-3 py-1.5 text-muted-foreground transition-colors hover:text-foreground"
+            activeProps={{ className: "text-foreground" }}
+          >
+            Architecture
+          </Link>
+          <Link
+            to="/deploy"
+            className="rounded-md px-3 py-1.5 text-muted-foreground transition-colors hover:text-foreground"
+            activeProps={{ className: "text-foreground" }}
+          >
+            Deploy
           </Link>
           <Link
             to="/dashboard"
