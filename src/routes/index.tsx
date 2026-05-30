@@ -5,17 +5,17 @@ import { SiteNav } from "@/components/SiteNav";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Arca Grid — Enterprise GPU Orchestration Layer" },
+      { title: "Arca Grid — Autonomous Remote Cluster Architecture" },
       {
         name: "description",
         content:
-          "Arca Grid is the sovereign distributed grid mesh for high-density GPU compute and cryptographic workload orchestration. Fleet-grade telemetry, signed releases, zero custody.",
+          "Arca Grid runs ARCA — Autonomous Remote Cluster Architecture — for high-density GPU compute and cryptographic workload orchestration. Fleet-grade telemetry, signed releases, zero custody.",
       },
-      { property: "og:title", content: "Arca Grid — Enterprise GPU Orchestration Layer" },
+      { property: "og:title", content: "Arca Grid — Autonomous Remote Cluster Architecture" },
       {
         property: "og:description",
         content:
-          "High-density GPU compute and cryptographic workload orchestration for data center operators. Autonomous allocation, immutable releases, fleet-grade telemetry.",
+          "ARCA — Autonomous Remote Cluster Architecture. High-density GPU compute and cryptographic workload orchestration for data center operators. Autonomous allocation, immutable releases, fleet-grade telemetry.",
       },
     ],
   }),
@@ -84,7 +84,7 @@ function EnterpriseGateway() {
               <span className="text-primary">Enterprise GPU</span> Orchestration
               <br />
               <span className="text-muted-foreground">
-                for the sovereign distributed grid mesh.
+                on Autonomous Remote Cluster Architecture.
               </span>
             </h1>
             <p className="mx-auto mt-5 max-w-2xl text-balance text-base text-muted-foreground sm:text-lg">
@@ -210,7 +210,7 @@ function EnterpriseGateway() {
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-6 text-xs text-muted-foreground sm:flex-row">
           <span>© {new Date().getFullYear()} Arca Grid</span>
           <span className="font-mono-num text-muted-foreground">
-            Arca Grid · Sovereign Distributed Grid Mesh
+            Arca Grid · Autonomous Remote Cluster Architecture
           </span>
         </div>
       </footer>
