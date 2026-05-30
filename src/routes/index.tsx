@@ -240,7 +240,7 @@ function LandingPage() {
       <section className="border-t border-border/60 py-20">
         <div className="mx-auto max-w-5xl px-6">
           <h2 className="text-center text-3xl font-semibold tracking-tight">
-            From click to hashes in 60 seconds
+            Click to hashed in minutes
           </h2>
           <ol className="mt-12 grid gap-6 md:grid-cols-3">
             {[
@@ -275,9 +275,9 @@ function LandingPage() {
 
       <footer className="border-t border-border/60 py-8">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-6 text-xs text-muted-foreground sm:flex-row">
-          <span>© {new Date().getFullYear()} ARCA GRID</span>
+          <span>© {new Date().getFullYear()} Arca Grid</span>
           <span className="font-mono-num text-muted-foreground">
-            ARCA GRID · Enterprise GPU Orchestration Layer
+            Arca Grid · Enterprise GPU Orchestration Layer
           </span>
         </div>
       </footer>
