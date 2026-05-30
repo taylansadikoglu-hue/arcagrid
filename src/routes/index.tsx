@@ -19,7 +19,7 @@ export const Route = createFileRoute("/")({
       },
     ],
   }),
-  component: EnterpriseGateway,
+  component: Landing,
 });
 
 const FEATURES = [
@@ -114,7 +114,7 @@ const PAIN_POINTS = [
 
 const WORKLOADS = ["BTX", "AI Inference", "AI Training", "Custom Containers"];
 
-function EnterpriseGateway() {
+function Landing() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <SiteNav />
@@ -178,7 +178,6 @@ function EnterpriseGateway() {
             className="-mt-10 overflow-hidden rounded-2xl border border-primary/30 bg-card/80 backdrop-blur"
             style={{ boxShadow: "var(--shadow-glow), var(--shadow-card)" }}
           >
-            {/* Window chrome */}
             <div className="flex items-center justify-between border-b border-border/60 bg-background/60 px-4 py-2.5">
               <div className="flex items-center gap-2">
                 <span className="h-2.5 w-2.5 rounded-full bg-destructive/60" />
@@ -194,7 +193,6 @@ function EnterpriseGateway() {
               </span>
             </div>
 
-            {/* Stat row */}
             <div className="grid grid-cols-2 gap-px border-b border-border/60 bg-border/60 sm:grid-cols-4">
               {STATS.map((s) => (
                 <div key={s.label} className="bg-card/80 px-4 py-4">
@@ -208,7 +206,6 @@ function EnterpriseGateway() {
               ))}
             </div>
 
-            {/* Fleet table */}
             <div className="overflow-x-auto">
               <table className="w-full min-w-[760px] text-left text-xs">
                 <thead>
@@ -237,9 +234,7 @@ function EnterpriseGateway() {
                           {n.region} · {n.gpu}
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-muted-foreground">
-                        {n.workload}
-                      </td>
+                      <td className="px-4 py-3 text-muted-foreground">{n.workload}</td>
                       <td className="px-4 py-3">
                         <span
                           className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-[10px] uppercase tracking-widest ${
@@ -393,112 +388,3 @@ function EnterpriseGateway() {
     </div>
   );
 }
-
-/* eslint-disable */
-const __removed_old_sections = () => (
-  <>
-        <div>
-          <div className="mx-auto mt-16 grid max-w-4xl grid-cols-2 gap-3 sm:grid-cols-4">
-            {[].map((s: any) => (
-              <div key={s.label}>
-                <div>
-                  {s.value}
-                </div>
-                <div>
-                  {s.label}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* CAPABILITIES */}
-      <section className="border-t border-border/60 py-20">
-        <div className="mx-auto max-w-7xl px-6">
-          <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-              Six load-bearing capabilities
-            </h2>
-            <p className="mt-3 text-muted-foreground">
-              Each capability is a distinct layer of the control plane. None
-              are optional, and none are hand-tuned at runtime.
-            </p>
-          </div>
-
-          <div className="mt-12 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-            {[].map((c: any) => (
-              <article
-                key={c.title}
-                className="flex flex-col rounded-2xl border border-border bg-card/60 p-6 transition-colors hover:border-primary/40"
-              >
-                <span className="font-mono-num text-[10px] uppercase tracking-widest text-primary">
-                  {c.tag}
-                </span>
-                <h3 className="mt-2 text-base font-semibold tracking-tight">
-                  {c.title}
-                </h3>
-                <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-                  {c.body}
-                </p>
-              </article>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* FLEET CTA */}
-      <section className="border-t border-border/60 py-20">
-        <div className="mx-auto max-w-5xl px-6">
-          <div
-            className="rounded-2xl border border-primary/30 bg-card p-8 sm:p-12"
-            style={{ boxShadow: "var(--shadow-glow), var(--shadow-card)" }}
-          >
-            <div className="flex flex-col items-start justify-between gap-6 sm:flex-row sm:items-center">
-              <div className="max-w-xl">
-                <span className="font-mono-num text-[10px] uppercase tracking-widest text-primary">
-                  Fleet Management
-                </span>
-                <h2 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">
-                  Operate the mesh from a single console
-                </h2>
-                <p className="mt-3 text-sm leading-relaxed text-muted-foreground sm:text-base">
-                  Allocate workers, inspect signed leases, watch thermal
-                  envelopes, and reconcile payouts across every tenant in your
-                  fleet — all from the authenticated operator console.
-                </p>
-              </div>
-              <Link
-                to="/fleet"
-                className="inline-flex shrink-0 items-center justify-center rounded-lg bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground transition-all hover:brightness-110"
-              >
-                Open Fleet Console →
-              </Link>
-            </div>
-          </div>
-
-          <div className="mt-10 flex flex-col items-start justify-between gap-3 text-sm text-muted-foreground sm:flex-row sm:items-center">
-            <span>
-              Looking for single-node retail deployment instead?
-            </span>
-            <Link
-              to="/deploy"
-              className="font-semibold text-primary underline-offset-4 hover:underline"
-            >
-              Deploy a node →
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      <footer className="border-t border-border/60 py-8">
-        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-6 text-xs text-muted-foreground sm:flex-row">
-          <span>© {new Date().getFullYear()} Arca Grid</span>
-          <span className="font-mono-num text-muted-foreground">
-            Arca Grid · Autonomous Remote Cluster Architecture
-          </span>
-        </div>
-      </footer>
-    </>
-  );
-};
