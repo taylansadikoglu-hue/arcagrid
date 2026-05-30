@@ -79,7 +79,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:title", content: "Arca Grid | GPU Fleet Management" },
       { property: "og:description", content: "Deploy, monitor and repair distributed GPU fleets from a single control plane." },
       { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@ArcaGrid" },
       { name: "twitter:title", content: "Arca Grid | GPU Fleet Management" },
       { name: "twitter:description", content: "Deploy, monitor and repair distributed GPU fleets from a single control plane." },
