@@ -54,7 +54,8 @@ const STATS = [
 
 const FLEET = [
   {
-    provider: "Provider A",
+    provider: "Vast.ai",
+    live: true,
     region: "EU-Central",
     gpu: "24GB GPU class",
     workload: "BTX",
@@ -66,7 +67,7 @@ const FLEET = [
     util: "100%",
   },
   {
-    provider: "Provider B",
+    provider: "Clore Cloud",
     region: "US-East",
     gpu: "24GB GPU class",
     workload: "AI Inference",
@@ -78,7 +79,7 @@ const FLEET = [
     util: "92%",
   },
   {
-    provider: "Provider C",
+    provider: "Hetzner",
     region: "EU-West",
     gpu: "16GB GPU class",
     workload: "BTX",
@@ -90,7 +91,7 @@ const FLEET = [
     util: "98%",
   },
   {
-    provider: "Provider D",
+    provider: "RunPod",
     region: "APAC",
     gpu: "24GB GPU class",
     workload: "Custom Container",
@@ -113,6 +114,22 @@ const PAIN_POINTS = [
 ];
 
 const WORKLOADS = ["BTX", "AI Inference", "AI Training", "Custom Containers"];
+
+const CAPABILITIES_TODAY = [
+  "Node Monitoring",
+  "Wallet Monitoring",
+  "Chain Synchronization Monitoring",
+  "Peer Monitoring",
+  "Health Telemetry",
+  "Multi-Provider Visibility",
+];
+
+const CAPABILITIES_NEXT = [
+  "One-click Deployment",
+  "Automated Recovery",
+  "Fleet Scheduling",
+  "Capacity Optimization",
+];
 
 function Landing() {
   return (
@@ -142,6 +159,15 @@ function Landing() {
               from a single control plane. BTX, AI inference, AI training, and
               custom containers — one fleet, one dashboard.
             </p>
+            <div className="mt-6 inline-flex flex-col items-center gap-1.5 rounded-xl border border-primary/30 bg-primary/5 px-4 py-3">
+              <span className="inline-flex items-center gap-2 font-mono-num text-[10px] font-semibold uppercase tracking-widest text-primary">
+                <span className="pulse-dot inline-block h-2 w-2 rounded-full bg-primary" />
+                Live Production Infrastructure
+              </span>
+              <span className="text-xs text-muted-foreground">
+                Monitoring active BTX workloads across distributed GPU providers in real time.
+              </span>
+            </div>
             <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <Link
                 to="/deploy"
@@ -174,8 +200,16 @@ function Landing() {
       {/* LIVE FLEET PREVIEW */}
       <section className="border-t border-border/60 pb-20">
         <div className="mx-auto max-w-7xl px-6">
+          <div className="mx-auto mb-6 max-w-2xl pt-12 text-center">
+            <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">
+              Live Fleet Snapshot
+            </h2>
+            <p className="mt-2 text-sm text-muted-foreground">
+              This data updates from active infrastructure monitored by ArcGrid.
+            </p>
+          </div>
           <div
-            className="-mt-10 overflow-hidden rounded-2xl border border-primary/30 bg-card/80 backdrop-blur"
+            className="overflow-hidden rounded-2xl border border-primary/30 bg-card/80 backdrop-blur"
             style={{ boxShadow: "var(--shadow-glow), var(--shadow-card)" }}
           >
             <div className="flex items-center justify-between border-b border-border/60 bg-background/60 px-4 py-2.5">
@@ -227,8 +261,16 @@ function Landing() {
                       className="border-b border-border/40 last:border-b-0 hover:bg-secondary/30"
                     >
                       <td className="px-4 py-3">
-                        <div className="font-semibold text-foreground">
-                          {n.provider}
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-foreground">
+                            {n.provider}
+                          </span>
+                          {n.live && (
+                            <span className="inline-flex items-center gap-1 rounded-md border border-primary/40 bg-primary/10 px-1.5 py-0.5 font-mono-num text-[9px] font-semibold uppercase tracking-widest text-primary">
+                              <span className="pulse-dot inline-block h-1 w-1 rounded-full bg-primary" />
+                              Live
+                            </span>
+                          )}
                         </div>
                         <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
                           {n.region} · {n.gpu}
@@ -313,11 +355,11 @@ function Landing() {
                 Built from real operational pain.
               </h2>
               <p className="mt-4 text-muted-foreground">
-                Arca Grid exists because running distributed GPU infrastructure
-                by hand doesn't scale. Every operator hits the same wall —
-                stalled syncs at 3am, CUDA drift after a host update, a wallet
-                misconfigured on the only node earning. We turned that pain
-                into the control plane.
+                We didn't start with a business plan. We started by spending
+                weeks fixing broken CUDA environments, stalled chain
+                synchronization, wallet misconfigurations, dropped peers and
+                unhealthy nodes across multiple providers. ArcGrid was built
+                to eliminate that operational burden.
               </p>
             </div>
             <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -331,6 +373,52 @@ function Landing() {
                 </li>
               ))}
             </ul>
+          </div>
+        </div>
+      </section>
+
+      {/* ROADMAP */}
+      <section className="border-t border-border/60 py-20">
+        <div className="mx-auto max-w-5xl px-6">
+          <div className="mx-auto max-w-2xl text-center">
+            <span className="font-mono-num text-[10px] uppercase tracking-widest text-primary">
+              Roadmap
+            </span>
+            <h2 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">
+              Current Capabilities
+            </h2>
+            <p className="mt-3 text-sm text-muted-foreground">
+              What ArcGrid does today, and what's shipping next.
+            </p>
+          </div>
+
+          <div className="mt-10 grid gap-5 md:grid-cols-2">
+            <div className="rounded-2xl border border-primary/30 bg-card/60 p-6">
+              <h3 className="font-mono-num text-[10px] uppercase tracking-widest text-primary">
+                Today
+              </h3>
+              <ul className="mt-4 space-y-2 text-sm">
+                {CAPABILITIES_TODAY.map((c) => (
+                  <li key={c} className="flex items-start gap-2 text-foreground">
+                    <span className="mt-0.5 text-primary">✓</span>
+                    <span>{c}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="rounded-2xl border border-border bg-card/40 p-6">
+              <h3 className="font-mono-num text-[10px] uppercase tracking-widest text-muted-foreground">
+                Coming Next
+              </h3>
+              <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
+                {CAPABILITIES_NEXT.map((c) => (
+                  <li key={c} className="flex items-start gap-2">
+                    <span className="mt-0.5">•</span>
+                    <span>{c}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
         </div>
       </section>
@@ -371,9 +459,27 @@ function Landing() {
               to="/deploy"
               className="font-semibold text-primary underline-offset-4 hover:underline"
             >
-              Deploy a node →
+              Deploy Your First BTX Node →
             </Link>
           </div>
+        </div>
+      </section>
+
+      {/* FOUNDER NOTE */}
+      <section className="border-t border-border/60 py-16">
+        <div className="mx-auto max-w-3xl px-6 text-center">
+          <span className="font-mono-num text-[10px] uppercase tracking-widest text-primary">
+            Built by operators
+          </span>
+          <h2 className="mt-2 text-2xl font-semibold tracking-tight">
+            From the workbench, not the whitepaper.
+          </h2>
+          <p className="mt-4 text-sm leading-relaxed text-muted-foreground sm:text-base">
+            ArcGrid was created from real-world experience deploying and
+            maintaining GPU infrastructure for BTX workloads across multiple
+            providers. No buzzwords. No abstractions. Just better
+            infrastructure operations.
+          </p>
         </div>
       </section>
 
