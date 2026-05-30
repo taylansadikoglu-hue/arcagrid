@@ -23,7 +23,7 @@ export const Route = createFileRoute("/deploy")({
       {
         property: "og:description",
         content:
-          "Per-day or monthly compute tiers on the Arca Grid sovereign mesh — autonomous allocation, hard-capped thermal routing, immutable provisioning.",
+          "Per-day or monthly compute tiers on ARCA — Autonomous Remote Cluster Architecture. Autonomous allocation, hard-capped thermal routing, immutable provisioning.",
       },
     ],
   }),
@@ -74,7 +74,7 @@ function DeployPage() {
               Provision a tuned CUDA worker in one click
             </h1>
             <p className="mx-auto mt-5 max-w-xl text-balance text-base text-muted-foreground sm:text-lg">
-              Per-day or monthly compute tiers on the Arca Grid sovereign mesh.
+              Per-day or monthly compute tiers on ARCA — Autonomous Remote Cluster Architecture.
               Autonomous spot-market allocation locks the cheapest qualified
               node before your container ships.
             </p>
@@ -261,7 +261,7 @@ function DeployPage() {
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-6 text-xs text-muted-foreground sm:flex-row">
           <span>© {new Date().getFullYear()} Arca Grid</span>
           <span className="font-mono-num text-muted-foreground">
-            Arca Grid · Sovereign Distributed Grid Mesh
+            Arca Grid · Autonomous Remote Cluster Architecture
           </span>
         </div>
       </footer>
