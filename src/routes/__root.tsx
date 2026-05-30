@@ -9,6 +9,7 @@ import {
 } from "@tanstack/react-router";
 
 import appCss from "../styles.css?url";
+import ogImage from "@/assets/og-arca-grid.jpg";
 
 function NotFoundComponent() {
   return (
@@ -72,18 +73,19 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Arca Grid — Autonomous Remote Cluster Architecture" },
-      { name: "description", content: "High-performance containerized orchestration and live hardware telemetry optimization for decentralized compute clusters and high-density GPU grids" },
+      { title: "Arca Grid | GPU Fleet Management & Infrastructure Automation" },
+      { name: "description", content: "Deploy, monitor and optimize distributed GPU infrastructure across providers from a single control plane. BTX, AI inference, training and custom workloads." },
       { name: "author", content: "Arca Grid" },
-      { property: "og:title", content: "Arca Grid — Autonomous Remote Cluster Architecture" },
-      { property: "og:description", content: "High-performance containerized orchestration and live hardware telemetry optimization for decentralized compute clusters and high-density GPU grids" },
+      { property: "og:title", content: "Arca Grid | GPU Fleet Management" },
+      { property: "og:description", content: "Deploy, monitor and repair distributed GPU fleets from a single control plane." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@ArcaGrid" },
-      { name: "twitter:title", content: "Arca Grid — Autonomous Remote Cluster Architecture" },
-      { name: "twitter:description", content: "High-performance containerized orchestration and live hardware telemetry optimization for decentralized compute clusters and high-density GPU grids" },
-      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/689e98dd-b470-46ce-b741-dde4b504e642" },
-      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/689e98dd-b470-46ce-b741-dde4b504e642" },
+      { name: "twitter:title", content: "Arca Grid | GPU Fleet Management" },
+      { name: "twitter:description", content: "Deploy, monitor and repair distributed GPU fleets from a single control plane." },
+      { name: "twitter:card", content: "summary_large_image" },
+      { property: "og:image", content: ogImage },
+      { name: "twitter:image", content: ogImage },
     ],
     links: [
       {
