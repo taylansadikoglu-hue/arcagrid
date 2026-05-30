@@ -13,13 +13,13 @@ import {
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "ArcaGrid — Enterprise GPU Orchestration Layer" },
+      { title: "Arca Grid — Enterprise GPU Orchestration Layer" },
       {
         name: "description",
         content:
           "Provision an edge compute cluster on ARCA GRID in one click. Intelligent routing, live telemetry, zero setup.",
       },
-      { property: "og:title", content: "ArcaGrid — Enterprise GPU Orchestration Layer" },
+      { property: "og:title", content: "Arca Grid — Enterprise GPU Orchestration Layer" },
       {
         property: "og:description",
         content:

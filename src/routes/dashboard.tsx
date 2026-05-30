@@ -8,7 +8,7 @@ import { tierById, useMinerSession } from "@/lib/miner-store";
 import { getPinnedBinaryTag } from "@/lib/api/provision.functions";
 
 export const Route = createFileRoute("/dashboard")({
-  head: () => ({ meta: [{ title: "Grid Instance Telemetry — ArcaGrid" }] }),
+  head: () => ({ meta: [{ title: "Grid Instance Telemetry — Arca Grid" }] }),
   component: DashboardPage,
 });
 

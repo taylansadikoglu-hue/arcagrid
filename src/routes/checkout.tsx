@@ -20,7 +20,7 @@ const searchSchema = z.object({
 export const Route = createFileRoute("/checkout")({
   validateSearch: searchSchema,
   head: () => ({
-    meta: [{ title: "Provisioning Edge Cluster — ArcaGrid" }],
+    meta: [{ title: "Provisioning Edge Cluster — Arca Grid" }],
   }),
   component: CheckoutPage,
 });

@@ -7,7 +7,7 @@ import { updatePassword } from "@/lib/use-auth";
 
 export const Route = createFileRoute("/reset-password")({
   head: () => ({
-    meta: [{ title: "Reset passphrase — ArcaGrid" }],
+    meta: [{ title: "Reset passphrase — Arca Grid" }],
   }),
   component: ResetPasswordPage,
 });

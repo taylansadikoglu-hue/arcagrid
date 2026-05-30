@@ -19,13 +19,13 @@ import {
 export const Route = createFileRoute("/fleet")({
   head: () => ({
     meta: [
-      { title: "Fleet Console — ArcaGrid Enterprise Orchestration Layer" },
+      { title: "Fleet Console — Arca Grid Enterprise Orchestration Layer" },
       {
         name: "description",
         content:
-          "Institutional GPU fleet orchestration, live telemetry, and ROI tracking for high-density compute clusters on ArcaGrid.",
+          "Institutional GPU fleet orchestration, live telemetry, and ROI tracking for high-density compute clusters on Arca Grid.",
       },
-      { property: "og:title", content: "ArcaGrid Fleet Console" },
+      { property: "og:title", content: "Arca Grid Fleet Console" },
       {
         property: "og:description",
         content: "Bloomberg-grade telemetry for enterprise GPU mining fleets.",
