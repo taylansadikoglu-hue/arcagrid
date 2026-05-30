@@ -26,12 +26,12 @@ export const TIERS: Tier[] = [
     hardware: "Standard Hashrate",
     hashrate: "Optimized throughput",
     description:
-      "Our proprietary intelligent routing layer dynamically matches your session with the highest-efficiency nodes across ARCA GRID, optimizing cryptographic throughput in real-time.",
+      "Autonomous spot-market allocation locks the cheapest qualified worker for steady, low-variance throughput.",
     features: [
-      "Production-tuned CUDA runtime",
-      "ARCA GRID intelligent routing",
-      "Automated infrastructure load balancing",
-      "Live dashboard + logs",
+      "Pinned CUDA 12.0 runtime",
+      "Autonomous spot-market allocation",
+      "Hard-capped thermal routing",
+      "Live dashboard + signed lease logs",
     ],
   },
   {
@@ -44,12 +44,12 @@ export const TIERS: Tier[] = [
     hashrate: "Max density compute",
     highlight: true,
     description:
-      "Allocates enterprise-grade compute nodes tailored for maximum cryptographic throughput and massive hardware density.",
+      "Reserves the top thermal-headroom class on the mesh for dense cryptographic workloads with priority allocator weight.",
     features: [
-      "Top-tier CUDA-capable nodes",
-      "Priority grid allocation",
+      "Top thermal-headroom class",
+      "Priority allocator weight",
       "Hardened daemon peer flags",
-      "Priority support",
+      "Priority operator support",
     ],
   },
   {
@@ -61,7 +61,7 @@ export const TIERS: Tier[] = [
     hardware: "Standard Hashrate",
     hashrate: "Optimized throughput",
     description:
-      "Our proprietary intelligent routing layer dynamically matches your session with the highest-efficiency nodes across ARCA GRID, optimizing cryptographic throughput in real-time.",
+      "Sustained monthly capacity with immutable, tag-pinned worker releases and rolling lease renewals.",
     features: [
       "Unlimited 24h sessions",
       "Save 20% vs daily",
@@ -78,11 +78,11 @@ export const TIERS: Tier[] = [
     hardware: "Pro Hashrate",
     hashrate: "Max density compute",
     description:
-      "Allocates enterprise-grade compute nodes tailored for maximum cryptographic throughput and massive hardware density.",
+      "Reserved Pro-class capacity with dedicated allocator weight and white-glove fleet onboarding.",
     features: [
       "Unlimited Pro sessions",
       "Save ~20% vs daily",
-      "Priority mesh routing",
+      "Dedicated mesh routing",
       "1:1 onboarding",
     ],
   },
