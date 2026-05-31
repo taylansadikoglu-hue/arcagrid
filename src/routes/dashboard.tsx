@@ -9,6 +9,7 @@ import {
   getInstanceTelemetry,
   getPinnedBinaryTag,
 } from "@/lib/api/provision.functions";
+import { captureError } from "@/lib/observability";
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({ meta: [{ title: "Grid Instance Telemetry — Arca Grid" }] }),
@@ -31,7 +32,15 @@ function DashboardPage() {
   const { data: telemetry } = useQuery({
     queryKey: ["instance-telemetry", session?.instanceId],
     queryFn: () =>
-      fetchTelemetry({ data: { instanceId: session!.instanceId } }),
+      fetchTelemetry({ data: { instanceId: session!.instanceId } }).catch(
+        (err) => {
+          captureError(err, {
+            scope: "telemetry-poll",
+            instanceId: session?.instanceId,
+          });
+          throw err;
+        },
+      ),
     enabled: Boolean(session?.instanceId && session?.status === "mining"),
     refetchInterval: 4000,
     refetchOnWindowFocus: true,

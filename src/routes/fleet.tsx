@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { SiteNav } from "@/components/SiteNav";
 import { supabase } from "@/integrations/supabase/client";
+import { track } from "@/lib/observability";
 import {
   signInWithPassword,
   signUpWithPassword,
@@ -441,6 +442,10 @@ function NodeDetail({ node, userId }: { node: NodeRow; userId: string }) {
   const live = useMemo(() => simulate(node, now), [node, now]);
 
   const toggleIdleRedirect = async () => {
+    track("fleet_idle_redirect_toggled", {
+      nodeId: node.id,
+      next: !node.idle_redirect,
+    });
     await supabase
       .from("nodes")
       .update({

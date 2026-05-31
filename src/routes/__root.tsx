@@ -10,6 +10,8 @@ import {
 
 import appCss from "../styles.css?url";
 import ogImage from "@/assets/og-arca-grid.jpg";
+import { useEffect } from "react";
+import { initObservability, ErrorBoundary } from "@/lib/observability";
 
 function NotFoundComponent() {
   return (
@@ -116,10 +118,16 @@ function RootShell({ children }: { children: React.ReactNode }) {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
+  useEffect(() => {
+    initObservability();
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
-      {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-      <Outlet />
+      <ErrorBoundary fallback={<ErrorComponent error={new Error("Unhandled error")} reset={() => location.reload()} />}>
+        {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+        <Outlet />
+      </ErrorBoundary>
     </QueryClientProvider>
   );
 }

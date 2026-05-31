@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { z } from "zod";
 
 import { SiteNav } from "@/components/SiteNav";
@@ -10,6 +10,7 @@ import {
   saveSession,
   tierById,
 } from "@/lib/miner-store";
+import { captureError, track } from "@/lib/observability";
 
 const searchSchema = z.object({
   tier: z
@@ -34,7 +35,25 @@ function CheckoutPage() {
 
   const isMonthly = tier.unit === "mo";
 
+  // Checkout abandonment: fire if user leaves before clicking pay.
+  const [completed, setCompleted] = useState(false);
+  useEffect(() => {
+    track("checkout_viewed", { tier: tier.id, price: tier.price });
+    const onUnload = () => {
+      if (!completed) {
+        track("checkout_abandoned", { tier: tier.id, price: tier.price });
+      }
+    };
+    window.addEventListener("beforeunload", onUnload);
+    return () => {
+      window.removeEventListener("beforeunload", onUnload);
+      if (!completed) track("checkout_abandoned", { tier: tier.id, price: tier.price });
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tier.id]);
+
   const pay = async () => {
+    track("provision_access_clicked", { tier: tier.id, price: tier.price });
     setPaying(true);
     setError(null);
     const prefs = loadPrefs();
@@ -48,6 +67,9 @@ function CheckoutPage() {
         },
       });
       if (!result.ok) {
+        captureError(new Error(`Provisioning rejected: ${result.error}`), {
+          tier: tier.id,
+        });
         setError(result.error);
         setPaying(false);
         return;
@@ -65,9 +87,12 @@ function CheckoutPage() {
         hostCost: 0,
         paidPrice: tier.price,
       });
+      setCompleted(true);
+      track("provision_succeeded", { tier: tier.id, instanceId: result.instanceId });
       navigate({ to: "/dashboard" });
     } catch (err) {
       console.error(err);
+      captureError(err, { scope: "provisionCluster", tier: tier.id });
       setError("Provisioning failed. Please try again.");
       setPaying(false);
     }
