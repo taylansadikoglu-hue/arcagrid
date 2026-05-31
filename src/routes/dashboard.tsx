@@ -5,7 +5,10 @@ import { useServerFn } from "@tanstack/react-start";
 
 import { SiteNav } from "@/components/SiteNav";
 import { tierById, useMinerSession } from "@/lib/miner-store";
-import { getPinnedBinaryTag } from "@/lib/api/provision.functions";
+import {
+  getInstanceTelemetry,
+  getPinnedBinaryTag,
+} from "@/lib/api/provision.functions";
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({ meta: [{ title: "Grid Instance Telemetry — Arca Grid" }] }),
@@ -24,34 +27,48 @@ function DashboardPage() {
     staleTime: 60_000,
   });
 
+  const fetchTelemetry = useServerFn(getInstanceTelemetry);
+  const { data: telemetry } = useQuery({
+    queryKey: ["instance-telemetry", session?.instanceId],
+    queryFn: () =>
+      fetchTelemetry({ data: { instanceId: session!.instanceId } }),
+    enabled: Boolean(session?.instanceId && session?.status === "mining"),
+    refetchInterval: 4000,
+    refetchOnWindowFocus: true,
+    staleTime: 0,
+  });
+
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(id);
   }, []);
 
-  // simulate hashrate flutter
+  // Live hashrate from the worker's /metrics.json (MH/s -> GH/s).
   const hashrate = useMemo(() => {
     if (!session || session.status !== "mining") return 0;
-    const tier = tierById(session.tier);
-    const base = tier.id.startsWith("pro") ? 2.6 : 1.4;
-    const jitter = (Math.sin(now / 1500) + Math.sin(now / 700) * 0.4) * 0.08;
-    return Math.max(0.1, base + jitter);
-  }, [session, now]);
+    const mhs = telemetry?.hashrate_mhs;
+    if (typeof mhs !== "number") return 0;
+    return mhs / 1000;
+  }, [session, telemetry]);
 
-  // Simulated chain sync: pre-packaged archive bootstrap brings the node
-  // close to tip within ~45s, then trickles to current header height.
+  // Rolling history for the sparkline — driven by live samples only.
+  const [history, setHistory] = useState<number[]>([]);
+  useEffect(() => {
+    if (!telemetry || telemetry.status === "provisioning") return;
+    setHistory((h) => {
+      const next = [...h, hashrate];
+      return next.length > 40 ? next.slice(next.length - 40) : next;
+    });
+  }, [telemetry, hashrate]);
+
+  // Sync state derived from live block height reported by the worker.
   const sync = useMemo(() => {
-    if (!session) return { local: 0, headers: 114000, pct: 0 };
-    const elapsedSec = (now - session.startedAt) / 1000;
-    const headers = 114000 + Math.floor(elapsedSec / 600); // +1 block/10min
-    // Bootstrap archive lands at ~92% in 45s, then linear to 100% over 2min.
-    let pct: number;
-    if (elapsedSec < 45) pct = (elapsedSec / 45) * 0.92;
-    else if (elapsedSec < 165) pct = 0.92 + ((elapsedSec - 45) / 120) * 0.08;
-    else pct = 1;
-    const local = Math.floor(headers * pct);
+    const local = telemetry?.block_height ?? 0;
+    // Use the highest height we've seen as our tip estimate.
+    const headers = Math.max(local, 114000);
+    const pct = headers > 0 ? Math.min(1, local / headers) : 0;
     return { local, headers, pct };
-  }, [session, now]);
+  }, [telemetry]);
 
   if (!hydrated) {
     return (
@@ -87,7 +104,15 @@ function DashboardPage() {
   const tier = tierById(session.tier);
   const elapsed = Math.max(0, now - session.startedAt);
   const remaining = Math.max(0, session.expiresAt - now);
-  const earned = ((hashrate * elapsed) / 1000 / 3600) * 0.00012; // mock BTX
+  const uptimeMs = telemetry?.uptime_seconds
+    ? telemetry.uptime_seconds * 1000
+    : elapsed;
+  const earned = ((hashrate * uptimeMs) / 1000 / 3600) * 0.00012;
+  const peers = telemetry?.current_peer_count;
+  const liveStatus = telemetry?.status ?? "provisioning";
+  const isActive =
+    session.status === "mining" &&
+    (liveStatus === "active" || liveStatus === "degraded");
 
   const stop = () => {
     setSession({ ...session, status: "idle" });
@@ -114,7 +139,10 @@ function DashboardPage() {
               {tier.name} Rig · {tier.tagline}
             </h1>
           </div>
-          <StatusBadge mining={session.status === "mining"} />
+          <StatusBadge
+            mining={session.status === "mining"}
+            live={liveStatus}
+          />
         </div>
 
         {/* MAIN GRID */}
@@ -136,13 +164,19 @@ function DashboardPage() {
               </span>
               <span className="text-lg text-muted-foreground">GH/s</span>
             </div>
-            <Sparkline value={hashrate} max={tier.id.startsWith("pro") ? 3 : 1.8} />
+            <Sparkline
+              history={history}
+              max={tier.id.startsWith("pro") ? 3 : 1.8}
+            />
 
             <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
               <Metric label="Earned" value={`${earned.toFixed(6)} BTX`} />
-              <Metric label="Uptime" value={fmtDuration(elapsed)} />
+              <Metric label="Uptime" value={fmtDuration(uptimeMs)} />
               <Metric label="Time left" value={fmtDuration(remaining)} />
-              <Metric label="Routing" value="Mesh allocator" />
+              <Metric
+                label="Peers"
+                value={peers != null ? String(peers) : "—"}
+              />
             </div>
           </div>
 
@@ -273,21 +307,55 @@ function DashboardPage() {
   );
 }
 
-function StatusBadge({ mining }: { mining: boolean }) {
+function StatusBadge({
+  mining,
+  live,
+}: {
+  mining: boolean;
+  live: "provisioning" | "active" | "degraded" | "stopped" | "unknown";
+}) {
+  if (!mining) {
+    return (
+      <span className="inline-flex items-center gap-2 rounded-full border border-border bg-secondary px-3 py-1.5 text-xs font-semibold text-muted-foreground">
+        <span className="inline-block h-2 w-2 rounded-full bg-muted-foreground" />
+        IDLE
+      </span>
+    );
+  }
+  const map = {
+    provisioning: {
+      label: "PROVISIONING",
+      cls: "border-amber-400/40 bg-amber-400/10 text-amber-300",
+      dot: "bg-amber-400",
+    },
+    active: {
+      label: "ACTIVE",
+      cls: "border-primary/40 bg-primary/10 text-primary",
+      dot: "pulse-dot bg-primary",
+    },
+    degraded: {
+      label: "DEGRADED",
+      cls: "border-amber-500/40 bg-amber-500/10 text-amber-400",
+      dot: "pulse-dot bg-amber-400",
+    },
+    stopped: {
+      label: "STOPPED",
+      cls: "border-border bg-secondary text-muted-foreground",
+      dot: "bg-muted-foreground",
+    },
+    unknown: {
+      label: "INITIALIZING",
+      cls: "border-border bg-secondary text-muted-foreground",
+      dot: "pulse-dot bg-muted-foreground",
+    },
+  } as const;
+  const v = map[live];
   return (
     <span
-      className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold ${
-        mining
-          ? "border-primary/40 bg-primary/10 text-primary"
-          : "border-border bg-secondary text-muted-foreground"
-      }`}
+      className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold ${v.cls}`}
     >
-      <span
-        className={`inline-block h-2 w-2 rounded-full ${
-          mining ? "pulse-dot bg-primary" : "bg-muted-foreground"
-        }`}
-      />
-      {mining ? "MINING" : "IDLE"}
+      <span className={`inline-block h-2 w-2 rounded-full ${v.dot}`} />
+      {v.label}
     </span>
   );
 }
@@ -303,20 +371,20 @@ function Metric({ label, value }: { label: string; value: string }) {
   );
 }
 
-function Sparkline({ value, max }: { value: number; max: number }) {
-  // Static decorative bars + animated cursor based on value
+function Sparkline({ history, max }: { history: number[]; max: number }) {
   const bars = 40;
-  const pct = Math.min(1, value / max);
+  const padded =
+    history.length >= bars
+      ? history.slice(history.length - bars)
+      : [...Array(bars - history.length).fill(0), ...history];
   return (
     <div className="mt-5 flex h-16 items-end gap-[3px]">
-      {Array.from({ length: bars }).map((_, i) => {
-        const noise =
-          0.45 + Math.sin(i * 0.6) * 0.18 + Math.cos(i * 0.27) * 0.12;
-        const h = Math.max(0.1, Math.min(1, noise * pct * 1.25));
+      {padded.map((v, i) => {
+        const h = Math.max(0.04, Math.min(1, v / max));
         return (
           <div
             key={i}
-            className="flex-1 rounded-sm bg-primary/70 transition-all"
+            className="flex-1 rounded-sm bg-primary/70 transition-all duration-500"
             style={{ height: `${h * 100}%`, opacity: 0.5 + (i / bars) * 0.5 }}
           />
         );
