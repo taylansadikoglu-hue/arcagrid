@@ -187,7 +187,7 @@ async function launchVastInstance(
     throw new Error(`vast launch ${res.status}: ${await res.text()}`);
   }
   const json = (await res.json()) as { new_contract?: string | number };
-  return String(json.new_contract ?? `vast-${offerId}`);
+  return `vast-${json.new_contract ?? offerId}`;
 }
 
 async function launchCloreInstance(
@@ -210,7 +210,7 @@ async function launchCloreInstance(
     throw new Error(`clore launch ${res.status}: ${await res.text()}`);
   }
   const json = (await res.json()) as { order_id?: string | number };
-  return String(json.order_id ?? `clore-${offerId}`);
+  return `clore-${json.order_id ?? offerId}`;
 }
 
 /**
