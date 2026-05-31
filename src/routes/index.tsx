@@ -500,3 +500,324 @@ function Landing() {
     </div>
   );
 }
+
+/* -------------------------------------------------------------------------- */
+/*  PRICING TIERS                                                             */
+/* -------------------------------------------------------------------------- */
+
+function PricingSection() {
+  return (
+    <section id="pricing" className="border-t border-border/60 py-20">
+      <div className="mx-auto max-w-7xl px-6">
+        <div className="mx-auto max-w-2xl text-center">
+          <span className="font-mono-num text-[10px] uppercase tracking-widest text-primary">
+            Compute Tiers
+          </span>
+          <h2 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">
+            Pick your compute tier
+          </h2>
+          <p className="mt-3 text-muted-foreground">
+            Per-day bursts, sustained monthly capacity, or zero-upfront
+            profit-share — every tier rides the same hardened mesh.
+          </p>
+        </div>
+
+        <div className="mt-12 grid gap-5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+          {TIERS.map((tier) => {
+            const isPartner = tier.id === "partner_share";
+            return (
+              <article
+                key={tier.id}
+                className={`relative flex flex-col rounded-2xl border p-6 transition-all ${
+                  tier.highlight
+                    ? "border-primary/50 bg-card"
+                    : isPartner
+                      ? "border-accent/40 bg-card"
+                      : "border-border bg-card/60 hover:border-border/80"
+                }`}
+                style={
+                  tier.highlight
+                    ? { boxShadow: "var(--shadow-glow), var(--shadow-card)" }
+                    : undefined
+                }
+              >
+                {tier.highlight && (
+                  <span className="absolute -top-2.5 left-6 rounded-full bg-primary px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-primary-foreground">
+                    Most Popular
+                  </span>
+                )}
+                {isPartner && (
+                  <span className="absolute -top-2.5 left-6 rounded-full bg-accent px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-accent-foreground">
+                    Zero Upfront
+                  </span>
+                )}
+                <div className="flex items-baseline justify-between">
+                  <h3 className="text-base font-semibold">{tier.name}</h3>
+                  <span className="text-[10px] text-muted-foreground">
+                    {tier.tagline}
+                  </span>
+                </div>
+                <div className="mt-4 flex items-baseline gap-1">
+                  <span className="font-mono-num text-3xl font-semibold tracking-tight">
+                    ${tier.price.toFixed(2)}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    / {tier.unit}
+                  </span>
+                </div>
+                <p className="mt-1 text-[11px] text-primary/90">
+                  {tier.hardware}
+                </p>
+                {tier.description && (
+                  <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+                    {tier.description}
+                  </p>
+                )}
+                <ul className="mt-4 space-y-2 text-xs">
+                  {tier.features.map((f) => (
+                    <li
+                      key={f}
+                      className="flex items-start gap-2 text-muted-foreground"
+                    >
+                      <span className="mt-0.5 text-primary">✓</span>
+                      <span className="text-foreground/90">{f}</span>
+                    </li>
+                  ))}
+                </ul>
+                <Link
+                  to="/checkout"
+                  search={{ tier: tier.id }}
+                  className={`mt-6 w-full rounded-lg px-4 py-2.5 text-center text-sm font-semibold transition-all ${
+                    tier.highlight
+                      ? "bg-primary text-primary-foreground hover:brightness-110"
+                      : isPartner
+                        ? "bg-accent text-accent-foreground hover:brightness-110"
+                        : "border border-border bg-secondary/60 text-foreground hover:border-primary/40 hover:bg-secondary"
+                  }`}
+                >
+                  {isPartner ? "Deploy with $0 upfront" : `Launch ${tier.name}`}
+                </Link>
+              </article>
+            );
+          })}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/*  LIVE ROI & PROFITABILITY ESTIMATOR                                        */
+/* -------------------------------------------------------------------------- */
+
+const MOCK_BTX_SPOT_USD = 5.22;
+
+function RoiCalculator() {
+  const [rigCost, setRigCost] = useState(0.15); // $/hour
+  const [hashrate, setHashrate] = useState(883); // N/s
+
+  const result = useMemo(() => {
+    // Yield model: 883 N/s reference ≈ 1.6 BTX/day (mock baseline).
+    const dailyBtx = (hashrate / 883) * 1.6;
+    const dailyYieldUsd = dailyBtx * MOCK_BTX_SPOT_USD;
+    const dailyCost = rigCost * 24;
+    const dailyNet = dailyYieldUsd - dailyCost;
+    return {
+      dailyBtx,
+      dailyYieldUsd,
+      dailyCost,
+      dailyNet,
+      net30: dailyNet * 30,
+    };
+  }, [rigCost, hashrate]);
+
+  return (
+    <section className="border-t border-border/60 py-20">
+      <div className="mx-auto max-w-5xl px-6">
+        <div className="mx-auto mb-8 max-w-2xl text-center">
+          <span className="font-mono-num text-[10px] uppercase tracking-widest text-primary">
+            Calculator
+          </span>
+          <h2 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">
+            Live ROI &amp; Profitability Estimator
+          </h2>
+          <p className="mt-3 text-sm text-muted-foreground">
+            Model your rig against current grid economics. Spot price syncs
+            from <span className="font-mono-num">btxprice.com</span>.
+          </p>
+        </div>
+
+        <div
+          className="overflow-hidden rounded-2xl border border-primary/30 bg-card"
+          style={{ boxShadow: "var(--shadow-glow), var(--shadow-card)" }}
+        >
+          <div className="flex items-center justify-between border-b border-border bg-background/60 px-5 py-3">
+            <span className="font-mono-num text-[10px] uppercase tracking-widest text-muted-foreground">
+              arca · roi-engine
+            </span>
+            <span className="font-mono-num inline-flex items-center gap-2 text-[10px] uppercase tracking-widest text-primary">
+              <span className="pulse-dot inline-block h-1.5 w-1.5 rounded-full bg-primary" />
+              BTX spot ${MOCK_BTX_SPOT_USD.toFixed(2)}
+            </span>
+          </div>
+
+          <div className="grid gap-px bg-border md:grid-cols-2">
+            {/* INPUTS */}
+            <div className="space-y-6 bg-card p-6">
+              <RoiSlider
+                label="What do you pay for your rig?"
+                unit="$ / hour"
+                value={rigCost}
+                min={0.02}
+                max={1.5}
+                step={0.01}
+                format={(v) => `$${v.toFixed(2)}`}
+                onChange={setRigCost}
+              />
+              <RoiSlider
+                label="Expected hashrate"
+                unit="N/s"
+                value={hashrate}
+                min={100}
+                max={5000}
+                step={10}
+                format={(v) => `${v.toFixed(0)} N/s`}
+                onChange={setHashrate}
+              />
+              <div className="rounded-lg border border-border bg-background/50 px-4 py-3 text-[11px] text-muted-foreground">
+                Defaults match a single tuned CUDA worker on the ARCA mesh
+                (~883 N/s @ $0.15/hr).
+              </div>
+            </div>
+
+            {/* OUTPUTS */}
+            <div className="grid grid-cols-2 gap-px bg-border">
+              <RoiOutput
+                label="Daily compute cost"
+                value={`$${result.dailyCost.toFixed(2)}`}
+                tone="muted"
+              />
+              <RoiOutput
+                label="Daily yield (BTX)"
+                value={`${result.dailyBtx.toFixed(3)} BTX`}
+                tone="primary"
+                glow
+              />
+              <RoiOutput
+                label="Daily yield (USD)"
+                value={`$${result.dailyYieldUsd.toFixed(2)}`}
+                tone="primary"
+                glow
+              />
+              <RoiOutput
+                label="30-day net profit"
+                value={`${result.net30 >= 0 ? "+" : ""}$${result.net30.toFixed(0)}`}
+                tone={result.net30 >= 0 ? "primary" : "destructive"}
+                glow
+              />
+            </div>
+          </div>
+
+          <div className="border-t border-border bg-background/40 px-5 py-3 text-center text-[11px] text-muted-foreground">
+            Estimates based on current{" "}
+            <span className="font-mono-num">btxprice.com</span> spot rates.
+            Not financial advice.
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function RoiSlider({
+  label,
+  unit,
+  value,
+  min,
+  max,
+  step,
+  format,
+  onChange,
+}: {
+  label: string;
+  unit: string;
+  value: number;
+  min: number;
+  max: number;
+  step: number;
+  format: (v: number) => string;
+  onChange: (v: number) => void;
+}) {
+  return (
+    <label className="block">
+      <div className="flex items-baseline justify-between">
+        <span className="text-sm font-medium text-foreground">{label}</span>
+        <span className="font-mono-num text-[10px] uppercase tracking-widest text-muted-foreground">
+          {unit}
+        </span>
+      </div>
+      <div className="mt-2 flex items-center gap-3">
+        <input
+          type="range"
+          min={min}
+          max={max}
+          step={step}
+          value={value}
+          onChange={(e) => onChange(Number(e.target.value))}
+          className="h-1.5 flex-1 cursor-pointer appearance-none rounded-full bg-secondary accent-primary"
+        />
+        <input
+          type="number"
+          min={min}
+          max={max}
+          step={step}
+          value={value}
+          onChange={(e) => onChange(Number(e.target.value) || 0)}
+          className="font-mono-num w-24 rounded-md border border-input bg-background/60 px-2 py-1.5 text-right text-xs outline-none focus:border-primary/60 focus:ring-2 focus:ring-primary/20"
+        />
+      </div>
+      <div className="font-mono-num mt-1 text-[11px] text-primary">
+        {format(value)}
+      </div>
+    </label>
+  );
+}
+
+function RoiOutput({
+  label,
+  value,
+  tone,
+  glow,
+}: {
+  label: string;
+  value: string;
+  tone: "primary" | "destructive" | "muted";
+  glow?: boolean;
+}) {
+  const color =
+    tone === "destructive"
+      ? "text-destructive"
+      : tone === "primary"
+        ? "text-primary"
+        : "text-foreground";
+  return (
+    <div className="bg-card px-5 py-5">
+      <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
+        {label}
+      </div>
+      <div
+        className={`font-mono-num mt-2 text-2xl font-semibold tracking-tight ${color}`}
+        style={
+          glow
+            ? {
+                textShadow:
+                  "0 0 18px color-mix(in oklab, currentColor 55%, transparent)",
+              }
+            : undefined
+        }
+      >
+        {value}
+      </div>
+    </div>
+  );
+}
