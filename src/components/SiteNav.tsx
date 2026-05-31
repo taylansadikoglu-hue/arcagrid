@@ -13,7 +13,7 @@ export function SiteNav() {
             <span className="pulse-dot absolute -right-0.5 -top-0.5 h-1.5 w-1.5 rounded-full bg-primary" />
           </div>
           <span className="text-sm font-semibold tracking-tight">
-            Arca Grid <span className="text-muted-foreground">/ GPU Fleet Operating System</span>
+            ARCA GRID <span className="text-muted-foreground">/ Enterprise GPU Orchestration Layer</span>
           </span>
         </Link>
         <nav className="flex items-center gap-1 text-sm">
