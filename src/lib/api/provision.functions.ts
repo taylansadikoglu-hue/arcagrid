@@ -329,3 +329,166 @@ export const getUpstreamReleaseTag = createServerFn({ method: "GET" }).handler(
     }
   },
 );
+
+/**
+ * Live telemetry for a provisioned instance. The browser hits this serverFn
+ * (NOT the raw provider IP) — keeps the upstream host, port, and provider
+ * identity server-side, and works around mixed-content / CORS that would
+ * block direct browser polling of the worker's :PORT/metrics.json endpoint.
+ *
+ * Returns sanitized telemetry only. Never leak provider name, IP, hourly
+ * cost, or margin.
+ */
+const TelemetryInput = z.object({
+  instanceId: z.string().min(1).max(64).regex(/^(vast|clore)-[a-zA-Z0-9_-]+$/),
+});
+
+type Telemetry = {
+  status: "provisioning" | "active" | "degraded" | "stopped" | "unknown";
+  hashrate_mhs: number | null;
+  current_peer_count: number | null;
+  block_height: number | null;
+  uptime_seconds: number | null;
+  fetchedAt: number;
+  error: string | null;
+};
+
+const PROVISIONING: Telemetry = {
+  status: "provisioning",
+  hashrate_mhs: null,
+  current_peer_count: null,
+  block_height: null,
+  uptime_seconds: null,
+  fetchedAt: 0,
+  error: null,
+};
+
+async function resolveVastEndpoint(
+  contractId: string,
+): Promise<{ host: string; port: number } | null> {
+  const key = process.env.VAST_AI_API_KEY;
+  if (!key) return null;
+  const res = await fetch(
+    `https://console.vast.ai/api/v0/instances/${contractId}/`,
+    { headers: { Authorization: `Bearer ${key}` } },
+  );
+  if (!res.ok) return null;
+  const json = (await res.json()) as {
+    instances?: {
+      actual_status?: string;
+      public_ipaddr?: string;
+      ports?: Record<string, Array<{ HostIp?: string; HostPort?: string }>>;
+      direct_port_start?: number;
+    };
+  };
+  const inst = json.instances;
+  if (!inst?.public_ipaddr) return null;
+  // Production image exposes the metrics endpoint on container port 9090.
+  const mapped = inst.ports?.["9090/tcp"]?.[0];
+  const port = mapped?.HostPort
+    ? Number(mapped.HostPort)
+    : inst.direct_port_start
+      ? Number(inst.direct_port_start)
+      : 9090;
+  return { host: inst.public_ipaddr, port };
+}
+
+async function resolveCloreEndpoint(
+  orderId: string,
+): Promise<{ host: string; port: number } | null> {
+  const key = process.env.CLORE_AI_API_KEY;
+  if (!key) return null;
+  const res = await fetch("https://api.clore.ai/v1/my_orders", {
+    headers: { auth: key },
+  });
+  if (!res.ok) return null;
+  const json = (await res.json()) as {
+    orders?: Array<{
+      id?: number;
+      ip?: string;
+      tcp_ports?: Record<string, number> | Array<{ public: number; private: number }>;
+    }>;
+  };
+  const order = json.orders?.find((o) => String(o.id) === orderId);
+  if (!order?.ip) return null;
+  let port = 9090;
+  const tcp = order.tcp_ports;
+  if (Array.isArray(tcp)) {
+    const found = tcp.find((p) => p.private === 9090);
+    if (found) port = found.public;
+  } else if (tcp && typeof tcp === "object") {
+    const val = tcp["9090"];
+    if (typeof val === "number") port = val;
+  }
+  return { host: order.ip, port };
+}
+
+export const getInstanceTelemetry = createServerFn({ method: "POST" })
+  .inputValidator((input) => TelemetryInput.parse(input))
+  .handler(async ({ data }): Promise<Telemetry> => {
+    const [providerTag, ...rest] = data.instanceId.split("-");
+    const id = rest.join("-");
+    const provider = providerTag as "vast" | "clore";
+
+    let endpoint: { host: string; port: number } | null = null;
+    try {
+      endpoint =
+        provider === "vast"
+          ? await resolveVastEndpoint(id)
+          : await resolveCloreEndpoint(id);
+    } catch (err) {
+      console.error("[telemetry] endpoint resolve failed", err);
+      return { ...PROVISIONING, error: "Routing layer not ready" };
+    }
+
+    if (!endpoint) {
+      // Instance is still being scheduled / no public IP yet.
+      return { ...PROVISIONING, fetchedAt: Date.now() };
+    }
+
+    try {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 4000);
+      const metricsRes = await fetch(
+        `http://${endpoint.host}:${endpoint.port}/metrics.json`,
+        { signal: ctrl.signal },
+      );
+      clearTimeout(timer);
+      if (!metricsRes.ok) {
+        return {
+          ...PROVISIONING,
+          status: "degraded",
+          fetchedAt: Date.now(),
+          error: `Worker metrics endpoint ${metricsRes.status}`,
+        };
+      }
+      const raw = (await metricsRes.json()) as Record<string, unknown>;
+      const num = (v: unknown): number | null =>
+        typeof v === "number" && Number.isFinite(v) ? v : null;
+      const statusRaw = String(raw.status ?? "").toLowerCase();
+      const status: Telemetry["status"] =
+        statusRaw === "active" ||
+        statusRaw === "provisioning" ||
+        statusRaw === "degraded" ||
+        statusRaw === "stopped"
+          ? (statusRaw as Telemetry["status"])
+          : "active";
+      return {
+        status,
+        hashrate_mhs: num(raw.hashrate_mhs),
+        current_peer_count: num(raw.current_peer_count),
+        block_height: num(raw.block_height),
+        uptime_seconds: num(raw.uptime_seconds),
+        fetchedAt: Date.now(),
+        error: null,
+      };
+    } catch (err) {
+      console.warn("[telemetry] worker unreachable", err);
+      return {
+        ...PROVISIONING,
+        status: "degraded",
+        fetchedAt: Date.now(),
+        error: "Worker telemetry unreachable",
+      };
+    }
+  });
