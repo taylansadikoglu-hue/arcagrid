@@ -1,6 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useMemo, useState } from "react";
 
 import { SiteNav } from "@/components/SiteNav";
+import { TIERS } from "@/lib/miner-store";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -340,6 +342,12 @@ function Landing() {
           </div>
         </div>
       </section>
+
+      {/* PRICING TIERS */}
+      <PricingSection />
+
+      {/* ROI CALCULATOR */}
+      <RoiCalculator />
 
       {/* WHY ARCA GRID */}
       <section className="border-t border-border/60 py-20">
