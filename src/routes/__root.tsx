@@ -75,7 +75,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Arca Grid | GPU Fleet Management & Infrastructure Automation" },
+      { title: "ARCA GRID — Enterprise GPU Orchestration Layer" },
       { name: "description", content: "Deploy, monitor and optimize distributed GPU infrastructure across providers from a single control plane. BTX, AI inference, training and custom workloads." },
       { name: "author", content: "Arca Grid" },
       { property: "og:title", content: "Arca Grid | GPU Fleet Management" },
