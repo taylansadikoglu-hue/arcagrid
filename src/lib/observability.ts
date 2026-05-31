@@ -5,6 +5,10 @@ import posthog from "posthog-js";
 const SENTRY_DSN =
   "https://a4a062b5a25a19c01c5d5ee907ff6899@o4511481772900352.ingest.us.sentry.io/4511481777029120";
 
+// Public PostHog project key — safe to ship in client bundle.
+const POSTHOG_KEY = "phx_BvAH7g6mLJR7DacaaEvYuw5jiZLMhva5JJCgdTvfZjxHahYg";
+const POSTHOG_HOST = "https://us.i.posthog.com";
+
 let initialized = false;
 
 export function initObservability() {
@@ -23,10 +27,10 @@ export function initObservability() {
     console.warn("[observability] Sentry init failed", err);
   }
 
-  const phKey = import.meta.env.VITE_POSTHOG_KEY as string | undefined;
+  const phKey =
+    (import.meta.env.VITE_POSTHOG_KEY as string | undefined) ?? POSTHOG_KEY;
   const phHost =
-    (import.meta.env.VITE_POSTHOG_HOST as string | undefined) ??
-    "https://us.i.posthog.com";
+    (import.meta.env.VITE_POSTHOG_HOST as string | undefined) ?? POSTHOG_HOST;
   if (phKey) {
     try {
       posthog.init(phKey, {
