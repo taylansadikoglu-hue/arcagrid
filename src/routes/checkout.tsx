@@ -14,7 +14,13 @@ import { captureError, track } from "@/lib/observability";
 
 const searchSchema = z.object({
   tier: z
-    .enum(["standard_24h", "pro_24h", "standard_monthly", "pro_monthly"])
+    .enum([
+      "standard_24h",
+      "pro_24h",
+      "standard_monthly",
+      "pro_monthly",
+      "partner_share",
+    ])
     .catch("standard_24h"),
 });
 

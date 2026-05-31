@@ -441,6 +441,10 @@ function NodeDetail({ node, userId }: { node: NodeRow; userId: string }) {
 
   const live = useMemo(() => simulate(node, now), [node, now]);
 
+  // Local thermal-throttle override (no DB column). Defaults to 85°C.
+  const [thermalLimit, setThermalLimit] = useState(85);
+  const [tuneOpen, setTuneOpen] = useState<null | "power" | "thermal">(null);
+
   const toggleIdleRedirect = async () => {
     track("fleet_idle_redirect_toggled", {
       nodeId: node.id,
@@ -539,17 +543,40 @@ function NodeDetail({ node, userId }: { node: NodeRow; userId: string }) {
           history={live.powerHistory}
           target={node.power_cap_w}
           subtitle={`Hard cap ${node.power_cap_w}W`}
+          onTune={() => setTuneOpen("power")}
         />
         <TelemetryCard
           label="GPU Core / VRAM"
           value={`${live.gpuTemp.toFixed(0)}° / ${live.vramTemp.toFixed(0)}°`}
           unit="C"
-          accent={live.gpuTemp > 80 ? "accent" : "primary"}
+          accent={live.gpuTemp > thermalLimit - 5 ? "accent" : "primary"}
           history={live.tempHistory}
-          target={85}
-          subtitle="Throttle threshold 85°C"
+          target={thermalLimit}
+          subtitle={`Throttle threshold ${thermalLimit}°C`}
+          onTune={() => setTuneOpen("thermal")}
         />
       </div>
+
+      {tuneOpen && (
+        <TuneModal
+          mode={tuneOpen}
+          node={node}
+          thermalLimit={thermalLimit}
+          onClose={() => setTuneOpen(null)}
+          onSavePower={async (next) => {
+            await supabase
+              .from("nodes")
+              .update({ power_cap_w: next })
+              .eq("id", node.id);
+            qc.invalidateQueries({ queryKey: ["nodes", userId] });
+            setTuneOpen(null);
+          }}
+          onSaveThermal={(next) => {
+            setThermalLimit(next);
+            setTuneOpen(null);
+          }}
+        />
+      )}
 
       {/* GOLDEN CONFIG */}
       <div className="rounded-xl border border-border bg-card">
@@ -751,6 +778,7 @@ function TelemetryCard({
   history,
   target,
   subtitle,
+  onTune,
 }: {
   label: string;
   value: string;
@@ -759,6 +787,7 @@ function TelemetryCard({
   history: number[];
   target: number;
   subtitle: string;
+  onTune?: () => void;
 }) {
   const color =
     accent === "destructive"
@@ -769,19 +798,206 @@ function TelemetryCard({
   const max = Math.max(target, ...history) * 1.1;
   return (
     <div className="rounded-xl border border-border bg-card p-5">
-      <div className="flex items-baseline justify-between">
+      <div className="flex items-baseline justify-between gap-3">
         <h4 className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
           {label}
         </h4>
-        <span className="font-mono-num text-[10px] text-muted-foreground">
-          {subtitle}
-        </span>
+        <div className="flex items-baseline gap-2">
+          <span className="font-mono-num text-[10px] text-muted-foreground">
+            {subtitle}
+          </span>
+          {onTune && (
+            <button
+              onClick={onTune}
+              className="rounded-md border border-border bg-secondary/40 px-2 py-0.5 text-[10px] font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
+              aria-label={`Tune ${label}`}
+            >
+              ⚙️ Tune
+            </button>
+          )}
+        </div>
       </div>
       <div className={`font-mono-num mt-2 flex items-baseline gap-2 ${color}`}>
         <span className="text-4xl font-semibold tracking-tight">{value}</span>
         <span className="text-sm text-muted-foreground">{unit}</span>
       </div>
       <Sparkline history={history} max={max} color={color} target={target} />
+    </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/*  TUNE MODAL · Advanced Hardware Controls                                   */
+/* -------------------------------------------------------------------------- */
+
+function TuneModal({
+  mode,
+  node,
+  thermalLimit,
+  onClose,
+  onSavePower,
+  onSaveThermal,
+}: {
+  mode: "power" | "thermal";
+  node: NodeRow;
+  thermalLimit: number;
+  onClose: () => void;
+  onSavePower: (next: number) => Promise<void> | void;
+  onSaveThermal: (next: number) => void;
+}) {
+  const [powerCap, setPowerCap] = useState(node.power_cap_w || 160);
+  const [thermal, setThermal] = useState(thermalLimit);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  const save = async () => {
+    setSaving(true);
+    if (mode === "power") {
+      await onSavePower(powerCap);
+    } else {
+      onSaveThermal(thermal);
+    }
+    setSaving(false);
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 px-4 py-6 backdrop-blur-sm"
+      role="dialog"
+      aria-modal="true"
+      onClick={onClose}
+    >
+      <div
+        className="relative w-full max-w-lg rounded-2xl border border-border bg-card p-6 sm:p-8"
+        style={{ boxShadow: "var(--shadow-glow), var(--shadow-card)" }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="font-mono-num text-[10px] uppercase tracking-widest text-primary">
+              Precision Tuning · {node.name}
+            </p>
+            <h3 className="mt-1 text-xl font-semibold tracking-tight">
+              Advanced Hardware Controls
+            </h3>
+          </div>
+          <button
+            onClick={onClose}
+            className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+            aria-label="Close"
+          >
+            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M18 6L6 18M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <div className="mt-6 space-y-6">
+          {mode === "power" ? (
+            <TuneSlider
+              label="Power Cap Override"
+              unit="W"
+              value={powerCap}
+              min={100}
+              max={285}
+              step={5}
+              onChange={setPowerCap}
+              hint="Hardware max 285W. ARCA default 160W."
+            />
+          ) : (
+            <TuneSlider
+              label="Thermal Throttle Limit"
+              unit="°C"
+              value={thermal}
+              min={70}
+              max={90}
+              step={1}
+              onChange={setThermal}
+              hint="ARCA default 85°C. Above 90°C voids thermal guarantees."
+            />
+          )}
+
+          <div className="rounded-lg border border-accent/40 bg-accent/10 px-4 py-3 text-xs text-accent">
+            Caution: Overriding ARCA default limits increases thermal load and
+            electricity costs.
+          </div>
+        </div>
+
+        <div className="mt-6 flex items-center justify-end gap-3">
+          <button
+            onClick={onClose}
+            className="rounded-lg border border-border bg-secondary/40 px-4 py-2 text-xs font-medium text-muted-foreground transition-colors hover:border-border/80 hover:text-foreground"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={save}
+            disabled={saving}
+            className="rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground transition-all hover:brightness-110 disabled:opacity-60"
+          >
+            {saving ? "Applying…" : "Save & Apply to Node"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TuneSlider({
+  label,
+  unit,
+  value,
+  min,
+  max,
+  step,
+  onChange,
+  hint,
+}: {
+  label: string;
+  unit: string;
+  value: number;
+  min: number;
+  max: number;
+  step: number;
+  onChange: (v: number) => void;
+  hint: string;
+}) {
+  return (
+    <div>
+      <div className="flex items-baseline justify-between">
+        <span className="text-sm font-semibold text-foreground">{label}</span>
+        <span className="font-mono-num text-lg text-primary">
+          {value}
+          {unit}
+        </span>
+      </div>
+      <input
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={value}
+        onChange={(e) => onChange(Number(e.target.value))}
+        className="mt-3 h-1.5 w-full cursor-pointer appearance-none rounded-full bg-secondary accent-primary"
+      />
+      <div className="font-mono-num mt-1 flex justify-between text-[10px] uppercase tracking-widest text-muted-foreground">
+        <span>
+          {min}
+          {unit}
+        </span>
+        <span>
+          {max}
+          {unit}
+        </span>
+      </div>
+      <p className="mt-2 text-[11px] text-muted-foreground">{hint}</p>
     </div>
   );
 }

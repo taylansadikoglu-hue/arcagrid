@@ -29,8 +29,14 @@ function pinnedBinaryTag(): string {
 }
 
 const ProvisionInput = z.object({
-  tier: z.enum(["standard_24h", "pro_24h", "standard_monthly", "pro_monthly"]),
-  paidPriceUsd: z.number().positive().max(10000),
+  tier: z.enum([
+    "standard_24h",
+    "pro_24h",
+    "standard_monthly",
+    "pro_monthly",
+    "partner_share",
+  ]),
+  paidPriceUsd: z.number().min(0).max(10000),
   wallet: z.string().max(128).default(""),
   mode: z.enum(["pool", "solo"]).default("pool"),
   poolAddress: z.string().max(256).optional(),
@@ -149,7 +155,7 @@ function buildEnv(input: z.infer<typeof ProvisionInput>) {
   const poolAddress =
     input.poolAddress ??
     (input.mode === "pool" ? "pool.btxchain.org:3333" : "solo.btxchain.org:3334");
-  return {
+  const env: Record<string, string> = {
     USER_WALLET: input.wallet || "ARCA_INTERNAL_LEDGER",
     BTX_MINING_MODE: input.mode,
     BTX_POOL_ADDRESS: poolAddress,
@@ -161,6 +167,12 @@ function buildEnv(input: z.infer<typeof ProvisionInput>) {
     // baked-in public key before launching btxd. No runtime upgrades.
     BTX_BINARY_TAG: pinnedBinaryTag(),
   };
+  // Profit-share tier: server-side injection of the routing-fee env var
+  // consumed by the worker image to skim block rewards before payout.
+  if (input.tier === "partner_share") {
+    env.BTX_DEV_FEE = "0.20";
+  }
+  return env;
 }
 
 async function launchVastInstance(
@@ -222,13 +234,16 @@ export const provisionCluster = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const isMonthly =
       data.tier === "standard_monthly" || data.tier === "pro_monthly";
+    const isPartnerShare = data.tier === "partner_share";
 
     const [vast, clore] = await Promise.all([queryVast(), queryClore()]);
-    const winner = selectBestCandidate(
-      [...vast, ...clore],
-      data.paidPriceUsd,
-      isMonthly,
-    );
+    // Partner-share rigs don't have an upfront budget to defend a margin
+    // against — the routing fee covers infra cost. Pick the cheapest
+    // qualified offer outright.
+    const pool = [...vast, ...clore].filter((c) => c.hourlyUsd > 0);
+    const winner = isPartnerShare
+      ? pool.sort((a, b) => a.hourlyUsd - b.hourlyUsd)[0] ?? null
+      : selectBestCandidate(pool, data.paidPriceUsd, isMonthly);
 
     if (!winner) {
       return {
