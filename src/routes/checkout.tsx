@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { z } from "zod";
 
 import { SiteNav } from "@/components/SiteNav";
@@ -10,6 +10,7 @@ import {
   saveSession,
   tierById,
 } from "@/lib/miner-store";
+import { captureError, track } from "@/lib/observability";
 
 const searchSchema = z.object({
   tier: z
