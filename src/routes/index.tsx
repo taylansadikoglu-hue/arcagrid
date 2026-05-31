@@ -150,14 +150,12 @@ function Landing() {
               Live fleet · arcgrid.dev
             </span>
             <h1 className="mt-6 text-balance text-5xl font-semibold tracking-tight sm:text-6xl">
-              The Operating System
+              <span className="text-primary">ARCA</span>: Autonomous Remote
               <br />
-              for <span className="text-primary">Distributed GPU Fleets</span>.
+              Cluster Architecture
             </h1>
             <p className="mx-auto mt-5 max-w-2xl text-balance text-base text-muted-foreground sm:text-lg">
-              Deploy, monitor and repair GPU infrastructure across providers
-              from a single control plane. BTX, AI inference, AI training, and
-              custom containers — one fleet, one dashboard.
+              High-Density GPU Grid Orchestration.
             </p>
             <div className="mt-6 inline-flex flex-col items-center gap-1.5 rounded-xl border border-primary/30 bg-primary/5 px-4 py-3">
               <span className="inline-flex items-center gap-2 font-mono-num text-[10px] font-semibold uppercase tracking-widest text-primary">
