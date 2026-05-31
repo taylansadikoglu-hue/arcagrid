@@ -67,6 +67,17 @@ async function queryVast(): Promise<Candidate[]> {
             rentable: { eq: true },
             cuda_max_good: { gte: 12.0 },
             num_gpus: { gte: 1 },
+            gpu_ram: { gte: 16 },
+            gpu_name: {
+              in: [
+                "RTX 3080",
+                "RTX 3090",
+                "RTX 4070",
+                "RTX 4080",
+                "RTX 4090",
+                "A6000",
+              ],
+            },
             order: [["dph_total", "asc"]],
           }),
         ),
@@ -79,13 +90,21 @@ async function queryVast(): Promise<Candidate[]> {
       return [];
     }
     const json = (await res.json()) as { offers?: Array<Record<string, unknown>> };
-    return (json.offers ?? []).slice(0, 25).map((o) => ({
-      provider: "vast" as const,
-      offerId: String(o.id ?? o.machine_id),
-      hourlyUsd: Number(o.dph_total ?? 0),
-      gpuCount: Number(o.num_gpus ?? 1),
-      marginPct: 0,
-    }));
+    const ALLOWED = /(RTX\s*30(80|90)|RTX\s*40(70|80|90)|A6000)/i;
+    return (json.offers ?? [])
+      .filter((o) => {
+        const name = String(o.gpu_name ?? "");
+        const vram = Number(o.gpu_ram ?? 0);
+        return ALLOWED.test(name) && vram >= 16;
+      })
+      .slice(0, 25)
+      .map((o) => ({
+        provider: "vast" as const,
+        offerId: String(o.id ?? o.machine_id),
+        hourlyUsd: Number(o.dph_total ?? 0),
+        gpuCount: Number(o.num_gpus ?? 1),
+        marginPct: 0,
+      }));
   } catch (err) {
     console.error("[provision] vast query failed", err);
     return [];
