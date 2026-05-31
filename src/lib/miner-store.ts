@@ -1,6 +1,11 @@
 import { useEffect, useState } from "react";
 
-export type TierId = "standard_24h" | "pro_24h" | "standard_monthly" | "pro_monthly";
+export type TierId =
+  | "standard_24h"
+  | "pro_24h"
+  | "standard_monthly"
+  | "pro_monthly"
+  | "partner_share";
 export type MiningMode = "pool" | "solo";
 
 export interface Tier {
@@ -84,6 +89,23 @@ export const TIERS: Tier[] = [
       "Save ~20% vs daily",
       "Dedicated mesh routing",
       "1:1 onboarding",
+    ],
+  },
+  {
+    id: "partner_share",
+    name: "Partner Hashrate",
+    tagline: "Zero-Upfront",
+    price: 0,
+    unit: "rev-share",
+    hardware: "Bring-your-own rig",
+    hashrate: "Profit-share routing",
+    description:
+      "Deploy your rig with zero upfront cost. We take a 20% infrastructure routing fee directly from your block earnings.",
+    features: [
+      "$0.00 upfront",
+      "20% routing fee on block earnings",
+      "Auto-injected BTX_DEV_FEE=0.20",
+      "Cancel any session, any time",
     ],
   },
 ];
