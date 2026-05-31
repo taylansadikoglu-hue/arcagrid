@@ -5,13 +5,13 @@ import { SiteNav } from "@/components/SiteNav";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Arca Grid | GPU Fleet Management & Infrastructure Automation" },
+      { title: "ARCA GRID — Enterprise GPU Orchestration Layer" },
       {
         name: "description",
         content:
           "Deploy, monitor and optimize distributed GPU infrastructure across providers from a single control plane. BTX, AI inference, training and custom workloads.",
       },
-      { property: "og:title", content: "Arca Grid | GPU Fleet Management" },
+      { property: "og:title", content: "ARCA GRID — Enterprise GPU Orchestration Layer" },
       {
         property: "og:description",
         content:
