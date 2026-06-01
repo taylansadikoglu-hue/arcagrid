@@ -41,7 +41,11 @@ function DashboardPage() {
           throw err;
         },
       ),
-    enabled: Boolean(session?.instanceId && session?.status === "mining"),
+    enabled: Boolean(
+      session?.instanceId &&
+        session?.status === "mining" &&
+        session?.tier !== "partner_share",
+    ),
     refetchInterval: 4000,
     refetchOnWindowFocus: true,
     staleTime: 0,
