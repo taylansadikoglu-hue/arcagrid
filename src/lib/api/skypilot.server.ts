@@ -30,7 +30,7 @@ const DEFAULT_HIGH_VRAM_GPUS = [
   "A6000",
 ];
 
-const GOLDEN_IMAGE = "arcagrid/btx-oneclick-miner:latest";
+const GOLDEN_IMAGE = "taylans/btx-oneclick-miner:latest";
 
 function yamlEscape(value: string) {
   if (/^[A-Za-z0-9_\-./:=]+$/.test(value)) return value;
