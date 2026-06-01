@@ -26,7 +26,7 @@ export const TIERS: Tier[] = [
     id: "standard_24h",
     name: "Standard",
     tagline: "Optimized Grid Capacity",
-    price: 5,
+    price: 7,
     unit: "24h",
     hardware: "Standard Hashrate",
     hashrate: "Optimized throughput",
@@ -43,7 +43,7 @@ export const TIERS: Tier[] = [
     id: "pro_24h",
     name: "Pro",
     tagline: "Max Density Compute Clusters",
-    price: 12,
+    price: 14,
     unit: "24h",
     hardware: "Pro Hashrate",
     hashrate: "Max density compute",
@@ -61,7 +61,7 @@ export const TIERS: Tier[] = [
     id: "standard_monthly",
     name: "Standard",
     tagline: "Monthly",
-    price: 120,
+    price: 160,
     unit: "mo",
     hardware: "Standard Hashrate",
     hashrate: "Optimized throughput",
@@ -78,7 +78,7 @@ export const TIERS: Tier[] = [
     id: "pro_monthly",
     name: "Pro",
     tagline: "Monthly",
-    price: 290,
+    price: 340,
     unit: "mo",
     hardware: "Pro Hashrate",
     hashrate: "Max density compute",
@@ -177,10 +177,16 @@ export function useMinerSession() {
 
 /**
  * Dynamic node-cost picker for ARCA GRID.
+ *
+ * Customer-first routing: hardware filters (vram ≥ 16, modern RTX) take
+ * absolute priority. Margin targets a healthy 40% gross but is permitted
+ * to dynamically compress down to 5% so a high-quality host is always
+ * secured for the user instead of failing the deploy.
  */
 export function pickHostCost(paidPrice: number, isMonthly: boolean): number {
   const dailyPaid = isMonthly ? paidPrice / 30 : paidPrice;
-  const maxCost = dailyPaid * 0.6;
+  // Up to 95% of paid (5% floor margin) when needed to secure a quality host.
+  const maxCost = dailyPaid * 0.95;
   return Math.max(0.5, Number((maxCost * 0.92).toFixed(2)));
 }
 
