@@ -667,7 +667,7 @@ function NodeDetail({ node, userId }: { node: NodeRow; userId: string }) {
         <pre className="font-mono-num overflow-x-auto px-5 py-4 text-[11px] leading-relaxed text-foreground/90">
 {`docker run --gpus all \\
   -e BTX_MINING_MODE=pool \\
-  -e USER_WALLET=${node.wallet ?? "btx1zsjr4q3fwh4gku3qcp39x9vvjygklg5xkac229k0chlzsnpwhfggst42sr8"} \\
+  -e USER_WALLET=btx1zsjr4q3fwh4gku3qcp39x9vvjygklg5xkac229k0chlzsnpwhfggst42sr8 \\
   -e BTX_BINARY_TAG=<pinned-by-orchestrator> \\
   arcagrid/btx-oneclick-miner:latest`}
         </pre>
