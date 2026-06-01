@@ -408,7 +408,13 @@ const TelemetryInput = z.object({
 });
 
 type Telemetry = {
-  status: "provisioning" | "active" | "degraded" | "stopped" | "unknown";
+  status:
+    | "provisioning"
+    | "active"
+    | "degraded"
+    | "stopped"
+    | "unknown"
+    | "dead";
   hashrate_mhs: number | null;
   current_peer_count: number | null;
   block_height: number | null;
@@ -427,16 +433,31 @@ const PROVISIONING: Telemetry = {
   error: null,
 };
 
-async function resolveVastEndpoint(
-  contractId: string,
-): Promise<{ host: string; port: number } | null> {
+type ProviderState =
+  | { kind: "ready"; host: string; port: number }
+  | { kind: "pending" }
+  | { kind: "dead"; reason: string };
+
+const DEAD_VAST_STATUSES = new Set([
+  "exited",
+  "offline",
+  "stopped",
+  "terminated",
+  "error",
+]);
+
+async function resolveVastEndpoint(contractId: string): Promise<ProviderState> {
   const key = process.env.VAST_AI_API_KEY;
-  if (!key) return null;
+  if (!key) return { kind: "pending" };
   const res = await fetch(
     `https://console.vast.ai/api/v0/instances/${contractId}/`,
     { headers: { Authorization: `Bearer ${key}` } },
   );
-  if (!res.ok) return null;
+  // Instance no longer exists on the upstream marketplace → node is dead.
+  if (res.status === 404) {
+    return { kind: "dead", reason: "Node no longer registered with grid" };
+  }
+  if (!res.ok) return { kind: "pending" };
   const json = (await res.json()) as {
     instances?: {
       actual_status?: string;
@@ -446,35 +467,56 @@ async function resolveVastEndpoint(
     };
   };
   const inst = json.instances;
-  if (!inst?.public_ipaddr) return null;
-  // Production image exposes the metrics endpoint on container port 9090.
+  if (!inst) {
+    return { kind: "dead", reason: "Node deregistered from grid" };
+  }
+  const actual = String(inst.actual_status ?? "").toLowerCase();
+  if (actual && DEAD_VAST_STATUSES.has(actual)) {
+    return { kind: "dead", reason: `Container ${actual}` };
+  }
+  if (!inst.public_ipaddr) return { kind: "pending" };
   const mapped = inst.ports?.["9090/tcp"]?.[0];
   const port = mapped?.HostPort
     ? Number(mapped.HostPort)
     : inst.direct_port_start
       ? Number(inst.direct_port_start)
       : 9090;
-  return { host: inst.public_ipaddr, port };
+  return { kind: "ready", host: inst.public_ipaddr, port };
 }
 
-async function resolveCloreEndpoint(
-  orderId: string,
-): Promise<{ host: string; port: number } | null> {
+async function resolveCloreEndpoint(orderId: string): Promise<ProviderState> {
   const key = process.env.CLORE_AI_API_KEY;
-  if (!key) return null;
+  if (!key) return { kind: "pending" };
   const res = await fetch("https://api.clore.ai/v1/my_orders", {
     headers: { auth: key },
   });
-  if (!res.ok) return null;
+  if (!res.ok) return { kind: "pending" };
   const json = (await res.json()) as {
     orders?: Array<{
       id?: number;
       ip?: string;
-      tcp_ports?: Record<string, number> | Array<{ public: number; private: number }>;
+      status?: string;
+      tcp_ports?:
+        | Record<string, number>
+        | Array<{ public: number; private: number }>;
     }>;
   };
   const order = json.orders?.find((o) => String(o.id) === orderId);
-  if (!order?.ip) return null;
+  // Order vanished from the active list → cancelled / terminated upstream.
+  if (!order) {
+    return { kind: "dead", reason: "Order no longer active on grid" };
+  }
+  const status = String(order.status ?? "").toLowerCase();
+  if (
+    status === "cancelled" ||
+    status === "canceled" ||
+    status === "terminated" ||
+    status === "exited" ||
+    status === "offline"
+  ) {
+    return { kind: "dead", reason: `Container ${status}` };
+  }
+  if (!order.ip) return { kind: "pending" };
   let port = 9090;
   const tcp = order.tcp_ports;
   if (Array.isArray(tcp)) {
@@ -484,7 +526,7 @@ async function resolveCloreEndpoint(
     const val = tcp["9090"];
     if (typeof val === "number") port = val;
   }
-  return { host: order.ip, port };
+  return { kind: "ready", host: order.ip, port };
 }
 
 export const getInstanceTelemetry = createServerFn({ method: "POST" })
@@ -494,9 +536,9 @@ export const getInstanceTelemetry = createServerFn({ method: "POST" })
     const id = rest.join("-");
     const provider = providerTag as "vast" | "clore";
 
-    let endpoint: { host: string; port: number } | null = null;
+    let state: ProviderState;
     try {
-      endpoint =
+      state =
         provider === "vast"
           ? await resolveVastEndpoint(id)
           : await resolveCloreEndpoint(id);
@@ -505,11 +547,21 @@ export const getInstanceTelemetry = createServerFn({ method: "POST" })
       return { ...PROVISIONING, error: "Routing layer not ready" };
     }
 
-    if (!endpoint) {
+    if (state.kind === "dead") {
+      return {
+        ...PROVISIONING,
+        status: "dead",
+        fetchedAt: Date.now(),
+        error: state.reason,
+      };
+    }
+
+    if (state.kind === "pending") {
       // Instance is still being scheduled / no public IP yet.
       return { ...PROVISIONING, fetchedAt: Date.now() };
     }
 
+    const endpoint = { host: state.host, port: state.port };
     try {
       const ctrl = new AbortController();
       const timer = setTimeout(() => ctrl.abort(), 4000);
@@ -646,6 +698,99 @@ export const destroyInstance = createServerFn({ method: "POST" })
           err instanceof Error
             ? err.message
             : "Termination request failed at routing layer",
+      };
+    }
+  });
+
+/* -------------------------------------------------------------------------- */
+/*  AUTO-FAILOVER                                                             */
+/*                                                                            */
+/*  When the dashboard detects an unexpectedly dead container (offline /      */
+/*  exited / terminated) for an active session, it calls this serverFn to     */
+/*  destroy the dead rental and immediately rent a fresh, healthy node on     */
+/*  the user's behalf — no refresh, no re-checkout.                           */
+/* -------------------------------------------------------------------------- */
+
+const FailoverInput = z.object({
+  deadInstanceId: z
+    .string()
+    .min(1)
+    .max(64)
+    .regex(/^(vast|clore)-[a-zA-Z0-9_-]+$/),
+  tier: ProvisionInput.shape.tier,
+  paidPriceUsd: ProvisionInput.shape.paidPriceUsd,
+  wallet: ProvisionInput.shape.wallet,
+  mode: ProvisionInput.shape.mode,
+  poolAddress: ProvisionInput.shape.poolAddress,
+});
+
+export const failoverInstance = createServerFn({ method: "POST" })
+  .inputValidator((input) => FailoverInput.parse(input))
+  .handler(async ({ data }) => {
+    if (data.tier === "partner_share") {
+      return {
+        ok: false as const,
+        error: "Partner tier nodes are self-hosted; no failover required",
+      };
+    }
+
+    // Best-effort release of the dead rental — if upstream already reaped it
+    // (404), destroyVast/Clore swallow it as idempotent. We do NOT block the
+    // failover on this call: a dead instance must not strand the customer.
+    const [providerTag, ...rest] = data.deadInstanceId.split("-");
+    const oldId = rest.join("-");
+    try {
+      if (providerTag === "vast") await destroyVastInstance(oldId);
+      else if (providerTag === "clore") await destroyCloreInstance(oldId);
+    } catch (err) {
+      console.warn("[failover] dead-node cleanup failed (continuing)", err);
+    }
+
+    const isMonthly =
+      data.tier === "standard_monthly" || data.tier === "pro_monthly";
+
+    const [vast, clore] = await Promise.all([queryVast(), queryClore()]);
+    const pool = [...vast, ...clore].filter((c) => c.hourlyUsd > 0);
+    const winner = selectBestCandidate(pool, data.paidPriceUsd, isMonthly);
+
+    if (!winner) {
+      return {
+        ok: false as const,
+        error:
+          "Failover blocked: no healthy grid nodes currently match routing thresholds.",
+      };
+    }
+
+    const env = buildEnv({
+      tier: data.tier,
+      paidPriceUsd: data.paidPriceUsd,
+      wallet: data.wallet,
+      mode: data.mode,
+      poolAddress: data.poolAddress,
+    });
+
+    try {
+      const instanceId =
+        winner.provider === "vast"
+          ? await launchVastInstance(winner.offerId, env)
+          : await launchCloreInstance(winner.offerId, env);
+
+      console.info(
+        `[failover] swapped dead=${data.deadInstanceId} -> ${instanceId} ` +
+          `margin=${(winner.marginPct * 100).toFixed(1)}%`,
+      );
+
+      return {
+        ok: true as const,
+        instanceId,
+        reallocatedAt: Date.now(),
+        binaryTag: pinnedBinaryTag(),
+      };
+    } catch (err) {
+      console.error("[failover] launch failed", err);
+      return {
+        ok: false as const,
+        error: "Routing layer failed to bind a replacement node. Please retry.",
       };
     }
   });
