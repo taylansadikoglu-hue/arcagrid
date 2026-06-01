@@ -1,0 +1,15 @@
+# ARCA GRID
+
+> Sovereign Distributed Grid Mesh. Enterprise GPU orchestration layer for BTX, AI inference, training, and custom CUDA workloads.
+
+ARCA GRID is the enterprise-grade orchestration layer for distributed GPU compute. The platform provisions tuned CUDA workers across a distributed mesh, with autonomous spot-market allocation, hard-capped thermal routing, and immutable, tag-pinned container releases. Operators deploy, monitor, and recover GPU fleets from a single control plane.
+
+## Pages
+
+- [Gateway](/): Enterprise GPU orchestration overview, features, and stats.
+- [Architecture](/architecture): The six load-bearing layers of Autonomous Remote Cluster Architecture — pinned CUDA runtimes, immutable signed releases, autonomous spot-market allocation, custody-free payout plane.
+- [Deploy](/deploy): Provision a tuned CUDA worker. Per-day or monthly compute tiers (Standard / Pro) with autonomous mesh allocation.
+
+## Optional
+
+- [Checkout](/checkout): Tier checkout and Stripe payment.

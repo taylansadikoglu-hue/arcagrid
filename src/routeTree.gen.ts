@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as FleetRouteImport } from './routes/fleet'
 import { Route as DeployRouteImport } from './routes/deploy'
@@ -23,6 +24,11 @@ import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/em
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
 
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
@@ -99,6 +105,7 @@ export interface FileRoutesByFullPath {
   '/deploy': typeof DeployRoute
   '/fleet': typeof FleetRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/checkout/return': typeof CheckoutReturnRoute
   '/cluster/sydney-a': typeof ClusterSydneyARoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
@@ -114,6 +121,7 @@ export interface FileRoutesByTo {
   '/deploy': typeof DeployRoute
   '/fleet': typeof FleetRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/checkout/return': typeof CheckoutReturnRoute
   '/cluster/sydney-a': typeof ClusterSydneyARoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
@@ -130,6 +138,7 @@ export interface FileRoutesById {
   '/deploy': typeof DeployRoute
   '/fleet': typeof FleetRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/checkout/return': typeof CheckoutReturnRoute
   '/cluster/sydney-a': typeof ClusterSydneyARoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
@@ -147,6 +156,7 @@ export interface FileRouteTypes {
     | '/deploy'
     | '/fleet'
     | '/reset-password'
+    | '/sitemap.xml'
     | '/checkout/return'
     | '/cluster/sydney-a'
     | '/api/public/payments/webhook'
@@ -162,6 +172,7 @@ export interface FileRouteTypes {
     | '/deploy'
     | '/fleet'
     | '/reset-password'
+    | '/sitemap.xml'
     | '/checkout/return'
     | '/cluster/sydney-a'
     | '/api/public/payments/webhook'
@@ -177,6 +188,7 @@ export interface FileRouteTypes {
     | '/deploy'
     | '/fleet'
     | '/reset-password'
+    | '/sitemap.xml'
     | '/checkout/return'
     | '/cluster/sydney-a'
     | '/api/public/payments/webhook'
@@ -193,6 +205,7 @@ export interface RootRouteChildren {
   DeployRoute: typeof DeployRoute
   FleetRoute: typeof FleetRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   ClusterSydneyARoute: typeof ClusterSydneyARoute
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
@@ -202,6 +215,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/reset-password': {
       id: '/reset-password'
       path: '/reset-password'
@@ -316,6 +336,7 @@ const rootRouteChildren: RootRouteChildren = {
   DeployRoute: DeployRoute,
   FleetRoute: FleetRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  SitemapDotxmlRoute: SitemapDotxmlRoute,
   ClusterSydneyARoute: ClusterSydneyARoute,
   ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
@@ -325,3 +346,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
