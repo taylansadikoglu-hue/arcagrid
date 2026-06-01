@@ -279,7 +279,7 @@ function CheckoutPage() {
               Cancel & return to dashboard
             </button>
             <p className="mt-3 text-center text-[11px] text-muted-foreground">
-              Demo checkout. Wire real Stripe once enabled — UI is ready.
+              Secure payment processed via Stripe. Cluster provisions on confirmation.
             </p>
           </div>
         </section>
