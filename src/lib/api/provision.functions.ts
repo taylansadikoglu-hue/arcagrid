@@ -75,6 +75,7 @@ async function queryVast(): Promise<Candidate[]> {
             cuda_max_good: { gte: 12.0 },
             num_gpus: { gte: 1 },
             gpu_ram: { gte: 16 },
+            disk_space: { gte: 80 },
             gpu_name: {
               in: [
                 "RTX 3080",
@@ -222,7 +223,7 @@ async function launchVastInstance(
     client_id: "me",
     image: IMAGE,
     env,
-    disk: 32,
+    disk: 80,
     runtype: "ssh",
   };
   const res = await fetch(`https://console.vast.ai/api/v0/asks/${offerId}/`, {
