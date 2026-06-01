@@ -240,6 +240,17 @@ function CheckoutPage() {
             {error && (
               <p className="mt-3 rounded border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
                 {error}
+                {tier.id === "partner_share" && (
+                  <>
+                    {" "}
+                    <Link
+                      to="/deploy"
+                      className="font-semibold underline underline-offset-2 hover:text-destructive/80"
+                    >
+                      Set up wallet →
+                    </Link>
+                  </>
+                )}
               </p>
             )}
             <button
