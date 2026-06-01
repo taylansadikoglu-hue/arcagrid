@@ -478,7 +478,44 @@ function NodeDetail({ node, userId }: { node: NodeRow; userId: string }) {
     return () => clearInterval(id);
   }, []);
 
-  const live = useMemo(() => simulate(node, now), [node, now]);
+  // Pull latest live telemetry for this node from the webhook ingest.
+  const { data: telemetry = [] } = useQuery({
+    queryKey: ["node-telemetry", node.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("node_telemetry")
+        .select("hashrate_ns,power_w,gpu_temp_c,vram_temp_c,recorded_at")
+        .eq("node_id", node.id)
+        .order("recorded_at", { ascending: false })
+        .limit(48);
+      if (error) throw error;
+      return data ?? [];
+    },
+    refetchInterval: 3000,
+  });
+
+  const live = useMemo(() => {
+    if (telemetry.length > 0) {
+      const ordered = [...telemetry].reverse();
+      const latest = ordered[ordered.length - 1];
+      const hashHistory = ordered.map((r) => Number(r.hashrate_ns) / 1_000_000); // → MH/s for chart
+      const powerHistory = ordered.map((r) => Number(r.power_w));
+      const tempHistory = ordered.map((r) => Number(r.gpu_temp_c));
+      return {
+        hashrate: Number(latest.hashrate_ns),
+        hashrateMhs: Number(latest.hashrate_ns) / 1_000_000,
+        power: Number(latest.power_w),
+        gpuTemp: Number(latest.gpu_temp_c),
+        vramTemp: Number(latest.vram_temp_c),
+        hashHistory,
+        powerHistory,
+        tempHistory,
+        isLive: true,
+      };
+    }
+    const sim = simulate(node, now);
+    return { ...sim, hashrateMhs: sim.hashrate / 1_000_000, isLive: false };
+  }, [telemetry, node, now]);
 
   // Local thermal-throttle override (no DB column). Defaults to 85°C.
   const [thermalLimit, setThermalLimit] = useState(85);
