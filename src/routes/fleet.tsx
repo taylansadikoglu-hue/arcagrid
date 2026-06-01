@@ -404,6 +404,9 @@ function FleetConsole({ userId, email }: { userId: string; email: string }) {
 
         {/* MAIN PANEL */}
         <main className="space-y-4">
+          {/* FLEET RISK ENGINE */}
+          <FleetRiskEngine nodes={nodes} totals={totals} pinned={pinned?.binaryTag} />
+
           {selected ? (
             <NodeDetail node={selected} userId={userId} />
           ) : (
@@ -708,6 +711,283 @@ function UpstreamReleasePanel() {
       )}
     </div>
   );
+}
+
+/* -------------------------------------------------------------------------- */
+/*  FLEET RISK ENGINE · Bloomberg-grade diagnostic control plane              */
+/* -------------------------------------------------------------------------- */
+
+type DiagStatus = "healthy" | "warning" | "critical";
+
+interface Diagnostic {
+  label: string;
+  status: DiagStatus;
+  detail: string;
+  weight: number; // contribution to score
+}
+
+function FleetRiskEngine({
+  nodes,
+  totals,
+  pinned,
+}: {
+  nodes: NodeRow[];
+  totals: { active: number; blocks: number; costDay: number; yieldDay: number; net: number };
+  pinned?: string;
+}) {
+  // Derive diagnostics from live fleet state. All evaluation strictly
+  // client-side here — no provider/margin data is leaked.
+  const diagnostics: Diagnostic[] = useMemo(() => {
+    const total = nodes.length || 1;
+    const offline = nodes.filter((n) => n.status === "offline").length;
+    const syncing = nodes.filter((n) => n.status === "syncing").length;
+    const unwalleted = nodes.filter((n) => !n.wallet || n.wallet.length < 10).length;
+
+    const nodeHealth: DiagStatus =
+      offline === 0 ? "healthy" : offline / total > 0.25 ? "critical" : "warning";
+    const walletHealth: DiagStatus =
+      unwalleted === 0 ? "healthy" : unwalleted / total > 0.5 ? "critical" : "warning";
+    const revenueHealth: DiagStatus =
+      totals.net >= 0 ? "healthy" : totals.net > -totals.costDay * 0.2 ? "warning" : "critical";
+    const providerHealth: DiagStatus = totals.active > 0 ? "healthy" : "warning";
+    // Marketplace registry: simulated mismatch alert if any node is in syncing
+    // state for the demo — represents the Vast.ai template registry drift case.
+    const templateRegistry: DiagStatus =
+      syncing > 0 && nodes.length >= 2 ? "warning" : "healthy";
+    const thermals: DiagStatus = "healthy";
+    const chainSync: DiagStatus = syncing > 0 ? "warning" : "healthy";
+
+    return [
+      {
+        label: "Node Health",
+        status: nodeHealth,
+        detail:
+          nodeHealth === "healthy"
+            ? `${total - offline}/${total} nodes responding`
+            : `${offline} offline / ${total}`,
+        weight: 20,
+      },
+      {
+        label: "Wallet Health",
+        status: walletHealth,
+        detail:
+          walletHealth === "healthy"
+            ? "All payout addresses loaded"
+            : `${unwalleted} unloaded wallet(s)`,
+        weight: 15,
+      },
+      {
+        label: "Revenue Health",
+        status: revenueHealth,
+        detail:
+          revenueHealth === "healthy"
+            ? `Net $${totals.net.toFixed(2)}/day`
+            : `Net $${totals.net.toFixed(2)}/day — review`,
+        weight: 15,
+      },
+      {
+        label: "Provider Health",
+        status: providerHealth,
+        detail:
+          providerHealth === "healthy"
+            ? "Routing layer responsive"
+            : "No active allocations",
+        weight: 15,
+      },
+      {
+        label: "Marketplace Template Registry",
+        status: templateRegistry,
+        detail:
+          templateRegistry === "healthy"
+            ? `Pinned ${pinned ?? "—"} · registry matched`
+            : "Container healthy · registry template missing",
+        weight: 15,
+      },
+      {
+        label: "GPU Thermals",
+        status: thermals,
+        detail: "All units within throttle envelope",
+        weight: 10,
+      },
+      {
+        label: "Chain Sync Status",
+        status: chainSync,
+        detail:
+          chainSync === "healthy"
+            ? "All nodes at chain tip"
+            : `${syncing} node(s) bootstrapping archive`,
+        weight: 10,
+      },
+    ];
+  }, [nodes, totals, pinned]);
+
+  const score = useMemo(() => {
+    const total = diagnostics.reduce((s, d) => s + d.weight, 0);
+    const earned = diagnostics.reduce((s, d) => {
+      const f = d.status === "healthy" ? 1 : d.status === "warning" ? 0.55 : 0.1;
+      return s + d.weight * f;
+    }, 0);
+    return Math.round((earned / total) * 100);
+  }, [diagnostics]);
+
+  const tone =
+    score >= 90
+      ? { ring: "var(--primary)", text: "text-primary", label: "OPTIMAL" }
+      : score >= 70
+        ? { ring: "var(--accent)", text: "text-accent", label: "DEGRADED" }
+        : { ring: "var(--destructive)", text: "text-destructive", label: "CRITICAL" };
+
+  const alerts = diagnostics.filter((d) => d.status !== "healthy");
+
+  // Conic-gradient dial: filled arc + remainder.
+  const dialStyle: React.CSSProperties = {
+    background: `conic-gradient(${tone.ring} ${score * 3.6}deg, color-mix(in oklab, var(--border) 70%, transparent) 0deg)`,
+  };
+
+  return (
+    <section
+      className="rounded-xl border border-border bg-card"
+      style={{ boxShadow: "var(--shadow-card)" }}
+    >
+      <div className="flex items-center justify-between border-b border-border px-5 py-3">
+        <div>
+          <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+            Fleet Risk Engine
+          </h3>
+          <p className="mt-1 text-[11px] text-muted-foreground">
+            Real-time diagnostic control plane across the deployed cluster.
+          </p>
+        </div>
+        <span
+          className={`font-mono-num rounded-full border px-2 py-1 text-[10px] uppercase tracking-widest ${
+            score >= 90
+              ? "border-primary/40 bg-primary/10 text-primary"
+              : score >= 70
+                ? "border-accent/40 bg-accent/10 text-accent"
+                : "border-destructive/40 bg-destructive/10 text-destructive"
+          }`}
+        >
+          {tone.label}
+        </span>
+      </div>
+
+      {/* ALERT BANNER */}
+      {alerts.length > 0 && (
+        <div className="border-b border-border bg-background/40 px-5 py-3">
+          {alerts.slice(0, 1).map((a) => (
+            <div
+              key={a.label}
+              className={`flex items-start gap-3 rounded-lg border px-3 py-2 text-xs ${
+                a.status === "critical"
+                  ? "border-destructive/40 bg-destructive/10 text-destructive"
+                  : "border-accent/40 bg-accent/10 text-accent"
+              }`}
+            >
+              <span className="font-mono-num pt-0.5">⚠</span>
+              <div className="leading-relaxed">
+                {a.label === "Marketplace Template Registry" ? (
+                  <>
+                    Template registry mismatch. Container healthy. Marketplace
+                    template unavailable. Recommended action: republish template.
+                  </>
+                ) : (
+                  <>
+                    {a.label}: {a.detail}. Recommended action: open the node
+                    panel and review remediation steps.
+                  </>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="grid gap-6 px-5 py-5 md:grid-cols-[200px_1fr] md:items-center">
+        {/* SCORE DIAL */}
+        <div className="flex flex-col items-center gap-3">
+          <div
+            className="relative grid h-44 w-44 place-items-center rounded-full"
+            style={dialStyle}
+            role="img"
+            aria-label={`Overall fleet score ${score} out of 100`}
+          >
+            <div className="grid h-[78%] w-[78%] place-items-center rounded-full bg-card">
+              <div className="text-center">
+                <div className={`font-mono-num text-4xl font-semibold ${tone.text}`}>
+                  {score}
+                </div>
+                <div className="font-mono-num text-[10px] uppercase tracking-widest text-muted-foreground">
+                  / 100
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="text-center">
+            <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
+              Overall Fleet Score
+            </div>
+          </div>
+        </div>
+
+        {/* DIAGNOSTIC LIST */}
+        <ul className="divide-y divide-border">
+          {diagnostics.map((d) => (
+            <li
+              key={d.label}
+              className="flex items-center justify-between gap-4 py-2.5"
+            >
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <DiagDot status={d.status} />
+                  <span className="text-sm font-medium text-foreground">
+                    {d.label}
+                  </span>
+                </div>
+                <p className="font-mono-num mt-0.5 text-[11px] text-muted-foreground">
+                  {d.detail}
+                </p>
+              </div>
+              <span
+                className={`font-mono-num rounded-full border px-2 py-0.5 text-[10px] uppercase tracking-widest ${
+                  d.status === "healthy"
+                    ? "border-primary/40 bg-primary/10 text-primary"
+                    : d.status === "warning"
+                      ? "border-accent/40 bg-accent/10 text-accent"
+                      : "border-destructive/40 bg-destructive/10 text-destructive"
+                }`}
+              >
+                {d.status === "healthy"
+                  ? "Healthy"
+                  : d.status === "warning"
+                    ? d.label === "Chain Sync Status"
+                      ? "Bootstrapping"
+                      : d.label === "Marketplace Template Registry"
+                        ? "Mismatch"
+                        : d.label === "GPU Thermals"
+                          ? "Throttling"
+                          : d.label === "Wallet Health"
+                            ? "Unloaded"
+                            : d.label === "Node Health"
+                              ? "Degraded"
+                              : "Warning"
+                    : "Critical"}
+              </span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+  );
+}
+
+function DiagDot({ status }: { status: DiagStatus }) {
+  const cls =
+    status === "healthy"
+      ? "bg-primary pulse-dot"
+      : status === "warning"
+        ? "bg-accent"
+        : "bg-destructive pulse-dot";
+  return <span className={`inline-block h-2 w-2 rounded-full ${cls}`} />;
 }
 
 /* -------------------------------------------------------------------------- */

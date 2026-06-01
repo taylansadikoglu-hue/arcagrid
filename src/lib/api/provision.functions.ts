@@ -556,3 +556,96 @@ export const getInstanceTelemetry = createServerFn({ method: "POST" })
       };
     }
   });
+
+/* -------------------------------------------------------------------------- */
+/*  ACTIVE INSTANCE TERMINATION (Billing Guard)                               */
+/*                                                                            */
+/*  Wired to the dashboard's "Stop Miner" / "Terminate" controls. Calls the   */
+/*  upstream provider DELETE endpoint so the meter actually stops — UI state  */
+/*  alone never releases the rented hardware.                                 */
+/* -------------------------------------------------------------------------- */
+
+const DestroyInput = z.object({
+  instanceId: z
+    .string()
+    .min(1)
+    .max(64)
+    .regex(/^(vast|clore|byo)-[a-zA-Z0-9_-]+$/),
+});
+
+async function destroyVastInstance(contractId: string): Promise<boolean> {
+  const key = process.env.VAST_AI_API_KEY;
+  if (!key) throw new Error("Provider credentials unavailable");
+  const res = await fetch(
+    `https://console.vast.ai/api/v0/instances/${contractId}/`,
+    {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${key}` },
+    },
+  );
+  // Treat 404 as already-destroyed (idempotent stop).
+  if (res.status === 404) return true;
+  if (!res.ok) {
+    throw new Error(`vast destroy ${res.status}: ${await res.text()}`);
+  }
+  return true;
+}
+
+async function destroyCloreInstance(orderId: string): Promise<boolean> {
+  const key = process.env.CLORE_AI_API_KEY;
+  if (!key) throw new Error("Provider credentials unavailable");
+  const res = await fetch("https://api.clore.ai/v1/cancel_order", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", auth: key },
+    body: JSON.stringify({ id: Number(orderId) }),
+  });
+  if (res.status === 404) return true;
+  if (!res.ok) {
+    throw new Error(`clore cancel ${res.status}: ${await res.text()}`);
+  }
+  return true;
+}
+
+export const destroyInstance = createServerFn({ method: "POST" })
+  .inputValidator((input) => DestroyInput.parse(input))
+  .handler(async ({ data }) => {
+    const [providerTag, ...rest] = data.instanceId.split("-");
+    const id = rest.join("-");
+
+    // BYO compute: no cloud hardware to release — frontend just clears state.
+    if (providerTag === "byo") {
+      return { ok: true as const, terminatedAt: Date.now(), provider: "byo" };
+    }
+
+    try {
+      const ok =
+        providerTag === "vast"
+          ? await destroyVastInstance(id)
+          : await destroyCloreInstance(id);
+
+      if (!ok) {
+        return {
+          ok: false as const,
+          error: "Provider did not confirm instance termination",
+        };
+      }
+
+      console.info(
+        `[provision] destroyed ${providerTag} instance=${id} at=${Date.now()}`,
+      );
+      return {
+        ok: true as const,
+        terminatedAt: Date.now(),
+        provider: providerTag,
+      };
+    } catch (err) {
+      console.error("[provision] destroy failed", err);
+      return {
+        ok: false as const,
+        error:
+          err instanceof Error
+            ? err.message
+            : "Termination request failed at routing layer",
+      };
+    }
+  });

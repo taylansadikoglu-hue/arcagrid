@@ -8,6 +8,7 @@ import { tierById, useMinerSession } from "@/lib/miner-store";
 import {
   getInstanceTelemetry,
   getPinnedBinaryTag,
+  destroyInstance,
 } from "@/lib/api/provision.functions";
 import { captureError } from "@/lib/observability";
 
@@ -21,6 +22,9 @@ function DashboardPage() {
   const navigate = useNavigate();
   const [now, setNow] = useState(Date.now());
   const [confirming, setConfirming] = useState(false);
+  const [terminating, setTerminating] = useState(false);
+  const [termError, setTermError] = useState<string | null>(null);
+  const destroy = useServerFn(destroyInstance);
   const fetchPinned = useServerFn(getPinnedBinaryTag);
   const { data: pinned } = useQuery({
     queryKey: ["pinned-binary-tag"],
@@ -127,14 +131,47 @@ function DashboardPage() {
     session.status === "mining" &&
     (liveStatus === "active" || liveStatus === "degraded");
 
-  const stop = () => {
-    setSession({ ...session, status: "idle" });
-    setConfirming(false);
+  const stop = async () => {
+    if (!session) return;
+    setTerminating(true);
+    setTermError(null);
+    try {
+      const res = await destroy({ data: { instanceId: session.instanceId } });
+      if (!res.ok) {
+        setTermError(res.error);
+        setTerminating(false);
+        return;
+      }
+      setSession({ ...session, status: "idle" });
+      setConfirming(false);
+    } catch (err) {
+      captureError(err, { scope: "destroyInstance", instanceId: session.instanceId });
+      setTermError("Termination request failed. Please retry.");
+    } finally {
+      setTerminating(false);
+    }
   };
 
-  const terminate = () => {
-    setSession(null);
-    navigate({ to: "/" });
+  const terminate = async () => {
+    if (!session) return;
+    setTerminating(true);
+    setTermError(null);
+    try {
+      // Defense-in-depth: even if status is already idle, ensure the cloud
+      // instance is released so we never keep billing a stale rental.
+      const res = await destroy({ data: { instanceId: session.instanceId } });
+      if (!res.ok) {
+        setTermError(res.error);
+        setTerminating(false);
+        return;
+      }
+      setSession(null);
+      navigate({ to: "/" });
+    } catch (err) {
+      captureError(err, { scope: "destroyInstance", instanceId: session.instanceId });
+      setTermError("Termination request failed. Please retry.");
+      setTerminating(false);
+    }
   };
 
   return (
@@ -320,24 +357,31 @@ function DashboardPage() {
               </h3>
               <p className="text-sm text-muted-foreground">
                 {session.status === "mining"
-                  ? "Releases the grid node immediately. You'll keep what you mined."
+                  ? "Actively releases the grid node and halts billing. You'll keep what you mined."
                   : "Terminate to remove this session entirely."}
               </p>
+              {termError && (
+                <p className="mt-2 rounded border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+                  {termError}
+                </p>
+              )}
             </div>
             {session.status === "mining" ? (
               confirming ? (
                 <div className="flex gap-2">
                   <button
                     onClick={() => setConfirming(false)}
+                    disabled={terminating}
                     className="rounded-lg border border-border bg-secondary px-4 py-2.5 text-sm hover:bg-secondary/70"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={stop}
+                    disabled={terminating}
                     className="rounded-lg bg-destructive px-5 py-2.5 text-sm font-semibold text-destructive-foreground hover:brightness-110"
                   >
-                    Confirm Stop
+                    {terminating ? "Releasing node…" : "Confirm Stop"}
                   </button>
                 </div>
               ) : (
@@ -351,9 +395,10 @@ function DashboardPage() {
             ) : (
               <button
                 onClick={terminate}
+                disabled={terminating}
                 className="rounded-lg border border-border bg-secondary px-5 py-2.5 text-sm font-semibold hover:bg-secondary/70"
               >
-                Terminate session
+                {terminating ? "Terminating…" : "Terminate session"}
               </button>
             )}
           </div>
