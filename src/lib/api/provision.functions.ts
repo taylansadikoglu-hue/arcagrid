@@ -12,7 +12,12 @@ import { z } from "zod";
  * bind env at request time, not module load time).
  */
 
-const MIN_MARGIN = 0.4; // ≥ 40% gross margin. Server-side only.
+// Customer-first routing: hardware filters (vram ≥ 16, modern RTX) are
+// non-negotiable. Margin is secondary — we aim for TARGET_MARGIN but will
+// dynamically compress through these fallback floors before failing the
+// deploy. All values strictly server-side.
+const TARGET_MARGIN = 0.4;
+const MARGIN_FALLBACKS = [0.4, 0.1, 0.05];
 const IMAGE = "taylans/btx-oneclick-miner:latest";
 /**
  * Pinned btxd binary release tag. Every provisioned container runs exactly
@@ -160,14 +165,26 @@ function selectBestCandidate(
       const marginPct = (budget - dailyCost) / budget;
       return { ...c, marginPct };
     })
-    .filter((c) => c.marginPct >= MIN_MARGIN)
     .sort((a, b) => {
       if (Math.abs(a.marginPct - b.marginPct) < 0.01) {
         return a.provider === "clore" ? -1 : 1;
       }
       return b.marginPct - a.marginPct;
     });
-  return scored[0] ?? null;
+  // Walk the fallback floors: prefer TARGET_MARGIN, but compress down to 5%
+  // rather than failing the user's deploy.
+  for (const floor of MARGIN_FALLBACKS) {
+    const winner = scored.find((c) => c.marginPct >= floor);
+    if (winner) {
+      if (floor < TARGET_MARGIN) {
+        console.info(
+          `[provision] margin compressed to floor=${(floor * 100).toFixed(0)}%`,
+        );
+      }
+      return winner;
+    }
+  }
+  return null;
 }
 
 function buildEnv(input: z.infer<typeof ProvisionInput>) {
