@@ -8,6 +8,7 @@ import { tierById, useMinerSession } from "@/lib/miner-store";
 import {
   getInstanceTelemetry,
   getPinnedBinaryTag,
+  destroyInstance,
 } from "@/lib/api/provision.functions";
 import { captureError } from "@/lib/observability";
 
@@ -21,6 +22,9 @@ function DashboardPage() {
   const navigate = useNavigate();
   const [now, setNow] = useState(Date.now());
   const [confirming, setConfirming] = useState(false);
+  const [terminating, setTerminating] = useState(false);
+  const [termError, setTermError] = useState<string | null>(null);
+  const destroy = useServerFn(destroyInstance);
   const fetchPinned = useServerFn(getPinnedBinaryTag);
   const { data: pinned } = useQuery({
     queryKey: ["pinned-binary-tag"],
@@ -127,14 +131,47 @@ function DashboardPage() {
     session.status === "mining" &&
     (liveStatus === "active" || liveStatus === "degraded");
 
-  const stop = () => {
-    setSession({ ...session, status: "idle" });
-    setConfirming(false);
+  const stop = async () => {
+    if (!session) return;
+    setTerminating(true);
+    setTermError(null);
+    try {
+      const res = await destroy({ data: { instanceId: session.instanceId } });
+      if (!res.ok) {
+        setTermError(res.error);
+        setTerminating(false);
+        return;
+      }
+      setSession({ ...session, status: "idle" });
+      setConfirming(false);
+    } catch (err) {
+      captureError(err, { scope: "destroyInstance", instanceId: session.instanceId });
+      setTermError("Termination request failed. Please retry.");
+    } finally {
+      setTerminating(false);
+    }
   };
 
-  const terminate = () => {
-    setSession(null);
-    navigate({ to: "/" });
+  const terminate = async () => {
+    if (!session) return;
+    setTerminating(true);
+    setTermError(null);
+    try {
+      // Defense-in-depth: even if status is already idle, ensure the cloud
+      // instance is released so we never keep billing a stale rental.
+      const res = await destroy({ data: { instanceId: session.instanceId } });
+      if (!res.ok) {
+        setTermError(res.error);
+        setTerminating(false);
+        return;
+      }
+      setSession(null);
+      navigate({ to: "/" });
+    } catch (err) {
+      captureError(err, { scope: "destroyInstance", instanceId: session.instanceId });
+      setTermError("Termination request failed. Please retry.");
+      setTerminating(false);
+    }
   };
 
   return (
