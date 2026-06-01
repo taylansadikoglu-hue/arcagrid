@@ -41,7 +41,11 @@ function DashboardPage() {
           throw err;
         },
       ),
-    enabled: Boolean(session?.instanceId && session?.status === "mining"),
+    enabled: Boolean(
+      session?.instanceId &&
+        session?.status === "mining" &&
+        session?.tier !== "partner_share",
+    ),
     refetchInterval: 4000,
     refetchOnWindowFocus: true,
     staleTime: 0,
@@ -156,6 +160,49 @@ function DashboardPage() {
 
         {/* MAIN GRID */}
         <div className="mt-8 grid gap-4 lg:grid-cols-3">
+          {session.tier === "partner_share" && (
+            <div
+              className="lg:col-span-3 rounded-2xl border border-primary/40 bg-card p-6"
+              style={{ boxShadow: "var(--shadow-card)" }}
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs uppercase tracking-widest text-primary">
+                    Bring Your Own Compute
+                  </p>
+                  <h3 className="mt-1 text-lg font-semibold">
+                    Attach your rig to ARCA GRID
+                  </h3>
+                </div>
+                <span className="rounded-full border border-border bg-background/60 px-3 py-1 text-[11px] uppercase tracking-widest text-muted-foreground">
+                  Zero-Upfront
+                </span>
+              </div>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Run the command below on any CUDA-capable host. The partner-node
+                image joins your rig to the grid mesh and routes block rewards to
+                your wallet (20% infrastructure fee applied at payout).
+              </p>
+              <pre className="mt-4 overflow-x-auto rounded-lg border border-border bg-background/70 p-4 text-xs leading-relaxed">
+                <code className="font-mono-num text-foreground">
+{`docker run -d --gpus all \\
+  -e BTX_MINING_MODE=solo \\
+  -e USER_WALLET=${session.wallet} \\
+  arcagrid/partner-node:latest`}
+                </code>
+              </pre>
+              <button
+                onClick={() => {
+                  navigator.clipboard?.writeText(
+                    `docker run -d --gpus all -e BTX_MINING_MODE=solo -e USER_WALLET=${session.wallet} arcagrid/partner-node:latest`,
+                  );
+                }}
+                className="mt-3 rounded-lg border border-border bg-secondary/40 px-3 py-1.5 text-xs font-medium text-foreground hover:border-border/80"
+              >
+                Copy command
+              </button>
+            </div>
+          )}
           {/* STATUS CARD */}
           <div
             className="rounded-2xl border border-border bg-card p-6 lg:col-span-2"
