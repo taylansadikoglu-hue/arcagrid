@@ -7,7 +7,23 @@ import { updatePassword } from "@/lib/use-auth";
 
 export const Route = createFileRoute("/reset-password")({
   head: () => ({
-    meta: [{ title: "Reset passphrase — Arca Grid" }],
+    meta: [
+      { title: "Reset passphrase — Arca Grid" },
+      {
+        name: "description",
+        content:
+          "Set a new operator passphrase to restore access to your ARCA GRID Fleet Console.",
+      },
+      { property: "og:title", content: "Reset passphrase — Arca Grid" },
+      {
+        property: "og:description",
+        content:
+          "Recover your ARCA GRID operator account and restore Fleet Console access.",
+      },
+      { property: "og:url", content: "https://arcgrid.dev/reset-password" },
+      { name: "robots", content: "noindex,nofollow" },
+    ],
+    links: [{ rel: "canonical", href: "https://arcgrid.dev/reset-password" }],
   }),
   component: ResetPasswordPage,
 });

@@ -25,6 +25,29 @@ export const Route = createFileRoute("/deploy")({
         content:
           "Per-day or monthly compute tiers on ARCA — Autonomous Remote Cluster Architecture. Autonomous allocation, hard-capped thermal routing, immutable provisioning.",
       },
+      { property: "og:url", content: "https://arcgrid.dev/deploy" },
+    ],
+    links: [{ rel: "canonical", href: "https://arcgrid.dev/deploy" }],
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@graph": TIERS.filter((t) => t.id !== "partner_share").map((t) => ({
+            "@type": "Product",
+            name: `ARCA GRID ${t.name} — ${t.tagline}`,
+            description: t.description ?? `${t.name} compute tier on the ARCA GRID Sovereign Distributed Grid Mesh.`,
+            brand: { "@type": "Brand", name: "ARCA GRID" },
+            offers: {
+              "@type": "Offer",
+              price: t.price.toFixed(2),
+              priceCurrency: "USD",
+              availability: "https://schema.org/InStock",
+              url: `https://arcgrid.dev/checkout?tier=${t.id}`,
+            },
+          })),
+        }),
+      },
     ],
   }),
   component: DeployPage,
@@ -95,8 +118,14 @@ function DeployPage() {
                 </span>
               </div>
 
-              <label className="mt-5 block text-sm font-medium">Payout Wallet Address</label>
+              <label
+                htmlFor="payout-wallet"
+                className="mt-5 block text-sm font-medium"
+              >
+                Payout Wallet Address
+              </label>
               <input
+                id="payout-wallet"
                 value={wallet}
                 onChange={(e) => setWallet(e.target.value)}
                 placeholder="btx1q…"

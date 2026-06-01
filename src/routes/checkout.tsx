@@ -28,7 +28,23 @@ const searchSchema = z.object({
 export const Route = createFileRoute("/checkout")({
   validateSearch: searchSchema,
   head: () => ({
-    meta: [{ title: "Provisioning Edge Cluster — Arca Grid" }],
+    meta: [
+      { title: "Provisioning Edge Cluster — Arca Grid" },
+      {
+        name: "description",
+        content:
+          "Complete provisioning for your ARCA GRID compute tier. Secure Stripe checkout — your cluster initializes the moment payment clears.",
+      },
+      { property: "og:title", content: "Provisioning Edge Cluster — Arca Grid" },
+      {
+        property: "og:description",
+        content:
+          "Secure Stripe checkout for ARCA GRID compute tiers. Automated mesh provisioning on confirmation.",
+      },
+      { property: "og:url", content: "https://arcgrid.dev/checkout" },
+      { name: "robots", content: "noindex,nofollow" },
+    ],
+    links: [{ rel: "canonical", href: "https://arcgrid.dev/checkout" }],
   }),
   component: CheckoutPage,
 });
