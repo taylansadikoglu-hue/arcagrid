@@ -701,3 +701,96 @@ export const destroyInstance = createServerFn({ method: "POST" })
       };
     }
   });
+
+/* -------------------------------------------------------------------------- */
+/*  AUTO-FAILOVER                                                             */
+/*                                                                            */
+/*  When the dashboard detects an unexpectedly dead container (offline /      */
+/*  exited / terminated) for an active session, it calls this serverFn to     */
+/*  destroy the dead rental and immediately rent a fresh, healthy node on     */
+/*  the user's behalf — no refresh, no re-checkout.                           */
+/* -------------------------------------------------------------------------- */
+
+const FailoverInput = z.object({
+  deadInstanceId: z
+    .string()
+    .min(1)
+    .max(64)
+    .regex(/^(vast|clore)-[a-zA-Z0-9_-]+$/),
+  tier: ProvisionInput.shape.tier,
+  paidPriceUsd: ProvisionInput.shape.paidPriceUsd,
+  wallet: ProvisionInput.shape.wallet,
+  mode: ProvisionInput.shape.mode,
+  poolAddress: ProvisionInput.shape.poolAddress,
+});
+
+export const failoverInstance = createServerFn({ method: "POST" })
+  .inputValidator((input) => FailoverInput.parse(input))
+  .handler(async ({ data }) => {
+    if (data.tier === "partner_share") {
+      return {
+        ok: false as const,
+        error: "Partner tier nodes are self-hosted; no failover required",
+      };
+    }
+
+    // Best-effort release of the dead rental — if upstream already reaped it
+    // (404), destroyVast/Clore swallow it as idempotent. We do NOT block the
+    // failover on this call: a dead instance must not strand the customer.
+    const [providerTag, ...rest] = data.deadInstanceId.split("-");
+    const oldId = rest.join("-");
+    try {
+      if (providerTag === "vast") await destroyVastInstance(oldId);
+      else if (providerTag === "clore") await destroyCloreInstance(oldId);
+    } catch (err) {
+      console.warn("[failover] dead-node cleanup failed (continuing)", err);
+    }
+
+    const isMonthly =
+      data.tier === "standard_monthly" || data.tier === "pro_monthly";
+
+    const [vast, clore] = await Promise.all([queryVast(), queryClore()]);
+    const pool = [...vast, ...clore].filter((c) => c.hourlyUsd > 0);
+    const winner = selectBestCandidate(pool, data.paidPriceUsd, isMonthly);
+
+    if (!winner) {
+      return {
+        ok: false as const,
+        error:
+          "Failover blocked: no healthy grid nodes currently match routing thresholds.",
+      };
+    }
+
+    const env = buildEnv({
+      tier: data.tier,
+      paidPriceUsd: data.paidPriceUsd,
+      wallet: data.wallet,
+      mode: data.mode,
+      poolAddress: data.poolAddress,
+    });
+
+    try {
+      const instanceId =
+        winner.provider === "vast"
+          ? await launchVastInstance(winner.offerId, env)
+          : await launchCloreInstance(winner.offerId, env);
+
+      console.info(
+        `[failover] swapped dead=${data.deadInstanceId} -> ${instanceId} ` +
+          `margin=${(winner.marginPct * 100).toFixed(1)}%`,
+      );
+
+      return {
+        ok: true as const,
+        instanceId,
+        reallocatedAt: Date.now(),
+        binaryTag: pinnedBinaryTag(),
+      };
+    } catch (err) {
+      console.error("[failover] launch failed", err);
+      return {
+        ok: false as const,
+        error: "Routing layer failed to bind a replacement node. Please retry.",
+      };
+    }
+  });
