@@ -11,7 +11,7 @@ import {
   saveSession,
   tierById,
 } from "@/lib/miner-store";
-import { captureError, track } from "@/lib/observability";
+import { track } from "@/lib/observability";
 
 const searchSchema = z.object({
   tier: z
