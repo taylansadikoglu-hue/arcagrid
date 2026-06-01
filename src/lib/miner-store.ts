@@ -154,10 +154,43 @@ export function loadSession(): MinerSession | null {
   if (typeof window === "undefined") return null;
   try {
     const raw = localStorage.getItem(KEY);
-    return raw ? JSON.parse(raw) : null;
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<MinerSession> | null;
+    if (!isValidSession(parsed)) {
+      // Corrupted / legacy / partial payload — purge so we never re-enter
+      // the broken state on next mount.
+      try {
+        localStorage.removeItem(KEY);
+      } catch {
+        /* ignore */
+      }
+      return null;
+    }
+    return parsed;
   } catch {
+    try {
+      localStorage.removeItem(KEY);
+    } catch {
+      /* ignore */
+    }
     return null;
   }
+}
+
+function isValidSession(s: unknown): s is MinerSession {
+  if (!s || typeof s !== "object") return false;
+  const o = s as Record<string, unknown>;
+  if (typeof o.wallet !== "string" || !o.wallet) return false;
+  if (o.mode !== "pool" && o.mode !== "solo") return false;
+  if (typeof o.tier !== "string") return false;
+  if (!TIERS.some((t) => t.id === o.tier)) return false;
+  if (typeof o.instanceId !== "string" || !o.instanceId) return false;
+  if (o.status !== "mining" && o.status !== "idle") return false;
+  if (typeof o.startedAt !== "number" || !Number.isFinite(o.startedAt)) return false;
+  if (typeof o.expiresAt !== "number" || !Number.isFinite(o.expiresAt)) return false;
+  if (typeof o.hostCost !== "number" || !Number.isFinite(o.hostCost)) return false;
+  if (typeof o.paidPrice !== "number" || !Number.isFinite(o.paidPrice)) return false;
+  return true;
 }
 
 export function saveSession(session: MinerSession | null) {
@@ -207,6 +240,6 @@ export function pickHostCost(paidPrice: number, isMonthly: boolean): number {
   return Math.max(0.5, Number((maxCost * 0.92).toFixed(2)));
 }
 
-export function tierById(id: TierId): Tier {
-  return TIERS.find((t) => t.id === id)!;
+export function tierById(id: TierId): Tier | null {
+  return TIERS.find((t) => t.id === id) ?? null;
 }
