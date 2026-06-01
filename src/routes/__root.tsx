@@ -81,6 +81,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:title", content: "Arca Grid | GPU Fleet Management" },
       { property: "og:description", content: "Deploy, monitor and repair distributed GPU fleets from a single control plane." },
       { property: "og:type", content: "website" },
+      { property: "og:site_name", content: "ARCA GRID" },
       { name: "twitter:site", content: "@ArcaGrid" },
       { name: "twitter:title", content: "Arca Grid | GPU Fleet Management" },
       { name: "twitter:description", content: "Deploy, monitor and repair distributed GPU fleets from a single control plane." },
@@ -92,6 +93,29 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       {
         rel: "stylesheet",
         href: appCss,
+      },
+    ],
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@graph": [
+            {
+              "@type": "Organization",
+              name: "ARCA GRID",
+              url: "https://arcgrid.dev",
+              logo: "https://arcgrid.dev/favicon.ico",
+              description:
+                "Sovereign Distributed Grid Mesh — enterprise GPU orchestration layer for distributed compute workloads.",
+            },
+            {
+              "@type": "WebSite",
+              name: "ARCA GRID",
+              url: "https://arcgrid.dev",
+            },
+          ],
+        }),
       },
     ],
   }),
@@ -126,7 +150,9 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <ErrorBoundary fallback={<ErrorComponent error={new Error("Unhandled error")} reset={() => location.reload()} />}>
         {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-        <Outlet />
+        <main>
+          <Outlet />
+        </main>
       </ErrorBoundary>
     </QueryClientProvider>
   );
