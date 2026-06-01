@@ -35,15 +35,19 @@ export const Route = createFileRoute("/checkout")({
 function CheckoutPage() {
   const { tier: tierId } = Route.useSearch();
   const navigate = useNavigate();
-  const tier = tierById(tierId);
+  const tierMaybe = tierById(tierId);
   const [paying, setPaying] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [completed, setCompleted] = useState(false);
 
-  const isMonthly = tier.unit === "mo";
+  useEffect(() => {
+    if (!tierMaybe) navigate({ to: "/" });
+  }, [tierMaybe, navigate]);
 
   // Checkout abandonment: fire if user leaves before clicking pay.
-  const [completed, setCompleted] = useState(false);
   useEffect(() => {
+    if (!tierMaybe) return;
+    const tier = tierMaybe;
     track("checkout_viewed", { tier: tier.id, price: tier.price });
     const onUnload = () => {
       if (!completed) {
@@ -56,7 +60,11 @@ function CheckoutPage() {
       if (!completed) track("checkout_abandoned", { tier: tier.id, price: tier.price });
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tier.id]);
+  }, [tierMaybe?.id]);
+
+  if (!tierMaybe) return null;
+  const tier = tierMaybe;
+  const isMonthly = tier.unit === "mo";
 
   const pay = async () => {
     track("provision_access_clicked", { tier: tier.id, price: tier.price });

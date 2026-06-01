@@ -98,84 +98,15 @@ function DashboardPage() {
     return { local, headers, pct };
   }, [telemetry]);
 
-  if (!hydrated) {
-    return (
-      <div className="min-h-screen bg-background">
-        <SiteNav />
-        <div className="grid place-items-center py-32 text-sm text-muted-foreground">
-          Loading…
-        </div>
-      </div>
-    );
-  }
-
-  if (!session) {
-    return (
-      <div className="min-h-screen bg-background text-foreground">
-        <SiteNav />
-        <div className="mx-auto grid max-w-md gap-4 px-6 py-24 text-center">
-          <h1 className="text-2xl font-semibold">No active session</h1>
-          <p className="text-sm text-muted-foreground">
-            You haven't launched a miner yet. Pick a tier to get started.
-          </p>
-          <Link
-            to="/"
-            className="mx-auto rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:brightness-110"
-          >
-            Launch a miner
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
-  const tier = tierById(session.tier);
-  // Defensive: an unknown tier id (stale localStorage from an older build)
-  // would otherwise crash on access. Bounce to home instead of throwing.
-  if (!tier) {
-    return (
-      <div className="min-h-screen bg-background text-foreground">
-        <SiteNav />
-        <div className="mx-auto grid max-w-md gap-4 px-6 py-24 text-center">
-          <h1 className="text-2xl font-semibold">Session unavailable</h1>
-          <p className="text-sm text-muted-foreground">
-            Your previous session references a tier that's no longer offered.
-            Please launch a fresh miner from the home page.
-          </p>
-          <Link
-            to="/"
-            className="mx-auto rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:brightness-110"
-          >
-            Return home
-          </Link>
-        </div>
-      </div>
-    );
-  }
-  const elapsed = Math.max(0, now - session.startedAt);
-  const remaining = Math.max(0, session.expiresAt - now);
-  const uptimeMs = telemetry?.uptime_seconds
-    ? telemetry.uptime_seconds * 1000
-    : elapsed;
-  const earned = ((hashrate * uptimeMs) / 1000 / 3600) * 0.00012;
-  const peers = telemetry?.current_peer_count;
   const liveStatus = telemetry?.status ?? "provisioning";
-  const isActive =
-    session.status === "mining" &&
-    (liveStatus === "active" || liveStatus === "degraded");
 
-  // Dead-node auto-recovery: when the upstream reports the container as
-  // offline/exited/terminated while the user's session is still supposed to
-  // be mining, immediately rent a replacement node — no dark dashboard,
-  // no manual refresh.
+  // Dead-node auto-recovery: hoisted above early returns so hook order
+  // stays stable across renders (e.g. hydration flip).
   useEffect(() => {
     if (!session || session.status !== "mining") return;
     if (session.tier === "partner_share") return;
     if (liveStatus !== "dead") return;
     if (failoverState.active) return;
-    // Infinite-loop guard: only attempt failover once per dead instance.
-    // If the aggregator returned NO_INVENTORY or otherwise errored, we hold
-    // the warning banner up rather than spamming re-renders.
     if (failoverAttempted.current.has(session.instanceId)) return;
     failoverAttempted.current.add(session.instanceId);
     const deadReason = telemetry?.error ?? "Node went offline";
@@ -221,6 +152,76 @@ function DashboardPage() {
     failover,
     setSession,
   ]);
+
+  if (!hydrated) {
+    return (
+      <div className="min-h-screen bg-background">
+        <SiteNav />
+        <div className="grid place-items-center py-32 text-sm text-muted-foreground">
+          Loading…
+        </div>
+      </div>
+    );
+  }
+
+  if (!session) {
+    return (
+      <div className="min-h-screen bg-background text-foreground">
+        <SiteNav />
+        <div className="mx-auto grid max-w-md gap-4 px-6 py-24 text-center">
+          <h1 className="text-2xl font-semibold">No active session</h1>
+          <p className="text-sm text-muted-foreground">
+            You haven't launched a miner yet. Pick a tier to get started.
+          </p>
+          <Link
+            to="/"
+            className="mx-auto rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:brightness-110"
+          >
+            Launch a miner
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  const tier = tierById(session.tier);
+  // Defensive: an unknown tier id (stale localStorage from an older build)
+  // would otherwise crash on access. Purge and bounce home.
+  if (!tier) {
+    try {
+      localStorage.removeItem("btx-miner-session");
+    } catch {
+      /* ignore */
+    }
+    return (
+      <div className="min-h-screen bg-background text-foreground">
+        <SiteNav />
+        <div className="mx-auto grid max-w-md gap-4 px-6 py-24 text-center">
+          <h1 className="text-2xl font-semibold">Session unavailable</h1>
+          <p className="text-sm text-muted-foreground">
+            Your previous session references a tier that's no longer offered.
+            Please launch a fresh miner from the home page.
+          </p>
+          <Link
+            to="/"
+            className="mx-auto rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:brightness-110"
+          >
+            Return home
+          </Link>
+        </div>
+      </div>
+    );
+  }
+  const elapsed = Math.max(0, now - session.startedAt);
+  const remaining = Math.max(0, session.expiresAt - now);
+  const uptimeMs = telemetry?.uptime_seconds
+    ? telemetry.uptime_seconds * 1000
+    : elapsed;
+  const earned = ((hashrate * uptimeMs) / 1000 / 3600) * 0.00012;
+  const peers = telemetry?.current_peer_count;
+  const isActive =
+    session.status === "mining" &&
+    (liveStatus === "active" || liveStatus === "degraded");
 
   const stop = async () => {
     if (!session) return;
