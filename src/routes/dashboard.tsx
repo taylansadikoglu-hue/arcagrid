@@ -9,6 +9,7 @@ import {
   getInstanceTelemetry,
   getPinnedBinaryTag,
   destroyInstance,
+  failoverInstance,
 } from "@/lib/api/provision.functions";
 import { captureError } from "@/lib/observability";
 
@@ -24,7 +25,13 @@ function DashboardPage() {
   const [confirming, setConfirming] = useState(false);
   const [terminating, setTerminating] = useState(false);
   const [termError, setTermError] = useState<string | null>(null);
+  const [failoverState, setFailoverState] = useState<{
+    active: boolean;
+    error: string | null;
+    reason: string | null;
+  }>({ active: false, error: null, reason: null });
   const destroy = useServerFn(destroyInstance);
+  const failover = useServerFn(failoverInstance);
   const fetchPinned = useServerFn(getPinnedBinaryTag);
   const { data: pinned } = useQuery({
     queryKey: ["pinned-binary-tag"],
@@ -131,6 +138,59 @@ function DashboardPage() {
     session.status === "mining" &&
     (liveStatus === "active" || liveStatus === "degraded");
 
+  // Dead-node auto-recovery: when the upstream reports the container as
+  // offline/exited/terminated while the user's session is still supposed to
+  // be mining, immediately rent a replacement node — no dark dashboard,
+  // no manual refresh.
+  useEffect(() => {
+    if (!session || session.status !== "mining") return;
+    if (session.tier === "partner_share") return;
+    if (liveStatus !== "dead") return;
+    if (failoverState.active) return;
+    const deadReason = telemetry?.error ?? "Node went offline";
+    setFailoverState({ active: true, error: null, reason: deadReason });
+    (async () => {
+      try {
+        const res = await failover({
+          data: {
+            deadInstanceId: session.instanceId,
+            tier: session.tier,
+            paidPriceUsd: session.paidPrice,
+            wallet: session.wallet,
+            mode: session.mode,
+          },
+        });
+        if (!res.ok) {
+          setFailoverState({
+            active: false,
+            error: res.error,
+            reason: deadReason,
+          });
+          return;
+        }
+        setSession({ ...session, instanceId: res.instanceId });
+        setFailoverState({ active: false, error: null, reason: null });
+      } catch (err) {
+        captureError(err, {
+          scope: "failoverInstance",
+          instanceId: session.instanceId,
+        });
+        setFailoverState({
+          active: false,
+          error: "Re-allocation failed. Retrying on next health check…",
+          reason: deadReason,
+        });
+      }
+    })();
+  }, [
+    liveStatus,
+    session,
+    failoverState.active,
+    telemetry?.error,
+    failover,
+    setSession,
+  ]);
+
   const stop = async () => {
     if (!session) return;
     setTerminating(true);
@@ -191,9 +251,35 @@ function DashboardPage() {
           </div>
           <StatusBadge
             mining={session.status === "mining"}
-            live={liveStatus}
+            live={liveStatus === "dead" ? "degraded" : liveStatus}
           />
         </div>
+
+        {(liveStatus === "dead" || failoverState.active || failoverState.error) && (
+          <div
+            className="mt-6 rounded-2xl border border-amber-400/40 bg-amber-400/10 p-5"
+            role="alert"
+          >
+            <div className="flex items-start gap-3">
+              <span className="pulse-dot mt-1 inline-block h-2.5 w-2.5 rounded-full bg-amber-400" />
+              <div className="flex-1">
+                <h3 className="text-sm font-semibold uppercase tracking-widest text-amber-300">
+                  Node Failure Detected
+                </h3>
+                <p className="mt-1 text-sm text-foreground">
+                  {failoverState.error
+                    ? failoverState.error
+                    : "Re-allocating to healthy hardware…"}
+                </p>
+                {failoverState.reason && (
+                  <p className="font-mono-num mt-1 text-[11px] text-muted-foreground">
+                    Cause: {failoverState.reason}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* MAIN GRID */}
         <div className="mt-8 grid gap-4 lg:grid-cols-3">
