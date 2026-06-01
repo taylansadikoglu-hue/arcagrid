@@ -63,6 +63,38 @@ function CheckoutPage() {
     setPaying(true);
     setError(null);
     const prefs = loadPrefs();
+    const isPartner = tier.id === "partner_share";
+
+    // Partner (BYO compute) tier: wallet is strictly required and we never
+    // hit the cloud provisioning path. Route straight to dashboard with a
+    // local-only session so the BYO instructions card renders.
+    if (isPartner) {
+      const wallet = (prefs.wallet || "").trim();
+      if (!wallet) {
+        setError(
+          "A valid BTX address is required for Zero-Upfront deployment. Click the setup link below to generate one.",
+        );
+        setPaying(false);
+        return;
+      }
+      const now = Date.now();
+      saveSession({
+        wallet,
+        mode: prefs.mode,
+        tier: tier.id as TierId,
+        instanceId: `byo-${Math.random().toString(36).slice(2, 10)}`,
+        status: "mining",
+        startedAt: now,
+        expiresAt: now + 30 * 24 * 3600 * 1000,
+        hostCost: 0,
+        paidPrice: 0,
+      });
+      setCompleted(true);
+      track("partner_byo_activated", { tier: tier.id });
+      navigate({ to: "/dashboard" });
+      return;
+    }
+
     try {
       const result = await provisionCluster({
         data: {
