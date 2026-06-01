@@ -404,6 +404,9 @@ function FleetConsole({ userId, email }: { userId: string; email: string }) {
 
         {/* MAIN PANEL */}
         <main className="space-y-4">
+          {/* FLEET RISK ENGINE */}
+          <FleetRiskEngine nodes={nodes} totals={totals} pinned={pinned?.binaryTag} />
+
           {selected ? (
             <NodeDetail node={selected} userId={userId} />
           ) : (
