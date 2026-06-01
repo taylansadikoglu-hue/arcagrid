@@ -35,9 +35,15 @@ export const Route = createFileRoute("/checkout")({
 function CheckoutPage() {
   const { tier: tierId } = Route.useSearch();
   const navigate = useNavigate();
-  const tier = tierById(tierId);
+  const tierMaybe = tierById(tierId);
   const [paying, setPaying] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!tierMaybe) navigate({ to: "/" });
+  }, [tierMaybe, navigate]);
+  if (!tierMaybe) return null;
+  const tier = tierMaybe;
 
   const isMonthly = tier.unit === "mo";
 
