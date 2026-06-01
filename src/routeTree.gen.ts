@@ -16,6 +16,7 @@ import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as CheckoutRouteImport } from './routes/checkout'
 import { Route as ArchitectureRouteImport } from './routes/architecture'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ClusterSydneyARouteImport } from './routes/cluster.sydney-a'
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
@@ -55,6 +56,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ClusterSydneyARoute = ClusterSydneyARouteImport.update({
+  id: '/cluster/sydney-a',
+  path: '/cluster/sydney-a',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LovableEmailQueueProcessRoute =
   LovableEmailQueueProcessRouteImport.update({
     id: '/lovable/email/queue/process',
@@ -80,6 +86,7 @@ export interface FileRoutesByFullPath {
   '/deploy': typeof DeployRoute
   '/fleet': typeof FleetRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/cluster/sydney-a': typeof ClusterSydneyARoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -92,6 +99,7 @@ export interface FileRoutesByTo {
   '/deploy': typeof DeployRoute
   '/fleet': typeof FleetRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/cluster/sydney-a': typeof ClusterSydneyARoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -105,6 +113,7 @@ export interface FileRoutesById {
   '/deploy': typeof DeployRoute
   '/fleet': typeof FleetRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/cluster/sydney-a': typeof ClusterSydneyARoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -119,6 +128,7 @@ export interface FileRouteTypes {
     | '/deploy'
     | '/fleet'
     | '/reset-password'
+    | '/cluster/sydney-a'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
@@ -131,6 +141,7 @@ export interface FileRouteTypes {
     | '/deploy'
     | '/fleet'
     | '/reset-password'
+    | '/cluster/sydney-a'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
@@ -143,6 +154,7 @@ export interface FileRouteTypes {
     | '/deploy'
     | '/fleet'
     | '/reset-password'
+    | '/cluster/sydney-a'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
@@ -156,6 +168,7 @@ export interface RootRouteChildren {
   DeployRoute: typeof DeployRoute
   FleetRoute: typeof FleetRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  ClusterSydneyARoute: typeof ClusterSydneyARoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
   LovableEmailAuthWebhookRoute: typeof LovableEmailAuthWebhookRoute
   LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
@@ -212,6 +225,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/cluster/sydney-a': {
+      id: '/cluster/sydney-a'
+      path: '/cluster/sydney-a'
+      fullPath: '/cluster/sydney-a'
+      preLoaderRoute: typeof ClusterSydneyARouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/lovable/email/queue/process': {
       id: '/lovable/email/queue/process'
       path: '/lovable/email/queue/process'
@@ -244,6 +264,7 @@ const rootRouteChildren: RootRouteChildren = {
   DeployRoute: DeployRoute,
   FleetRoute: FleetRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  ClusterSydneyARoute: ClusterSydneyARoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
   LovableEmailAuthWebhookRoute: LovableEmailAuthWebhookRoute,
   LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,
@@ -251,13 +272,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
