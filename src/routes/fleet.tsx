@@ -31,7 +31,10 @@ export const Route = createFileRoute("/fleet")({
         property: "og:description",
         content: "Bloomberg-grade telemetry for enterprise GPU mining fleets.",
       },
+      { property: "og:url", content: "https://arcgrid.dev/fleet" },
+      { name: "robots", content: "noindex,nofollow" },
     ],
+    links: [{ rel: "canonical", href: "https://arcgrid.dev/fleet" }],
   }),
   component: FleetPage,
 });
@@ -334,6 +337,8 @@ function FleetConsole({ userId, email }: { userId: string; email: string }) {
     <div className="min-h-screen bg-background text-foreground">
       <SiteNav />
 
+      <h1 className="sr-only">Fleet Orchestration Console</h1>
+
       {/* TICKER BAR */}
       <TickerBar
         items={[
@@ -404,7 +409,7 @@ function FleetConsole({ userId, email }: { userId: string; email: string }) {
         </aside>
 
         {/* MAIN PANEL */}
-        <main className="space-y-4">
+        <div className="space-y-4">
           {/* FLEET RISK ENGINE */}
           <FleetRiskEngine nodes={nodes} totals={totals} pinned={pinned?.binaryTag} />
 
@@ -425,7 +430,7 @@ function FleetConsole({ userId, email }: { userId: string; email: string }) {
 
           {/* UPSTREAM RELEASE AUDIT */}
           <UpstreamReleasePanel />
-        </main>
+        </div>
       </div>
     </div>
   );
