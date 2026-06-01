@@ -1,16 +1,17 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { z } from "zod";
 
 import { SiteNav } from "@/components/SiteNav";
-import { provisionCluster } from "@/lib/api/provision.functions";
+import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
+import { StripeEmbeddedCheckout } from "@/components/StripeEmbeddedCheckout";
 import {
   type TierId,
   loadPrefs,
   saveSession,
   tierById,
 } from "@/lib/miner-store";
-import { captureError, track } from "@/lib/observability";
+import { track } from "@/lib/observability";
 
 const searchSchema = z.object({
   tier: z
@@ -36,7 +37,7 @@ function CheckoutPage() {
   const { tier: tierId } = Route.useSearch();
   const navigate = useNavigate();
   const tierMaybe = tierById(tierId);
-  const [paying, setPaying] = useState(false);
+  const [showCheckout, setShowCheckout] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [completed, setCompleted] = useState(false);
 
@@ -65,24 +66,24 @@ function CheckoutPage() {
   if (!tierMaybe) return null;
   const tier = tierMaybe;
   const isMonthly = tier.unit === "mo";
+  const isPartner = tier.id === "partner_share";
+
+  const returnUrl = useMemo(() => {
+    if (typeof window === "undefined") return "";
+    return `${window.location.origin}/checkout/return?session_id={CHECKOUT_SESSION_ID}`;
+  }, []);
 
   const pay = async () => {
     track("provision_access_clicked", { tier: tier.id, price: tier.price });
-    setPaying(true);
     setError(null);
     const prefs = loadPrefs();
-    const isPartner = tier.id === "partner_share";
 
-    // Partner (BYO compute) tier: wallet is strictly required and we never
-    // hit the cloud provisioning path. Route straight to dashboard with a
-    // local-only session so the BYO instructions card renders.
     if (isPartner) {
       const wallet = (prefs.wallet || "").trim();
       if (!wallet) {
         setError(
           "A valid BTX address is required for Zero-Upfront deployment. Click the setup link below to generate one.",
         );
-        setPaying(false);
         return;
       }
       const now = Date.now();
@@ -103,49 +104,15 @@ function CheckoutPage() {
       return;
     }
 
-    try {
-      const result = await provisionCluster({
-        data: {
-          tier: tier.id as TierId,
-          paidPriceUsd: tier.price,
-          wallet: prefs.wallet || "",
-          mode: prefs.mode,
-        },
-      });
-      if (!result.ok) {
-        captureError(new Error(`Provisioning rejected: ${result.error}`), {
-          tier: tier.id,
-        });
-        setError(result.error);
-        setPaying(false);
-        return;
-      }
-      const now = Date.now();
-      const durationMs = isMonthly ? 30 * 24 * 3600 * 1000 : 24 * 3600 * 1000;
-      saveSession({
-        wallet: prefs.wallet || "btx1qexample0000000000",
-        mode: prefs.mode,
-        tier: tier.id as TierId,
-        instanceId: result.instanceId,
-        status: "mining",
-        startedAt: now,
-        expiresAt: now + durationMs,
-        hostCost: 0,
-        paidPrice: tier.price,
-      });
-      setCompleted(true);
-      track("provision_succeeded", { tier: tier.id, instanceId: result.instanceId });
-      navigate({ to: "/dashboard" });
-    } catch (err) {
-      console.error(err);
-      captureError(err, { scope: "provisionCluster", tier: tier.id });
-      setError("Provisioning failed. Please try again.");
-      setPaying(false);
-    }
+    // Cloud-provisioned tiers: open Stripe Embedded Checkout. Provisioning
+    // runs only after Stripe confirms payment on /checkout/return.
+    setCompleted(true);
+    setShowCheckout(true);
   };
 
   return (
     <div className="min-h-screen bg-background text-foreground">
+      <PaymentTestModeBanner />
       <SiteNav />
       <div className="mx-auto grid max-w-5xl gap-8 px-6 py-12 lg:grid-cols-5">
         {/* SUMMARY */}
@@ -221,66 +188,92 @@ function CheckoutPage() {
         {/* PAY */}
         <section className="lg:col-span-2">
           <div className="sticky top-20 rounded-xl border border-border bg-card p-6">
-            <h3 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
-              Pay with Stripe
-            </h3>
-
-            <div className="mt-4 space-y-3">
-              <Field label="Card number" placeholder="4242 4242 4242 4242" />
-              <div className="grid grid-cols-2 gap-3">
-                <Field label="Expiry" placeholder="12 / 28" />
-                <Field label="CVC" placeholder="123" />
-              </div>
-              <Field label="Email" placeholder="you@example.com" type="email" />
-            </div>
-
-            <div className="my-5 border-t border-border" />
-            <div className="flex items-baseline justify-between">
-              <span className="text-sm text-muted-foreground">Total today</span>
-              <span className="font-mono-num text-2xl font-semibold">
-                ${tier.price.toFixed(2)}
-                <span className="ml-1 text-xs font-normal text-muted-foreground">
-                  / {tier.unit}
-                </span>
-              </span>
-            </div>
-
-            {error && (
-              <p className="mt-3 rounded border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
-                {error}
-                {tier.id === "partner_share" && (
-                  <>
-                    {" "}
-                    <Link
-                      to="/deploy"
-                      className="font-semibold underline underline-offset-2 hover:text-destructive/80"
-                    >
-                      Set up wallet →
-                    </Link>
-                  </>
+            {!showCheckout ? (
+              <>
+                <h3 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
+                  Secure payment
+                </h3>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Processed by Stripe. Your cluster provisions automatically the
+                  moment payment clears.
+                </p>
+                <div className="my-5 border-t border-border" />
+                <div className="flex items-baseline justify-between">
+                  <span className="text-sm text-muted-foreground">
+                    Total today
+                  </span>
+                  <span className="font-mono-num text-2xl font-semibold">
+                    ${tier.price.toFixed(2)}
+                    <span className="ml-1 text-xs font-normal text-muted-foreground">
+                      / {tier.unit}
+                    </span>
+                  </span>
+                </div>
+                {error && (
+                  <p className="mt-3 rounded border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+                    {error}
+                    {isPartner && (
+                      <>
+                        {" "}
+                        <Link
+                          to="/deploy"
+                          className="font-semibold underline underline-offset-2 hover:text-destructive/80"
+                        >
+                          Set up wallet →
+                        </Link>
+                      </>
+                    )}
+                  </p>
                 )}
-              </p>
+                <button
+                  onClick={pay}
+                  className="mt-5 w-full rounded-lg bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition-all hover:brightness-110"
+                >
+                  {isPartner
+                    ? "Activate Zero-Upfront Deployment"
+                    : `Continue to payment — $${tier.price.toFixed(2)}`}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => navigate({ to: "/" })}
+                  className="mt-2 w-full rounded-lg border border-border bg-secondary/40 px-4 py-2 text-xs font-medium text-muted-foreground transition-colors hover:border-border/80 hover:text-foreground"
+                >
+                  Cancel & return to tiers
+                </button>
+                <p className="mt-3 text-center text-[11px] text-muted-foreground">
+                  Secure payment processed via Stripe. Cluster provisions on
+                  confirmation.
+                </p>
+              </>
+            ) : (
+              <>
+                <h3 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
+                  Complete payment
+                </h3>
+                <div className="mt-4">
+                  <StripeEmbeddedCheckout
+                    priceId={
+                      tier.id as
+                        | "standard_24h"
+                        | "pro_24h"
+                        | "standard_monthly"
+                        | "pro_monthly"
+                    }
+                    returnUrl={returnUrl}
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowCheckout(false);
+                    setCompleted(false);
+                  }}
+                  className="mt-3 w-full rounded-lg border border-border bg-secondary/40 px-4 py-2 text-xs font-medium text-muted-foreground transition-colors hover:border-border/80 hover:text-foreground"
+                >
+                  Back
+                </button>
+              </>
             )}
-            <button
-              onClick={pay}
-              disabled={paying}
-              className="mt-5 w-full rounded-lg bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition-all hover:brightness-110 disabled:opacity-60"
-            >
-              {paying ? "Initializing Grid Instance…" : `Pay $${tier.price.toFixed(2)} & Provision Cluster`}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setPaying(false);
-                navigate({ to: "/" });
-              }}
-              className="mt-2 w-full rounded-lg border border-border bg-secondary/40 px-4 py-2 text-xs font-medium text-muted-foreground transition-colors hover:border-border/80 hover:text-foreground"
-            >
-              Cancel & return to dashboard
-            </button>
-            <p className="mt-3 text-center text-[11px] text-muted-foreground">
-              Secure payment processed via Stripe. Cluster provisions on confirmation.
-            </p>
           </div>
         </section>
       </div>
@@ -294,26 +287,5 @@ function Row({ label, value }: { label: string; value: React.ReactNode }) {
       <span className="text-muted-foreground">{label}</span>
       <span>{value}</span>
     </div>
-  );
-}
-
-function Field({
-  label,
-  placeholder,
-  type = "text",
-}: {
-  label: string;
-  placeholder: string;
-  type?: string;
-}) {
-  return (
-    <label className="block">
-      <span className="text-xs text-muted-foreground">{label}</span>
-      <input
-        type={type}
-        placeholder={placeholder}
-        className="font-mono-num mt-1 w-full rounded-lg border border-input bg-background/60 px-3 py-2.5 text-sm outline-none transition-colors placeholder:text-muted-foreground/50 focus:border-primary/60 focus:ring-2 focus:ring-primary/20"
-      />
-    </label>
   );
 }
