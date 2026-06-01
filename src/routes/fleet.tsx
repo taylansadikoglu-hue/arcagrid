@@ -1398,12 +1398,21 @@ function RoiPanel({
   yieldDay,
   costDay,
   blocks,
+  hourly,
+  walletWorth,
+  btxPrice,
 }: {
   yieldDay: number;
   costDay: number;
   blocks: number;
+  hourly: number;
+  walletWorth: number;
+  btxPrice: number;
 }) {
   const net = yieldDay - costDay;
+  const netTone = net >= 0 ? "primary" : "destructive";
+  const breakEvenHrs =
+    yieldDay > 0 ? (costDay / yieldDay) * 24 : Number.POSITIVE_INFINITY;
   return (
     <section className="rounded-xl border border-border bg-card">
       <div className="flex items-center justify-between border-b border-border px-5 py-3">
@@ -1411,7 +1420,7 @@ function RoiPanel({
           Billing & ROI · 24h rolling
         </h3>
         <span className="font-mono-num text-[10px] text-muted-foreground">
-          Cost basis ~$3.00/node/day
+          Cost basis ${hourly.toFixed(3)}/hr · ${(hourly * 24).toFixed(2)}/day
         </span>
       </div>
       <div className="grid gap-px bg-border sm:grid-cols-4">
@@ -1420,16 +1429,33 @@ function RoiPanel({
         <RoiCell
           label="Net / Day"
           value={`${net >= 0 ? "+" : ""}$${net.toFixed(2)}`}
-          tone={net >= 0 ? "primary" : "destructive"}
+          tone={netTone}
         />
         <RoiCell
-          label="Mesh Efficiency"
-          value={yieldDay >= costDay ? "Optimal" : "Syncing"}
-          tone={yieldDay >= costDay ? "primary" : "destructive"}
+          label="Wallet Worth"
+          value={
+            btxPrice > 0
+              ? `$${walletWorth.toFixed(2)}`
+              : "awaiting oracle…"
+          }
+          tone="accent"
         />
         <RoiCell label="Total Blocks Found" value={String(blocks)} tone="accent" />
-        <RoiCell label="Projected 30d" value={`$${(net * 30).toFixed(0)}`} />
-        <RoiCell label="Break-even" value={costDay > 0 ? `${(costDay / Math.max(0.01, yieldDay) * 24).toFixed(1)}h` : "—"} />
+        <RoiCell
+          label="Projected 30d"
+          value={`${net >= 0 ? "+" : ""}$${(net * 30).toFixed(0)}`}
+          tone={netTone}
+        />
+        <RoiCell
+          label="Break-even"
+          value={
+            yieldDay <= 0
+              ? "—"
+              : breakEvenHrs <= 24
+                ? `${breakEvenHrs.toFixed(1)}h`
+                : `${(breakEvenHrs / 24).toFixed(1)}d`
+          }
+        />
         <RoiCell label="Settlement" value="On-chain · auto" />
       </div>
     </section>
