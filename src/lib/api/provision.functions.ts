@@ -20,6 +20,7 @@ const TARGET_MARGIN = 0.4;
 // Final floor compressed to 2% — hardware binding (RTX 3080/3090/4070/4080/
 // 4090/A6000, vram ≥ 16) takes absolute priority over margin preservation.
 const MARGIN_FALLBACKS = [0.4, 0.1, 0.05, 0.02];
+const REQUIRED_DISK_GB = 80;
 const IMAGE = "taylans/btx-oneclick-miner:latest";
 /**
  * Pinned btxd binary release tag. Every provisioned container runs exactly
@@ -75,7 +76,7 @@ async function queryVast(): Promise<Candidate[]> {
             cuda_max_good: { gte: 12.0 },
             num_gpus: { gte: 1 },
             gpu_ram: { gte: 16 },
-            disk_space: { gte: 80 },
+            disk_space: { gte: REQUIRED_DISK_GB },
             gpu_name: {
               in: [
                 "RTX 3080",
@@ -223,7 +224,7 @@ async function launchVastInstance(
     client_id: "me",
     image: IMAGE,
     env,
-    disk: 80,
+    disk: REQUIRED_DISK_GB,
     runtype: "ssh",
   };
   const res = await fetch(`https://console.vast.ai/api/v0/asks/${offerId}/`, {
