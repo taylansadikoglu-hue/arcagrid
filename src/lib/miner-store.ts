@@ -142,7 +142,12 @@ export function loadPrefs(): MinerPrefs {
 
 export function savePrefs(prefs: MinerPrefs) {
   if (typeof window === "undefined") return;
-  localStorage.setItem(PREFS_KEY, JSON.stringify(prefs));
+  try {
+    localStorage.setItem(PREFS_KEY, JSON.stringify(prefs));
+  } catch {
+    // Storage unavailable (e.g. Incognito / quota). Fail silent — prefs
+    // are non-critical and the app continues to work in-memory.
+  }
 }
 
 export function loadSession(): MinerSession | null {
@@ -157,16 +162,27 @@ export function loadSession(): MinerSession | null {
 
 export function saveSession(session: MinerSession | null) {
   if (typeof window === "undefined") return;
-  if (session) localStorage.setItem(KEY, JSON.stringify(session));
-  else localStorage.removeItem(KEY);
+  try {
+    if (session) localStorage.setItem(KEY, JSON.stringify(session));
+    else localStorage.removeItem(KEY);
+  } catch {
+    // Storage unavailable (Incognito, quota, sandboxed iframe). The
+    // in-memory session still drives the current tab — we simply lose
+    // persistence across reloads rather than crash the app.
+  }
 }
 
 export function useMinerSession() {
   const [session, setSession] = useState<MinerSession | null>(null);
   const [hydrated, setHydrated] = useState(false);
   useEffect(() => {
-    setSession(loadSession());
-    setHydrated(true);
+    try {
+      setSession(loadSession());
+    } catch {
+      setSession(null);
+    } finally {
+      setHydrated(true);
+    }
   }, []);
   const update = (next: MinerSession | null) => {
     setSession(next);
