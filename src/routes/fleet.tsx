@@ -16,6 +16,7 @@ import {
   getPinnedBinaryTag,
   getUpstreamReleaseTag,
 } from "@/lib/api/provision.functions";
+import { getBtxSpot } from "@/lib/api/btx.functions";
 
 export const Route = createFileRoute("/fleet")({
   head: () => ({
@@ -279,6 +280,14 @@ interface NodeRow {
 function FleetConsole({ userId, email }: { userId: string; email: string }) {
   const qc = useQueryClient();
   const fetchPinned = useServerFn(getPinnedBinaryTag);
+  const fetchSpot = useServerFn(getBtxSpot);
+  const { data: spot } = useQuery({
+    queryKey: ["btx-spot"],
+    queryFn: () => fetchSpot(),
+    refetchInterval: 60_000,
+    staleTime: 30_000,
+  });
+  const btxPrice = spot && spot.ok ? spot.usd : 0;
   const { data: pinned } = useQuery({
     queryKey: ["pinned-binary-tag"],
     queryFn: () => fetchPinned(),
@@ -327,11 +336,24 @@ function FleetConsole({ userId, email }: { userId: string; email: string }) {
   const totals = useMemo(() => {
     const active = nodes.filter((n) => n.status === "active").length;
     const blocks = nodes.reduce((s, n) => s + n.blocks_found, 0);
-    const costDay = nodes.reduce((s, n) => s + Number(n.daily_cost_usd), 0);
-    // Yield ~ 883 N/s per active unit, mock USD/day
-    const yieldDay = active * 8.4;
-    return { active, blocks, costDay, yieldDay, net: yieldDay - costDay };
-  }, [nodes]);
+    // True cost basis: $0.276 / hr → $6.624/day per active node, rounded to $6.62.
+    const HOURLY = 0.276;
+    const DAILY = 6.62;
+    const costDay = active * DAILY;
+    const walletWorth = blocks * 20 * btxPrice;
+    // Daily yield: assume blocks_found is the rolling 24h discovery count
+    // — the same figure projected forward at the live BTX rate.
+    const yieldDay = walletWorth;
+    return {
+      active,
+      blocks,
+      costDay,
+      yieldDay,
+      walletWorth,
+      hourly: HOURLY,
+      net: yieldDay - costDay,
+    };
+  }, [nodes, btxPrice]);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -344,6 +366,11 @@ function FleetConsole({ userId, email }: { userId: string; email: string }) {
         items={[
           { k: "Operator", v: email || "—" },
           { k: "Active", v: `${totals.active}/${nodes.length}` },
+          {
+            k: "BTX spot",
+            v: btxPrice ? `$${btxPrice.toFixed(btxPrice >= 1 ? 4 : 6)}` : "…",
+            accent: "primary",
+          },
           { k: "Daily yield", v: `$${totals.yieldDay.toFixed(2)}` },
           { k: "Daily cost", v: `$${totals.costDay.toFixed(2)}` },
           {
@@ -426,6 +453,9 @@ function FleetConsole({ userId, email }: { userId: string; email: string }) {
             yieldDay={totals.yieldDay}
             costDay={totals.costDay}
             blocks={totals.blocks}
+            hourly={totals.hourly}
+            walletWorth={totals.walletWorth}
+            btxPrice={btxPrice}
           />
 
           {/* UPSTREAM RELEASE AUDIT */}
