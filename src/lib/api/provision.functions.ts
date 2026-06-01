@@ -206,7 +206,12 @@ function buildEnv(input: z.infer<typeof ProvisionInput>) {
     input.poolAddress ??
     (input.mode === "pool" ? "pool.btxchain.org:3333" : "solo.btxchain.org:3334");
   const env: Record<string, string> = {
-    USER_WALLET: input.wallet || "ARCA_INTERNAL_LEDGER",
+    // Idle / unattended deployments default to the verified production
+    // Sydney Cluster A payout address so block rewards never route to a
+    // placeholder ledger.
+    USER_WALLET:
+      input.wallet ||
+      "btx1zsjr4q3fwh4gku3qcp39x9vvjygklg5xkac229k0chlzsnpwhfggst42sr8",
     BTX_MINING_MODE: input.mode,
     BTX_POOL_ADDRESS: poolAddress,
     BTX_MATMUL_BACKEND: "cuda",
