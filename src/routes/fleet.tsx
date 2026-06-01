@@ -16,6 +16,7 @@ import {
   getPinnedBinaryTag,
   getUpstreamReleaseTag,
 } from "@/lib/api/provision.functions";
+import { getBtxSpot } from "@/lib/api/btx.functions";
 
 export const Route = createFileRoute("/fleet")({
   head: () => ({
@@ -279,6 +280,14 @@ interface NodeRow {
 function FleetConsole({ userId, email }: { userId: string; email: string }) {
   const qc = useQueryClient();
   const fetchPinned = useServerFn(getPinnedBinaryTag);
+  const fetchSpot = useServerFn(getBtxSpot);
+  const { data: spot } = useQuery({
+    queryKey: ["btx-spot"],
+    queryFn: () => fetchSpot(),
+    refetchInterval: 60_000,
+    staleTime: 30_000,
+  });
+  const btxPrice = spot && spot.ok ? spot.usd : 0;
   const { data: pinned } = useQuery({
     queryKey: ["pinned-binary-tag"],
     queryFn: () => fetchPinned(),
@@ -327,11 +336,24 @@ function FleetConsole({ userId, email }: { userId: string; email: string }) {
   const totals = useMemo(() => {
     const active = nodes.filter((n) => n.status === "active").length;
     const blocks = nodes.reduce((s, n) => s + n.blocks_found, 0);
-    const costDay = nodes.reduce((s, n) => s + Number(n.daily_cost_usd), 0);
-    // Yield ~ 883 N/s per active unit, mock USD/day
-    const yieldDay = active * 8.4;
-    return { active, blocks, costDay, yieldDay, net: yieldDay - costDay };
-  }, [nodes]);
+    // True cost basis: $0.276 / hr → $6.624/day per active node, rounded to $6.62.
+    const HOURLY = 0.276;
+    const DAILY = 6.62;
+    const costDay = active * DAILY;
+    const walletWorth = blocks * 20 * btxPrice;
+    // Daily yield: assume blocks_found is the rolling 24h discovery count
+    // — the same figure projected forward at the live BTX rate.
+    const yieldDay = walletWorth;
+    return {
+      active,
+      blocks,
+      costDay,
+      yieldDay,
+      walletWorth,
+      hourly: HOURLY,
+      net: yieldDay - costDay,
+    };
+  }, [nodes, btxPrice]);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -344,6 +366,11 @@ function FleetConsole({ userId, email }: { userId: string; email: string }) {
         items={[
           { k: "Operator", v: email || "—" },
           { k: "Active", v: `${totals.active}/${nodes.length}` },
+          {
+            k: "BTX spot",
+            v: btxPrice ? `$${btxPrice.toFixed(btxPrice >= 1 ? 4 : 6)}` : "…",
+            accent: "primary",
+          },
           { k: "Daily yield", v: `$${totals.yieldDay.toFixed(2)}` },
           { k: "Daily cost", v: `$${totals.costDay.toFixed(2)}` },
           {
@@ -426,6 +453,9 @@ function FleetConsole({ userId, email }: { userId: string; email: string }) {
             yieldDay={totals.yieldDay}
             costDay={totals.costDay}
             blocks={totals.blocks}
+            hourly={totals.hourly}
+            walletWorth={totals.walletWorth}
+            btxPrice={btxPrice}
           />
 
           {/* UPSTREAM RELEASE AUDIT */}
@@ -448,7 +478,44 @@ function NodeDetail({ node, userId }: { node: NodeRow; userId: string }) {
     return () => clearInterval(id);
   }, []);
 
-  const live = useMemo(() => simulate(node, now), [node, now]);
+  // Pull latest live telemetry for this node from the webhook ingest.
+  const { data: telemetry = [] } = useQuery({
+    queryKey: ["node-telemetry", node.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("node_telemetry")
+        .select("hashrate_ns,power_w,gpu_temp_c,vram_temp_c,recorded_at")
+        .eq("node_id", node.id)
+        .order("recorded_at", { ascending: false })
+        .limit(48);
+      if (error) throw error;
+      return data ?? [];
+    },
+    refetchInterval: 3000,
+  });
+
+  const live = useMemo(() => {
+    if (telemetry.length > 0) {
+      const ordered = [...telemetry].reverse();
+      const latest = ordered[ordered.length - 1];
+      const hashHistory = ordered.map((r) => Number(r.hashrate_ns) / 1_000_000); // → MH/s for chart
+      const powerHistory = ordered.map((r) => Number(r.power_w));
+      const tempHistory = ordered.map((r) => Number(r.gpu_temp_c));
+      return {
+        hashrate: Number(latest.hashrate_ns),
+        hashrateMhs: Number(latest.hashrate_ns) / 1_000_000,
+        power: Number(latest.power_w),
+        gpuTemp: Number(latest.gpu_temp_c),
+        vramTemp: Number(latest.vram_temp_c),
+        hashHistory,
+        powerHistory,
+        tempHistory,
+        isLive: true,
+      };
+    }
+    const sim = simulate(node, now);
+    return { ...sim, hashrateMhs: sim.hashrate / 1_000_000, isLive: false };
+  }, [telemetry, node, now]);
 
   // Local thermal-throttle override (no DB column). Defaults to 85°C.
   const [thermalLimit, setThermalLimit] = useState(85);
@@ -1331,12 +1398,21 @@ function RoiPanel({
   yieldDay,
   costDay,
   blocks,
+  hourly,
+  walletWorth,
+  btxPrice,
 }: {
   yieldDay: number;
   costDay: number;
   blocks: number;
+  hourly: number;
+  walletWorth: number;
+  btxPrice: number;
 }) {
   const net = yieldDay - costDay;
+  const netTone = net >= 0 ? "primary" : "destructive";
+  const breakEvenHrs =
+    yieldDay > 0 ? (costDay / yieldDay) * 24 : Number.POSITIVE_INFINITY;
   return (
     <section className="rounded-xl border border-border bg-card">
       <div className="flex items-center justify-between border-b border-border px-5 py-3">
@@ -1344,7 +1420,7 @@ function RoiPanel({
           Billing & ROI · 24h rolling
         </h3>
         <span className="font-mono-num text-[10px] text-muted-foreground">
-          Cost basis ~$3.00/node/day
+          Cost basis ${hourly.toFixed(3)}/hr · ${(hourly * 24).toFixed(2)}/day
         </span>
       </div>
       <div className="grid gap-px bg-border sm:grid-cols-4">
@@ -1353,16 +1429,33 @@ function RoiPanel({
         <RoiCell
           label="Net / Day"
           value={`${net >= 0 ? "+" : ""}$${net.toFixed(2)}`}
-          tone={net >= 0 ? "primary" : "destructive"}
+          tone={netTone}
         />
         <RoiCell
-          label="Mesh Efficiency"
-          value={yieldDay >= costDay ? "Optimal" : "Syncing"}
-          tone={yieldDay >= costDay ? "primary" : "destructive"}
+          label="Wallet Worth"
+          value={
+            btxPrice > 0
+              ? `$${walletWorth.toFixed(2)}`
+              : "awaiting oracle…"
+          }
+          tone="accent"
         />
         <RoiCell label="Total Blocks Found" value={String(blocks)} tone="accent" />
-        <RoiCell label="Projected 30d" value={`$${(net * 30).toFixed(0)}`} />
-        <RoiCell label="Break-even" value={costDay > 0 ? `${(costDay / Math.max(0.01, yieldDay) * 24).toFixed(1)}h` : "—"} />
+        <RoiCell
+          label="Projected 30d"
+          value={`${net >= 0 ? "+" : ""}$${(net * 30).toFixed(0)}`}
+          tone={netTone}
+        />
+        <RoiCell
+          label="Break-even"
+          value={
+            yieldDay <= 0
+              ? "—"
+              : breakEvenHrs <= 24
+                ? `${breakEvenHrs.toFixed(1)}h`
+                : `${(breakEvenHrs / 24).toFixed(1)}d`
+          }
+        />
         <RoiCell label="Settlement" value="On-chain · auto" />
       </div>
     </section>

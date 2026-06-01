@@ -1,9 +1,23 @@
 import { Link } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 
 import { signOut, useAuth } from "@/lib/use-auth";
+import { getBtxSpot } from "@/lib/api/btx.functions";
 
 export function SiteNav() {
   const { user } = useAuth();
+  const fetchSpot = useServerFn(getBtxSpot);
+  const { data: spot } = useQuery({
+    queryKey: ["btx-spot"],
+    queryFn: () => fetchSpot(),
+    refetchInterval: 60_000,
+    staleTime: 30_000,
+  });
+  const priceLabel =
+    spot && spot.ok
+      ? `$${spot.usd.toFixed(spot.usd >= 1 ? 4 : 6)}`
+      : "—";
   return (
     <header className="sticky top-0 z-40 border-b border-border/60 bg-background/70 backdrop-blur-xl">
       <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-6">
@@ -16,6 +30,15 @@ export function SiteNav() {
             ARCA GRID <span className="text-muted-foreground">/ Enterprise GPU Orchestration Layer</span>
           </span>
         </Link>
+        <div
+          className="font-mono-num hidden items-center gap-2 rounded-md border border-primary/30 bg-primary/10 px-3 py-1 text-[11px] md:flex"
+          title="Live BTX spot · btxprice.com oracle"
+        >
+          <span className="pulse-dot inline-block h-1.5 w-1.5 rounded-full bg-primary" />
+          <span className="uppercase tracking-widest text-muted-foreground">BTX</span>
+          <span className="text-primary">{priceLabel}</span>
+          <span className="text-muted-foreground">USD · oracle</span>
+        </div>
         <nav className="flex items-center gap-1 text-sm">
           <Link
             to="/"
