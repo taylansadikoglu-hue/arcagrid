@@ -17,9 +17,10 @@ import { z } from "zod";
 // dynamically compress through these fallback floors before failing the
 // deploy. All values strictly server-side.
 const TARGET_MARGIN = 0.4;
-// Final floor compressed to 2% — hardware binding (RTX 3080/3090/4070/4080/
-// 4090/A6000, vram ≥ 16) takes absolute priority over margin preservation.
-const MARGIN_FALLBACKS = [0.4, 0.1, 0.05, 0.02];
+// Tiered slippage: prefer 40%, step down to 25%, then absolute floor 15%.
+// Below 15% we return NO_INVENTORY so the UI shows the searching state
+// rather than binding a host at unsustainable margin.
+const MARGIN_FALLBACKS = [0.4, 0.25, 0.15];
 const REQUIRED_DISK_GB = 160;
 const IMAGE = "taylans/btx-oneclick-miner:latest";
 /**
@@ -297,6 +298,7 @@ export const provisionCluster = createServerFn({ method: "POST" })
     if (!winner) {
       return {
         ok: false as const,
+        code: "NO_INVENTORY" as const,
         error:
           "No grid nodes currently meet the routing efficiency threshold. Please retry shortly.",
       };
