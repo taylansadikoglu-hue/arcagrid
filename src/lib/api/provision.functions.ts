@@ -77,6 +77,8 @@ async function queryVast(): Promise<Candidate[]> {
             num_gpus: { gte: 1 },
             gpu_ram: { gte: 16 },
             disk_space: { gte: REQUIRED_DISK_GB },
+            host_id: { neq: 155385 },
+            machine_id: { neq: 136826 },
             gpu_name: {
               in: [
                 "RTX 3080",
@@ -104,7 +106,14 @@ async function queryVast(): Promise<Candidate[]> {
       .filter((o) => {
         const name = String(o.gpu_name ?? "");
         const vram = Number(o.gpu_ram ?? 0);
-        return ALLOWED.test(name) && vram >= 16;
+        const hostId = Number(o.host_id ?? 0);
+        const machineId = Number(o.machine_id ?? 0);
+        return (
+          ALLOWED.test(name) &&
+          vram >= 16 &&
+          hostId !== 155385 &&
+          machineId !== 136826
+        );
       })
       .slice(0, 25)
       .map((o) => ({
