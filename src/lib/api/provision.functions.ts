@@ -298,6 +298,7 @@ export const provisionCluster = createServerFn({ method: "POST" })
     if (!winner) {
       return {
         ok: false as const,
+        code: "NO_INVENTORY" as const,
         error:
           "No grid nodes currently meet the routing efficiency threshold. Please retry shortly.",
       };
