@@ -185,8 +185,9 @@ export function useMinerSession() {
  */
 export function pickHostCost(paidPrice: number, isMonthly: boolean): number {
   const dailyPaid = isMonthly ? paidPrice / 30 : paidPrice;
-  // Up to 95% of paid (5% floor margin) when needed to secure a quality host.
-  const maxCost = dailyPaid * 0.95;
+  // Up to 98% of paid (2% floor margin) when needed to guarantee hardware
+  // binding. Securing a qualified host beats failing the deploy over margin.
+  const maxCost = dailyPaid * 0.98;
   return Math.max(0.5, Number((maxCost * 0.92).toFixed(2)));
 }
 
