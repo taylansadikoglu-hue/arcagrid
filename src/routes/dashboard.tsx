@@ -357,24 +357,31 @@ function DashboardPage() {
               </h3>
               <p className="text-sm text-muted-foreground">
                 {session.status === "mining"
-                  ? "Releases the grid node immediately. You'll keep what you mined."
+                  ? "Actively releases the grid node and halts billing. You'll keep what you mined."
                   : "Terminate to remove this session entirely."}
               </p>
+              {termError && (
+                <p className="mt-2 rounded border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+                  {termError}
+                </p>
+              )}
             </div>
             {session.status === "mining" ? (
               confirming ? (
                 <div className="flex gap-2">
                   <button
                     onClick={() => setConfirming(false)}
+                    disabled={terminating}
                     className="rounded-lg border border-border bg-secondary px-4 py-2.5 text-sm hover:bg-secondary/70"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={stop}
+                    disabled={terminating}
                     className="rounded-lg bg-destructive px-5 py-2.5 text-sm font-semibold text-destructive-foreground hover:brightness-110"
                   >
-                    Confirm Stop
+                    {terminating ? "Releasing node…" : "Confirm Stop"}
                   </button>
                 </div>
               ) : (
@@ -388,9 +395,10 @@ function DashboardPage() {
             ) : (
               <button
                 onClick={terminate}
+                disabled={terminating}
                 className="rounded-lg border border-border bg-secondary px-5 py-2.5 text-sm font-semibold hover:bg-secondary/70"
               >
-                Terminate session
+                {terminating ? "Terminating…" : "Terminate session"}
               </button>
             )}
           </div>
