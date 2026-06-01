@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 
@@ -32,6 +32,10 @@ function DashboardPage() {
   }>({ active: false, error: null, reason: null });
   const destroy = useServerFn(destroyInstance);
   const failover = useServerFn(failoverInstance);
+  // Track instanceIds we've already attempted a failover for, so a dead
+  // node + a failing aggregator can't trigger a re-render loop (each
+  // attempt sets state, which would otherwise re-fire the effect).
+  const failoverAttempted = useRef<Set<string>>(new Set());
   const fetchPinned = useServerFn(getPinnedBinaryTag);
   const { data: pinned } = useQuery({
     queryKey: ["pinned-binary-tag"],
@@ -126,6 +130,28 @@ function DashboardPage() {
   }
 
   const tier = tierById(session.tier);
+  // Defensive: an unknown tier id (stale localStorage from an older build)
+  // would otherwise crash on access. Bounce to home instead of throwing.
+  if (!tier) {
+    return (
+      <div className="min-h-screen bg-background text-foreground">
+        <SiteNav />
+        <div className="mx-auto grid max-w-md gap-4 px-6 py-24 text-center">
+          <h1 className="text-2xl font-semibold">Session unavailable</h1>
+          <p className="text-sm text-muted-foreground">
+            Your previous session references a tier that's no longer offered.
+            Please launch a fresh miner from the home page.
+          </p>
+          <Link
+            to="/"
+            className="mx-auto rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:brightness-110"
+          >
+            Return home
+          </Link>
+        </div>
+      </div>
+    );
+  }
   const elapsed = Math.max(0, now - session.startedAt);
   const remaining = Math.max(0, session.expiresAt - now);
   const uptimeMs = telemetry?.uptime_seconds
@@ -147,6 +173,11 @@ function DashboardPage() {
     if (session.tier === "partner_share") return;
     if (liveStatus !== "dead") return;
     if (failoverState.active) return;
+    // Infinite-loop guard: only attempt failover once per dead instance.
+    // If the aggregator returned NO_INVENTORY or otherwise errored, we hold
+    // the warning banner up rather than spamming re-renders.
+    if (failoverAttempted.current.has(session.instanceId)) return;
+    failoverAttempted.current.add(session.instanceId);
     const deadReason = telemetry?.error ?? "Node went offline";
     setFailoverState({ active: true, error: null, reason: deadReason });
     (async () => {
