@@ -305,7 +305,7 @@ export const provisionCluster = createServerFn({ method: "POST" })
         ok: false as const,
         code: "NO_INVENTORY" as const,
         error:
-          "No grid nodes currently meet the routing efficiency threshold. Please retry shortly.",
+          "High Network Demand: No profitable clusters currently available. Please try again later.",
       };
     }
 
@@ -332,7 +332,8 @@ export const provisionCluster = createServerFn({ method: "POST" })
       console.error("[provision] launch failed", err);
       return {
         ok: false as const,
-        error: "Routing layer failed to bind a cluster. Please retry.",
+        error:
+          "High Network Demand: No profitable clusters currently available. Please try again later.",
       };
     }
   });
