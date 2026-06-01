@@ -14,7 +14,25 @@ import {
 import { captureError } from "@/lib/observability";
 
 export const Route = createFileRoute("/dashboard")({
-  head: () => ({ meta: [{ title: "Grid Instance Telemetry — Arca Grid" }] }),
+  head: () => ({
+    meta: [
+      { title: "Grid Instance Telemetry — Arca Grid" },
+      {
+        name: "description",
+        content:
+          "Live telemetry for your provisioned ARCA GRID instance: hashrate, sync status, earnings, peers, and node health.",
+      },
+      { property: "og:title", content: "Grid Instance Telemetry — Arca Grid" },
+      {
+        property: "og:description",
+        content:
+          "Monitor your ARCA GRID compute instance in real time — hashrate, sync, earnings, and node health.",
+      },
+      { property: "og:url", content: "https://arcgrid.dev/dashboard" },
+      { name: "robots", content: "noindex,nofollow" },
+    ],
+    links: [{ rel: "canonical", href: "https://arcgrid.dev/dashboard" }],
+  }),
   component: DashboardPage,
 });
 
