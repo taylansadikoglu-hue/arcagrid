@@ -295,9 +295,9 @@ function DashboardPage() {
             <div className="flex items-start gap-3">
               <span className="pulse-dot mt-1 inline-block h-2.5 w-2.5 rounded-full bg-amber-400" />
               <div className="flex-1">
-                <h3 className="text-sm font-semibold uppercase tracking-widest text-amber-300">
+                <h2 className="text-sm font-semibold uppercase tracking-widest text-amber-300">
                   Node Failure Detected
-                </h3>
+                </h2>
                 <p className="mt-1 text-sm text-foreground">
                   {failoverState.error
                     ? failoverState.error
@@ -325,9 +325,9 @@ function DashboardPage() {
                   <p className="text-xs uppercase tracking-widest text-primary">
                     Bring Your Own Compute
                   </p>
-                  <h3 className="mt-1 text-lg font-semibold">
+                  <h2 className="mt-1 text-lg font-semibold">
                     Attach your rig to ARCA GRID
-                  </h3>
+                  </h2>
                 </div>
                 <span className="rounded-full border border-border bg-background/60 px-3 py-1 text-[11px] uppercase tracking-widest text-muted-foreground">
                   Zero-Upfront
@@ -393,9 +393,9 @@ function DashboardPage() {
 
           {/* WALLET CARD */}
           <div className="rounded-2xl border border-border bg-card p-6">
-            <h3 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
+            <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
               Payout wallet
-            </h3>
+            </h2>
             <p className="font-mono-num mt-3 break-all text-sm text-foreground">
               {session.wallet}
             </p>
@@ -426,9 +426,9 @@ function DashboardPage() {
         >
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <div>
-              <h3 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
+              <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
                 Grid Blockchain Sync Status
-              </h3>
+              </h2>
               <p className="mt-1 text-xs text-muted-foreground">
                 {sync.pct < 1
                   ? "Bootstrapping pre-packaged chain archive from grid storage…"
@@ -470,9 +470,9 @@ function DashboardPage() {
         <div className="mt-6 rounded-2xl border border-destructive/30 bg-destructive/5 p-6">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
-              <h3 className="text-base font-semibold">
+              <h2 className="text-base font-semibold">
                 {session.status === "mining" ? "Stop this miner" : "Miner is idle"}
-              </h3>
+              </h2>
               <p className="text-sm text-muted-foreground">
                 {session.status === "mining"
                   ? "Actively releases the grid node and halts billing. You'll keep what you mined."
