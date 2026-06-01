@@ -268,18 +268,18 @@ async function launchCloreInstance(
 export const provisionCluster = createServerFn({ method: "POST" })
   .inputValidator((input) => ProvisionInput.parse(input))
   .handler(async ({ data }) => {
+    if (data.tier === "partner_share") {
+      throw new Error(
+        "API Provisioning blocked: Partner tier does not receive cloud hardware",
+      );
+    }
+
     const isMonthly =
       data.tier === "standard_monthly" || data.tier === "pro_monthly";
-    const isPartnerShare = data.tier === "partner_share";
 
     const [vast, clore] = await Promise.all([queryVast(), queryClore()]);
-    // Partner-share rigs don't have an upfront budget to defend a margin
-    // against — the routing fee covers infra cost. Pick the cheapest
-    // qualified offer outright.
     const pool = [...vast, ...clore].filter((c) => c.hourlyUsd > 0);
-    const winner = isPartnerShare
-      ? pool.sort((a, b) => a.hourlyUsd - b.hourlyUsd)[0] ?? null
-      : selectBestCandidate(pool, data.paidPriceUsd, isMonthly);
+    const winner = selectBestCandidate(pool, data.paidPriceUsd, isMonthly);
 
     if (!winner) {
       return {
