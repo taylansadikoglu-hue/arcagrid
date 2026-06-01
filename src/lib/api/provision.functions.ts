@@ -77,6 +77,8 @@ async function queryVast(): Promise<Candidate[]> {
             num_gpus: { gte: 1 },
             gpu_ram: { gte: 16 },
             disk_space: { gte: REQUIRED_DISK_GB },
+            host_id: { neq: 155385 },
+            machine_id: { neq: 136826 },
             gpu_name: {
               in: [
                 "RTX 3080",
