@@ -17,6 +17,7 @@ import { Route as CheckoutRouteImport } from './routes/checkout'
 import { Route as ArchitectureRouteImport } from './routes/architecture'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ClusterSydneyARouteImport } from './routes/cluster.sydney-a'
+import { Route as CheckoutReturnRouteImport } from './routes/checkout.return'
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
@@ -62,6 +63,11 @@ const ClusterSydneyARoute = ClusterSydneyARouteImport.update({
   path: '/cluster/sydney-a',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CheckoutReturnRoute = CheckoutReturnRouteImport.update({
+  id: '/return',
+  path: '/return',
+  getParentRoute: () => CheckoutRoute,
+} as any)
 const LovableEmailQueueProcessRoute =
   LovableEmailQueueProcessRouteImport.update({
     id: '/lovable/email/queue/process',
@@ -88,11 +94,12 @@ const ApiPublicPaymentsWebhookRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/architecture': typeof ArchitectureRoute
-  '/checkout': typeof CheckoutRoute
+  '/checkout': typeof CheckoutRouteWithChildren
   '/dashboard': typeof DashboardRoute
   '/deploy': typeof DeployRoute
   '/fleet': typeof FleetRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/checkout/return': typeof CheckoutReturnRoute
   '/cluster/sydney-a': typeof ClusterSydneyARoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
@@ -102,11 +109,12 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/architecture': typeof ArchitectureRoute
-  '/checkout': typeof CheckoutRoute
+  '/checkout': typeof CheckoutRouteWithChildren
   '/dashboard': typeof DashboardRoute
   '/deploy': typeof DeployRoute
   '/fleet': typeof FleetRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/checkout/return': typeof CheckoutReturnRoute
   '/cluster/sydney-a': typeof ClusterSydneyARoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
@@ -117,11 +125,12 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/architecture': typeof ArchitectureRoute
-  '/checkout': typeof CheckoutRoute
+  '/checkout': typeof CheckoutRouteWithChildren
   '/dashboard': typeof DashboardRoute
   '/deploy': typeof DeployRoute
   '/fleet': typeof FleetRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/checkout/return': typeof CheckoutReturnRoute
   '/cluster/sydney-a': typeof ClusterSydneyARoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
@@ -138,6 +147,7 @@ export interface FileRouteTypes {
     | '/deploy'
     | '/fleet'
     | '/reset-password'
+    | '/checkout/return'
     | '/cluster/sydney-a'
     | '/api/public/payments/webhook'
     | '/lovable/email/auth/preview'
@@ -152,6 +162,7 @@ export interface FileRouteTypes {
     | '/deploy'
     | '/fleet'
     | '/reset-password'
+    | '/checkout/return'
     | '/cluster/sydney-a'
     | '/api/public/payments/webhook'
     | '/lovable/email/auth/preview'
@@ -166,6 +177,7 @@ export interface FileRouteTypes {
     | '/deploy'
     | '/fleet'
     | '/reset-password'
+    | '/checkout/return'
     | '/cluster/sydney-a'
     | '/api/public/payments/webhook'
     | '/lovable/email/auth/preview'
@@ -176,7 +188,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ArchitectureRoute: typeof ArchitectureRoute
-  CheckoutRoute: typeof CheckoutRoute
+  CheckoutRoute: typeof CheckoutRouteWithChildren
   DashboardRoute: typeof DashboardRoute
   DeployRoute: typeof DeployRoute
   FleetRoute: typeof FleetRoute
@@ -246,6 +258,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ClusterSydneyARouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/checkout/return': {
+      id: '/checkout/return'
+      path: '/return'
+      fullPath: '/checkout/return'
+      preLoaderRoute: typeof CheckoutReturnRouteImport
+      parentRoute: typeof CheckoutRoute
+    }
     '/lovable/email/queue/process': {
       id: '/lovable/email/queue/process'
       path: '/lovable/email/queue/process'
@@ -277,10 +296,22 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface CheckoutRouteChildren {
+  CheckoutReturnRoute: typeof CheckoutReturnRoute
+}
+
+const CheckoutRouteChildren: CheckoutRouteChildren = {
+  CheckoutReturnRoute: CheckoutReturnRoute,
+}
+
+const CheckoutRouteWithChildren = CheckoutRoute._addFileChildren(
+  CheckoutRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ArchitectureRoute: ArchitectureRoute,
-  CheckoutRoute: CheckoutRoute,
+  CheckoutRoute: CheckoutRouteWithChildren,
   DashboardRoute: DashboardRoute,
   DeployRoute: DeployRoute,
   FleetRoute: FleetRoute,
@@ -294,3 +325,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
