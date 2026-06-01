@@ -19,7 +19,9 @@ export const Route = createFileRoute("/")({
         content:
           "Deploy, monitor and repair distributed GPU fleets from a single control plane.",
       },
+      { property: "og:url", content: "https://arcgrid.dev/" },
     ],
+    links: [{ rel: "canonical", href: "https://arcgrid.dev/" }],
   }),
   component: Landing,
 });

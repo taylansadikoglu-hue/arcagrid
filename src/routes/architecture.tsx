@@ -17,6 +17,24 @@ export const Route = createFileRoute("/architecture")({
         content:
           "Pinned CUDA runtimes, immutable signed releases, autonomous spot-market allocation. The technical spine of ARCA — Autonomous Remote Cluster Architecture.",
       },
+      { property: "og:url", content: "https://arcgrid.dev/architecture" },
+      { property: "og:type", content: "article" },
+    ],
+    links: [{ rel: "canonical", href: "https://arcgrid.dev/architecture" }],
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "TechArticle",
+          headline: "Autonomous Remote Cluster Architecture, layer by layer",
+          description:
+            "Six load-bearing layers of ARCA GRID: pinned runtimes, signed releases, fast-sync overrides, autonomous allocation, thermal routing, and a custody-free payout plane.",
+          author: { "@type": "Organization", name: "ARCA GRID" },
+          publisher: { "@type": "Organization", name: "ARCA GRID" },
+          mainEntityOfPage: "https://arcgrid.dev/architecture",
+        }),
+      },
     ],
   }),
   component: ArchitecturePage,
