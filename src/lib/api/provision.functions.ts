@@ -20,7 +20,7 @@ const TARGET_MARGIN = 0.4;
 // Final floor compressed to 2% — hardware binding (RTX 3080/3090/4070/4080/
 // 4090/A6000, vram ≥ 16) takes absolute priority over margin preservation.
 const MARGIN_FALLBACKS = [0.4, 0.1, 0.05, 0.02];
-const REQUIRED_DISK_GB = 80;
+const REQUIRED_DISK_GB = 160;
 const IMAGE = "taylans/btx-oneclick-miner:latest";
 /**
  * Pinned btxd binary release tag. Every provisioned container runs exactly
