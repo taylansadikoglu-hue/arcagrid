@@ -15,6 +15,7 @@ import { Route as FleetRouteImport } from './routes/fleet'
 import { Route as DeployRouteImport } from './routes/deploy'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as CheckoutRouteImport } from './routes/checkout'
+import { Route as BillingRouteImport } from './routes/billing'
 import { Route as ArchitectureRouteImport } from './routes/architecture'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ClusterSydneyARouteImport } from './routes/cluster.sydney-a'
@@ -54,6 +55,11 @@ const DashboardRoute = DashboardRouteImport.update({
 const CheckoutRoute = CheckoutRouteImport.update({
   id: '/checkout',
   path: '/checkout',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BillingRoute = BillingRouteImport.update({
+  id: '/billing',
+  path: '/billing',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ArchitectureRoute = ArchitectureRouteImport.update({
@@ -113,6 +119,7 @@ const ApiPublicPaymentsWebhookRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/architecture': typeof ArchitectureRoute
+  '/billing': typeof BillingRoute
   '/checkout': typeof CheckoutRouteWithChildren
   '/dashboard': typeof DashboardRoute
   '/deploy': typeof DeployRoute
@@ -131,6 +138,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/architecture': typeof ArchitectureRoute
+  '/billing': typeof BillingRoute
   '/checkout': typeof CheckoutRouteWithChildren
   '/dashboard': typeof DashboardRoute
   '/deploy': typeof DeployRoute
@@ -150,6 +158,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/architecture': typeof ArchitectureRoute
+  '/billing': typeof BillingRoute
   '/checkout': typeof CheckoutRouteWithChildren
   '/dashboard': typeof DashboardRoute
   '/deploy': typeof DeployRoute
@@ -170,6 +179,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/architecture'
+    | '/billing'
     | '/checkout'
     | '/dashboard'
     | '/deploy'
@@ -188,6 +198,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/architecture'
+    | '/billing'
     | '/checkout'
     | '/dashboard'
     | '/deploy'
@@ -206,6 +217,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/architecture'
+    | '/billing'
     | '/checkout'
     | '/dashboard'
     | '/deploy'
@@ -225,6 +237,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ArchitectureRoute: typeof ArchitectureRoute
+  BillingRoute: typeof BillingRoute
   CheckoutRoute: typeof CheckoutRouteWithChildren
   DashboardRoute: typeof DashboardRoute
   DeployRoute: typeof DeployRoute
@@ -282,6 +295,13 @@ declare module '@tanstack/react-router' {
       path: '/checkout'
       fullPath: '/checkout'
       preLoaderRoute: typeof CheckoutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/billing': {
+      id: '/billing'
+      path: '/billing'
+      fullPath: '/billing'
+      preLoaderRoute: typeof BillingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/architecture': {
@@ -372,6 +392,7 @@ const CheckoutRouteWithChildren = CheckoutRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ArchitectureRoute: ArchitectureRoute,
+  BillingRoute: BillingRoute,
   CheckoutRoute: CheckoutRouteWithChildren,
   DashboardRoute: DashboardRoute,
   DeployRoute: DeployRoute,
@@ -389,3 +410,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
