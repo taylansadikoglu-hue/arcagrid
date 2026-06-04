@@ -27,6 +27,7 @@ import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/e
 import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
+import { Route as ApiPublicFleetActiveRouteImport } from './routes/api/public/fleet/active'
 
 const SupportRoute = SupportRouteImport.update({
   id: '/support',
@@ -121,6 +122,11 @@ const ApiPublicPaymentsWebhookRoute =
     path: '/api/public/payments/webhook',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicFleetActiveRoute = ApiPublicFleetActiveRouteImport.update({
+  id: '/api/public/fleet/active',
+  path: '/api/public/fleet/active',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -137,6 +143,7 @@ export interface FileRoutesByFullPath {
   '/cluster/sydney-a': typeof ClusterSydneyARoute
   '/api/public/install-agent.sh': typeof ApiPublicInstallAgentDotshRoute
   '/api/public/telemetry': typeof ApiPublicTelemetryRoute
+  '/api/public/fleet/active': typeof ApiPublicFleetActiveRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
@@ -157,6 +164,7 @@ export interface FileRoutesByTo {
   '/cluster/sydney-a': typeof ClusterSydneyARoute
   '/api/public/install-agent.sh': typeof ApiPublicInstallAgentDotshRoute
   '/api/public/telemetry': typeof ApiPublicTelemetryRoute
+  '/api/public/fleet/active': typeof ApiPublicFleetActiveRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
@@ -178,6 +186,7 @@ export interface FileRoutesById {
   '/cluster/sydney-a': typeof ClusterSydneyARoute
   '/api/public/install-agent.sh': typeof ApiPublicInstallAgentDotshRoute
   '/api/public/telemetry': typeof ApiPublicTelemetryRoute
+  '/api/public/fleet/active': typeof ApiPublicFleetActiveRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
@@ -200,6 +209,7 @@ export interface FileRouteTypes {
     | '/cluster/sydney-a'
     | '/api/public/install-agent.sh'
     | '/api/public/telemetry'
+    | '/api/public/fleet/active'
     | '/api/public/payments/webhook'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
@@ -220,6 +230,7 @@ export interface FileRouteTypes {
     | '/cluster/sydney-a'
     | '/api/public/install-agent.sh'
     | '/api/public/telemetry'
+    | '/api/public/fleet/active'
     | '/api/public/payments/webhook'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
@@ -240,6 +251,7 @@ export interface FileRouteTypes {
     | '/cluster/sydney-a'
     | '/api/public/install-agent.sh'
     | '/api/public/telemetry'
+    | '/api/public/fleet/active'
     | '/api/public/payments/webhook'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
@@ -260,6 +272,7 @@ export interface RootRouteChildren {
   ClusterSydneyARoute: typeof ClusterSydneyARoute
   ApiPublicInstallAgentDotshRoute: typeof ApiPublicInstallAgentDotshRoute
   ApiPublicTelemetryRoute: typeof ApiPublicTelemetryRoute
+  ApiPublicFleetActiveRoute: typeof ApiPublicFleetActiveRoute
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
   LovableEmailAuthWebhookRoute: typeof LovableEmailAuthWebhookRoute
@@ -394,6 +407,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicPaymentsWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/fleet/active': {
+      id: '/api/public/fleet/active'
+      path: '/api/public/fleet/active'
+      fullPath: '/api/public/fleet/active'
+      preLoaderRoute: typeof ApiPublicFleetActiveRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -423,6 +443,7 @@ const rootRouteChildren: RootRouteChildren = {
   ClusterSydneyARoute: ClusterSydneyARoute,
   ApiPublicInstallAgentDotshRoute: ApiPublicInstallAgentDotshRoute,
   ApiPublicTelemetryRoute: ApiPublicTelemetryRoute,
+  ApiPublicFleetActiveRoute: ApiPublicFleetActiveRoute,
   ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
   LovableEmailAuthWebhookRoute: LovableEmailAuthWebhookRoute,
@@ -431,3 +452,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
