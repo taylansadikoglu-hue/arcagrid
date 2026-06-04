@@ -182,14 +182,14 @@ function DeployPage() {
               Pick your compute tier
             </h2>
             <p className="mt-3 text-muted-foreground">
-              Pay once for a 24-hour burst or subscribe monthly for sustained
-              throughput. Every tier inherits hard-capped thermal routing and
+              Subscribe monthly for sustained throughput, or bring your own
+              rigs. Every tier inherits hard-capped thermal routing and
               immutable, tag-pinned container releases.
             </p>
           </div>
 
           <div className="mt-12 grid gap-5 md:grid-cols-2 lg:grid-cols-4">
-            {TIERS.map((tier) => (
+            {TIERS.filter((t) => t.unit !== "24h").map((tier) => (
               <article
                 key={tier.id}
                 className={`group relative flex flex-col rounded-2xl border p-6 transition-all ${

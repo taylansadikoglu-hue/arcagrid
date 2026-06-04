@@ -9,12 +9,14 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SupportRouteImport } from './routes/support'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as FleetRouteImport } from './routes/fleet'
 import { Route as DeployRouteImport } from './routes/deploy'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as CheckoutRouteImport } from './routes/checkout'
+import { Route as BillingRouteImport } from './routes/billing'
 import { Route as ArchitectureRouteImport } from './routes/architecture'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ClusterSydneyARouteImport } from './routes/cluster.sydney-a'
@@ -26,6 +28,11 @@ import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/em
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
 
+const SupportRoute = SupportRouteImport.update({
+  id: '/support',
+  path: '/support',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
   path: '/sitemap.xml',
@@ -54,6 +61,11 @@ const DashboardRoute = DashboardRouteImport.update({
 const CheckoutRoute = CheckoutRouteImport.update({
   id: '/checkout',
   path: '/checkout',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BillingRoute = BillingRouteImport.update({
+  id: '/billing',
+  path: '/billing',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ArchitectureRoute = ArchitectureRouteImport.update({
@@ -113,12 +125,14 @@ const ApiPublicPaymentsWebhookRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/architecture': typeof ArchitectureRoute
+  '/billing': typeof BillingRoute
   '/checkout': typeof CheckoutRouteWithChildren
   '/dashboard': typeof DashboardRoute
   '/deploy': typeof DeployRoute
   '/fleet': typeof FleetRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/support': typeof SupportRoute
   '/checkout/return': typeof CheckoutReturnRoute
   '/cluster/sydney-a': typeof ClusterSydneyARoute
   '/api/public/install-agent.sh': typeof ApiPublicInstallAgentDotshRoute
@@ -131,12 +145,14 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/architecture': typeof ArchitectureRoute
+  '/billing': typeof BillingRoute
   '/checkout': typeof CheckoutRouteWithChildren
   '/dashboard': typeof DashboardRoute
   '/deploy': typeof DeployRoute
   '/fleet': typeof FleetRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/support': typeof SupportRoute
   '/checkout/return': typeof CheckoutReturnRoute
   '/cluster/sydney-a': typeof ClusterSydneyARoute
   '/api/public/install-agent.sh': typeof ApiPublicInstallAgentDotshRoute
@@ -150,12 +166,14 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/architecture': typeof ArchitectureRoute
+  '/billing': typeof BillingRoute
   '/checkout': typeof CheckoutRouteWithChildren
   '/dashboard': typeof DashboardRoute
   '/deploy': typeof DeployRoute
   '/fleet': typeof FleetRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/support': typeof SupportRoute
   '/checkout/return': typeof CheckoutReturnRoute
   '/cluster/sydney-a': typeof ClusterSydneyARoute
   '/api/public/install-agent.sh': typeof ApiPublicInstallAgentDotshRoute
@@ -170,12 +188,14 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/architecture'
+    | '/billing'
     | '/checkout'
     | '/dashboard'
     | '/deploy'
     | '/fleet'
     | '/reset-password'
     | '/sitemap.xml'
+    | '/support'
     | '/checkout/return'
     | '/cluster/sydney-a'
     | '/api/public/install-agent.sh'
@@ -188,12 +208,14 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/architecture'
+    | '/billing'
     | '/checkout'
     | '/dashboard'
     | '/deploy'
     | '/fleet'
     | '/reset-password'
     | '/sitemap.xml'
+    | '/support'
     | '/checkout/return'
     | '/cluster/sydney-a'
     | '/api/public/install-agent.sh'
@@ -206,12 +228,14 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/architecture'
+    | '/billing'
     | '/checkout'
     | '/dashboard'
     | '/deploy'
     | '/fleet'
     | '/reset-password'
     | '/sitemap.xml'
+    | '/support'
     | '/checkout/return'
     | '/cluster/sydney-a'
     | '/api/public/install-agent.sh'
@@ -225,12 +249,14 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ArchitectureRoute: typeof ArchitectureRoute
+  BillingRoute: typeof BillingRoute
   CheckoutRoute: typeof CheckoutRouteWithChildren
   DashboardRoute: typeof DashboardRoute
   DeployRoute: typeof DeployRoute
   FleetRoute: typeof FleetRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  SupportRoute: typeof SupportRoute
   ClusterSydneyARoute: typeof ClusterSydneyARoute
   ApiPublicInstallAgentDotshRoute: typeof ApiPublicInstallAgentDotshRoute
   ApiPublicTelemetryRoute: typeof ApiPublicTelemetryRoute
@@ -242,6 +268,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/support': {
+      id: '/support'
+      path: '/support'
+      fullPath: '/support'
+      preLoaderRoute: typeof SupportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/sitemap.xml': {
       id: '/sitemap.xml'
       path: '/sitemap.xml'
@@ -282,6 +315,13 @@ declare module '@tanstack/react-router' {
       path: '/checkout'
       fullPath: '/checkout'
       preLoaderRoute: typeof CheckoutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/billing': {
+      id: '/billing'
+      path: '/billing'
+      fullPath: '/billing'
+      preLoaderRoute: typeof BillingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/architecture': {
@@ -372,12 +412,14 @@ const CheckoutRouteWithChildren = CheckoutRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ArchitectureRoute: ArchitectureRoute,
+  BillingRoute: BillingRoute,
   CheckoutRoute: CheckoutRouteWithChildren,
   DashboardRoute: DashboardRoute,
   DeployRoute: DeployRoute,
   FleetRoute: FleetRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  SupportRoute: SupportRoute,
   ClusterSydneyARoute: ClusterSydneyARoute,
   ApiPublicInstallAgentDotshRoute: ApiPublicInstallAgentDotshRoute,
   ApiPublicTelemetryRoute: ApiPublicTelemetryRoute,

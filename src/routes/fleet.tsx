@@ -1466,7 +1466,7 @@ function RoiPanel({
           Billing & ROI · 24h rolling
         </h3>
         <span className="font-mono-num text-[10px] text-muted-foreground">
-          Cost basis ${hourly.toFixed(3)}/hr · ${(hourly * 24).toFixed(2)}/day
+          Cost basis ${(hourly * 24).toFixed(2)}/day
         </span>
       </div>
       <div className="grid gap-px bg-border sm:grid-cols-4">

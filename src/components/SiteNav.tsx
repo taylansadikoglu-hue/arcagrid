@@ -41,40 +41,32 @@ export function SiteNav() {
         </div>
         <nav className="flex items-center gap-1 text-sm">
           <Link
-            to="/"
-            className="rounded-md px-3 py-1.5 text-muted-foreground transition-colors hover:text-foreground"
-            activeOptions={{ exact: true }}
-            activeProps={{ className: "text-foreground" }}
-          >
-            Gateway
-          </Link>
-          <Link
-            to="/architecture"
+            to="/dashboard"
             className="rounded-md px-3 py-1.5 text-muted-foreground transition-colors hover:text-foreground"
             activeProps={{ className: "text-foreground" }}
           >
-            Architecture
+            🖥️ Dashboard
           </Link>
           <Link
             to="/deploy"
             className="rounded-md px-3 py-1.5 text-muted-foreground transition-colors hover:text-foreground"
             activeProps={{ className: "text-foreground" }}
           >
-            Deploy
+            ⚡ Deploy Node
           </Link>
           <Link
-            to="/dashboard"
+            to="/billing"
             className="rounded-md px-3 py-1.5 text-muted-foreground transition-colors hover:text-foreground"
             activeProps={{ className: "text-foreground" }}
           >
-            Dashboard
+            💳 Billing & Payouts
           </Link>
           <Link
-            to="/fleet"
+            to="/support"
             className="rounded-md px-3 py-1.5 text-muted-foreground transition-colors hover:text-foreground"
             activeProps={{ className: "text-foreground" }}
           >
-            Fleet
+            🛠️ Support & Registry
           </Link>
           {user ? (
             <button
