@@ -723,14 +723,14 @@ function PricingSection() {
 const MOCK_BTX_SPOT_USD = 5.22;
 
 function RoiCalculator() {
-  const [rigCost, setRigCost] = useState(0.15); // $/hour
+  const [rigCost, setRigCost] = useState(3.6); // $/day
   const [hashrate, setHashrate] = useState(883); // N/s
 
   const result = useMemo(() => {
     // Yield model: 883 N/s reference ≈ 1.6 BTX/day (mock baseline).
     const dailyBtx = (hashrate / 883) * 1.6;
     const dailyYieldUsd = dailyBtx * MOCK_BTX_SPOT_USD;
-    const dailyCost = rigCost * 24;
+    const dailyCost = rigCost;
     const dailyNet = dailyYieldUsd - dailyCost;
     return {
       dailyBtx,
@@ -776,11 +776,11 @@ function RoiCalculator() {
             <div className="space-y-6 bg-card p-6">
               <RoiSlider
                 label="What do you pay for your rig?"
-                unit="$ / hour"
+                unit="$ / day"
                 value={rigCost}
-                min={0.02}
-                max={1.5}
-                step={0.01}
+                min={1}
+                max={40}
+                step={0.5}
                 format={(v) => `$${v.toFixed(2)}`}
                 onChange={setRigCost}
               />
@@ -796,7 +796,7 @@ function RoiCalculator() {
               />
               <div className="rounded-lg border border-border bg-background/50 px-4 py-3 text-[11px] text-muted-foreground">
                 Defaults match a single tuned CUDA worker on the ARCA mesh
-                (~883 N/s @ $0.15/hr).
+                (~883 N/s @ $3.60/day cost basis).
               </div>
             </div>
 
