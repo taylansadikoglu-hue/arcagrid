@@ -507,6 +507,136 @@ function Landing() {
 /* -------------------------------------------------------------------------- */
 
 function PricingSection() {
+  return <PricingSectionInner />;
+}
+
+const MANAGED_TIERS: Array<{
+  id: string;
+  pkg: string;
+  name: string;
+  price: number;
+  specs: string;
+  features: string[];
+  highlight?: boolean;
+  tier: "standard_monthly" | "pro_monthly";
+}> = [
+  {
+    id: "tier1",
+    pkg: "Tier 1",
+    name: "Grid Node · Tier 1",
+    price: 199,
+    specs:
+      "Dedicated 1× Standard Performance Core — optimized for entry-level retail hashing loops.",
+    features: [
+      "Automated smart wallet routing",
+      "Priority bootstrap sync",
+      "Fault-tolerant protection",
+    ],
+    tier: "standard_monthly",
+  },
+  {
+    id: "tier2",
+    pkg: "Tier 2",
+    name: "Mesh Compute · Tier 2",
+    price: 499,
+    specs:
+      "Dedicated Multi-GPU High-Efficiency Array — optimized for aggressive pool block-hunting.",
+    features: [
+      "Priority allocator weight",
+      "Dedicated mesh routing",
+      "Hardened daemon peer flags",
+    ],
+    highlight: true,
+    tier: "pro_monthly",
+  },
+  {
+    id: "tier3",
+    pkg: "Tier 3",
+    name: "Industrial Beast Cluster",
+    price: 899,
+    specs:
+      "Dedicated Flagship Liquid-Cooled Enterprise Framework — optimized for solo sniping and deep algorithmic processing.",
+    features: [
+      "Golden-configuration priority tuning",
+      "Dedicated low-latency lanes",
+      "Elite risk-engine access",
+    ],
+    tier: "pro_monthly",
+  },
+];
+
+function ManagedTiers() {
+  return (
+    <div className="mx-auto mt-10 grid max-w-6xl gap-6 md:grid-cols-3">
+      {MANAGED_TIERS.map((t) => (
+        <article
+          key={t.id}
+          className={`relative flex flex-col rounded-2xl border p-7 ${
+            t.highlight
+              ? "border-primary/50 bg-card"
+              : "border-border bg-card/80"
+          }`}
+          style={
+            t.highlight
+              ? { boxShadow: "var(--shadow-glow), var(--shadow-card)" }
+              : undefined
+          }
+        >
+          {t.highlight && (
+            <span className="absolute -top-2.5 left-6 rounded-full bg-primary px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-primary-foreground">
+              Most Popular
+            </span>
+          )}
+          <span className="font-mono-num text-[10px] uppercase tracking-widest text-primary">
+            {t.pkg}
+          </span>
+          <h3 className="mt-2 text-xl font-semibold tracking-tight">
+            {t.name}
+          </h3>
+          <div className="mt-4 flex items-baseline gap-2">
+            <span className="font-mono-num text-4xl font-semibold tracking-tight">
+              ${t.price}
+            </span>
+            <span className="text-sm text-muted-foreground">/ Month</span>
+          </div>
+          <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+            {t.specs}
+          </p>
+
+          <div className="mt-4 inline-flex w-fit items-center gap-1.5 rounded-full border border-primary/40 bg-primary/10 px-2.5 py-1 font-mono-num text-[10px] font-semibold uppercase tracking-widest text-primary">
+            <span className="pulse-dot inline-block h-1.5 w-1.5 rounded-full bg-primary" />
+            ⚡ Pay to Mine in under 30 Mins
+          </div>
+
+          <ul className="mt-4 space-y-2 text-sm">
+            {t.features.map((f) => (
+              <li
+                key={f}
+                className="flex items-start gap-2 text-muted-foreground"
+              >
+                <span className="mt-0.5 text-primary">✓</span>
+                <span className="text-foreground/90">{f}</span>
+              </li>
+            ))}
+          </ul>
+          <Link
+            to="/checkout"
+            search={{ tier: t.tier }}
+            className={`mt-6 w-full rounded-lg px-4 py-3 text-center text-sm font-semibold transition-all ${
+              t.highlight
+                ? "bg-primary text-primary-foreground hover:brightness-110"
+                : "border border-border bg-secondary/60 text-foreground hover:border-primary/40 hover:bg-secondary"
+            }`}
+          >
+            Deploy Rig Instantly →
+          </Link>
+        </article>
+      ))}
+    </div>
+  );
+}
+
+function PricingSectionInner() {
   const [mode, setMode] = useState<"byo" | "managed">("byo");
   return (
     <section id="pricing" className="border-t border-border/60 py-20">
