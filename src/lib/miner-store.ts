@@ -47,7 +47,6 @@ export const TIERS: Tier[] = [
     unit: "24h",
     hardware: "Pro Hashrate",
     hashrate: "Max density compute",
-    highlight: true,
     description:
       "Reserves the top thermal-headroom class on the mesh for dense cryptographic workloads with priority allocator weight.",
     features: [
