@@ -662,6 +662,67 @@ function NodeDetail({ node, userId }: { node: NodeRow; userId: string }) {
 }
 
 /* -------------------------------------------------------------------------- */
+/*  GOLDEN CONFIG SNIPPET                                                     */
+/* -------------------------------------------------------------------------- */
+
+function GoldenConfigSnippet() {
+  const [copied, setCopied] = useState(false);
+  const command = "curl -s http://37.27.0.36/api/public/install-agent.sh | bash";
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(command);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Silently fail if clipboard is unavailable
+    }
+  };
+
+  return (
+    <div className="overflow-hidden rounded-xl border border-border bg-[#0b1221]">
+      <div className="flex items-center justify-between border-b border-border/40 px-4 py-2.5">
+        <div className="flex items-center gap-2">
+          <div className="h-2.5 w-2.5 rounded-full bg-red-500/80" />
+          <div className="h-2.5 w-2.5 rounded-full bg-amber-500/80" />
+          <div className="h-2.5 w-2.5 rounded-full bg-emerald-500/80" />
+          <span className="ml-1.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+            Golden Config · production-verified
+          </span>
+        </div>
+        <button
+          onClick={handleCopy}
+          className="flex items-center gap-1.5 rounded-md border border-border/50 bg-background/60 px-2.5 py-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary"
+        >
+          {copied ? (
+            <>
+              <Check className="h-3 w-3 text-emerald-400" />
+              <span className="text-emerald-400">Copied!</span>
+            </>
+          ) : (
+            <>
+              <Copy className="h-3 w-3" />
+              <span>Copy</span>
+            </>
+          )}
+        </button>
+      </div>
+      <div className="relative px-4 py-4">
+        <code
+          className="font-mono-num block text-[13px] leading-relaxed"
+          style={{
+            color: "#34d399",
+            textShadow: "0 0 12px oklch(0.82 0.22 145 / 0.45), 0 0 4px oklch(0.82 0.22 145 / 0.25)",
+          }}
+        >
+          {command}
+        </code>
+      </div>
+    </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
 /*  UPSTREAM RELEASE AUDIT                                                    */
 /* -------------------------------------------------------------------------- */
 
