@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SupportRouteImport } from './routes/support'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as FleetRouteImport } from './routes/fleet'
@@ -27,6 +28,11 @@ import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/em
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
 
+const SupportRoute = SupportRouteImport.update({
+  id: '/support',
+  path: '/support',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
   path: '/sitemap.xml',
@@ -126,6 +132,7 @@ export interface FileRoutesByFullPath {
   '/fleet': typeof FleetRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/support': typeof SupportRoute
   '/checkout/return': typeof CheckoutReturnRoute
   '/cluster/sydney-a': typeof ClusterSydneyARoute
   '/api/public/install-agent.sh': typeof ApiPublicInstallAgentDotshRoute
@@ -145,6 +152,7 @@ export interface FileRoutesByTo {
   '/fleet': typeof FleetRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/support': typeof SupportRoute
   '/checkout/return': typeof CheckoutReturnRoute
   '/cluster/sydney-a': typeof ClusterSydneyARoute
   '/api/public/install-agent.sh': typeof ApiPublicInstallAgentDotshRoute
@@ -165,6 +173,7 @@ export interface FileRoutesById {
   '/fleet': typeof FleetRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/support': typeof SupportRoute
   '/checkout/return': typeof CheckoutReturnRoute
   '/cluster/sydney-a': typeof ClusterSydneyARoute
   '/api/public/install-agent.sh': typeof ApiPublicInstallAgentDotshRoute
@@ -186,6 +195,7 @@ export interface FileRouteTypes {
     | '/fleet'
     | '/reset-password'
     | '/sitemap.xml'
+    | '/support'
     | '/checkout/return'
     | '/cluster/sydney-a'
     | '/api/public/install-agent.sh'
@@ -205,6 +215,7 @@ export interface FileRouteTypes {
     | '/fleet'
     | '/reset-password'
     | '/sitemap.xml'
+    | '/support'
     | '/checkout/return'
     | '/cluster/sydney-a'
     | '/api/public/install-agent.sh'
@@ -224,6 +235,7 @@ export interface FileRouteTypes {
     | '/fleet'
     | '/reset-password'
     | '/sitemap.xml'
+    | '/support'
     | '/checkout/return'
     | '/cluster/sydney-a'
     | '/api/public/install-agent.sh'
@@ -244,6 +256,7 @@ export interface RootRouteChildren {
   FleetRoute: typeof FleetRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  SupportRoute: typeof SupportRoute
   ClusterSydneyARoute: typeof ClusterSydneyARoute
   ApiPublicInstallAgentDotshRoute: typeof ApiPublicInstallAgentDotshRoute
   ApiPublicTelemetryRoute: typeof ApiPublicTelemetryRoute
@@ -255,6 +268,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/support': {
+      id: '/support'
+      path: '/support'
+      fullPath: '/support'
+      preLoaderRoute: typeof SupportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/sitemap.xml': {
       id: '/sitemap.xml'
       path: '/sitemap.xml'
@@ -399,6 +419,7 @@ const rootRouteChildren: RootRouteChildren = {
   FleetRoute: FleetRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  SupportRoute: SupportRoute,
   ClusterSydneyARoute: ClusterSydneyARoute,
   ApiPublicInstallAgentDotshRoute: ApiPublicInstallAgentDotshRoute,
   ApiPublicTelemetryRoute: ApiPublicTelemetryRoute,
