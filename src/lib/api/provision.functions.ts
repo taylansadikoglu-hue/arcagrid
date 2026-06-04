@@ -225,7 +225,7 @@ function buildEnv(input: z.infer<typeof ProvisionInput>) {
   // Profit-share tier: server-side injection of the routing-fee env var
   // consumed by the worker image to skim block rewards before payout.
   if (input.tier === "partner_share") {
-    env.BTX_DEV_FEE = "0.20";
+    env.BTX_DEV_FEE = "0.05";
   }
   return env;
 }
