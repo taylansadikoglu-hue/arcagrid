@@ -2,7 +2,6 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 
 import { SiteNav } from "@/components/SiteNav";
-import { TIERS } from "@/lib/miner-store";
 
 export const Route = createFileRoute("/")({
   head: () => ({
