@@ -507,6 +507,7 @@ function Landing() {
 /* -------------------------------------------------------------------------- */
 
 function PricingSection() {
+  const [mode, setMode] = useState<"byo" | "managed">("byo");
   return (
     <section id="pricing" className="border-t border-border/60 py-20">
       <div className="mx-auto max-w-7xl px-6">
@@ -515,92 +516,200 @@ function PricingSection() {
             Compute Tiers
           </span>
           <h2 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">
-            Pick your compute tier
+            Pick how you deploy
           </h2>
           <p className="mt-3 text-muted-foreground">
-            Per-day bursts, sustained monthly capacity, or zero-upfront
-            profit-share — every tier rides the same hardened mesh.
+            Bring your own rigs and keep 91% of the upside, or rent fully
+            managed grid capacity. Every path rides the same hardened mesh.
           </p>
         </div>
 
-        <div className="mt-12 grid gap-5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-          {TIERS.map((tier) => {
-            const isPartner = tier.id === "partner_share";
-            return (
-              <article
-                key={tier.id}
-                className={`relative flex flex-col rounded-2xl border p-6 transition-all ${
-                  tier.highlight
-                    ? "border-primary/50 bg-card"
-                    : isPartner
-                      ? "border-accent/40 bg-card"
-                      : "border-border bg-card/60 hover:border-border/80"
-                }`}
-                style={
-                  tier.highlight
-                    ? { boxShadow: "var(--shadow-glow), var(--shadow-card)" }
-                    : undefined
-                }
+        {/* DEPLOYMENT MODE TOGGLE */}
+        <div className="mt-10 flex justify-center">
+          <div
+            role="tablist"
+            aria-label="Deployment mode"
+            className="inline-flex items-center gap-1 rounded-full border border-border bg-card/80 p-1"
+          >
+            <button
+              role="tab"
+              aria-selected={mode === "byo"}
+              onClick={() => setMode("byo")}
+              className={`rounded-full px-5 py-2 text-xs font-semibold uppercase tracking-widest transition-all ${
+                mode === "byo"
+                  ? "bg-primary text-primary-foreground shadow"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Bring Your Own Rigs (BYO)
+            </button>
+            <button
+              role="tab"
+              aria-selected={mode === "managed"}
+              onClick={() => setMode("managed")}
+              className={`rounded-full px-5 py-2 text-xs font-semibold uppercase tracking-widest transition-all ${
+                mode === "managed"
+                  ? "bg-primary text-primary-foreground shadow"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Rent Arca Managed Nodes
+            </button>
+          </div>
+        </div>
+
+        {mode === "byo" ? (
+          <div className="mx-auto mt-10 max-w-xl">
+            <article
+              className="relative flex flex-col rounded-2xl border border-accent/50 bg-card p-8"
+              style={{ boxShadow: "var(--shadow-glow), var(--shadow-card)" }}
+            >
+              <span className="absolute -top-2.5 left-6 rounded-full bg-accent px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-accent-foreground">
+                Zero Upfront
+              </span>
+              <span className="font-mono-num text-[10px] uppercase tracking-widest text-primary">
+                Bring Your Own Rigs
+              </span>
+              <h3 className="mt-2 text-2xl font-semibold tracking-tight">
+                Infrastructure Core
+              </h3>
+              <div className="mt-4 flex items-baseline gap-2">
+                <span className="font-mono-num text-4xl font-semibold tracking-tight text-primary">
+                  9%
+                </span>
+                <span className="text-sm text-muted-foreground">
+                  Flat Revenue Share
+                </span>
+              </div>
+              <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
+                Total fleet orchestration, automated kernel self-healing, and
+                real-time telemetry updates. Keep 91% of your block rewards
+                while we handle 100% of the upkeep and stability.
+              </p>
+              <ul className="mt-5 space-y-2 text-sm">
+                {[
+                  "Automated kernel self-healing",
+                  "Real-time telemetry & alerting",
+                  "Hardened daemon peer flags",
+                  "One-line install script registry",
+                ].map((f) => (
+                  <li
+                    key={f}
+                    className="flex items-start gap-2 text-muted-foreground"
+                  >
+                    <span className="mt-0.5 text-primary">✓</span>
+                    <span className="text-foreground/90">{f}</span>
+                  </li>
+                ))}
+              </ul>
+              <Link
+                to="/checkout"
+                search={{ tier: "partner_share" }}
+                className="mt-7 w-full rounded-lg bg-accent px-4 py-3 text-center text-sm font-semibold text-accent-foreground transition-all hover:brightness-110"
               >
-                {tier.highlight && (
-                  <span className="absolute -top-2.5 left-6 rounded-full bg-primary px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-primary-foreground">
-                    Most Popular
-                  </span>
-                )}
-                {isPartner && (
-                  <span className="absolute -top-2.5 left-6 rounded-full bg-accent px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-accent-foreground">
-                    Zero Upfront
-                  </span>
-                )}
-                <div className="flex items-baseline justify-between">
-                  <h3 className="text-base font-semibold">{tier.name}</h3>
-                  <span className="text-[10px] text-muted-foreground">
-                    {tier.tagline}
-                  </span>
-                </div>
-                <div className="mt-4 flex items-baseline gap-1">
-                  <span className="font-mono-num text-3xl font-semibold tracking-tight">
-                    ${tier.price.toFixed(2)}
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    / {tier.unit}
-                  </span>
-                </div>
-                <p className="mt-1 text-[11px] text-primary/90">
-                  {tier.hardware}
-                </p>
-                {tier.description && (
-                  <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
-                    {tier.description}
-                  </p>
-                )}
-                <ul className="mt-4 space-y-2 text-xs">
-                  {tier.features.map((f) => (
-                    <li
-                      key={f}
-                      className="flex items-start gap-2 text-muted-foreground"
-                    >
-                      <span className="mt-0.5 text-primary">✓</span>
-                      <span className="text-foreground/90">{f}</span>
-                    </li>
-                  ))}
-                </ul>
-                <Link
-                  to="/checkout"
-                  search={{ tier: tier.id }}
-                  className={`mt-6 w-full rounded-lg px-4 py-2.5 text-center text-sm font-semibold transition-all ${
-                    tier.highlight
-                      ? "bg-primary text-primary-foreground hover:brightness-110"
-                      : isPartner
-                        ? "bg-accent text-accent-foreground hover:brightness-110"
-                        : "border border-border bg-secondary/60 text-foreground hover:border-primary/40 hover:bg-secondary"
-                  }`}
-                >
-                  {isPartner ? "Deploy with $0 upfront" : `Launch ${tier.name}`}
-                </Link>
-              </article>
-            );
-          })}
+                Activate Infrastructure Core →
+              </Link>
+            </article>
+          </div>
+        ) : (
+          <div className="mx-auto mt-10 grid max-w-5xl gap-6 md:grid-cols-2">
+            <article className="relative flex flex-col rounded-2xl border border-border bg-card/80 p-8">
+              <span className="font-mono-num text-[10px] uppercase tracking-widest text-primary">
+                Package 01
+              </span>
+              <h3 className="mt-2 text-2xl font-semibold tracking-tight">
+                Retail Hashrate Grid
+              </h3>
+              <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+                Tailored for standard multi-GPU setups. Optimized for mid-tier
+                performance frameworks with steady block throughput.
+              </p>
+              <ul className="mt-5 space-y-2 text-sm">
+                {[
+                  "Automated smart wallet routing",
+                  "Priority blockchain bootstrap sync",
+                  "Full fault-tolerant protection",
+                ].map((f) => (
+                  <li
+                    key={f}
+                    className="flex items-start gap-2 text-muted-foreground"
+                  >
+                    <span className="mt-0.5 text-primary">✓</span>
+                    <span className="text-foreground/90">{f}</span>
+                  </li>
+                ))}
+              </ul>
+              <Link
+                to="/checkout"
+                search={{ tier: "standard_monthly" }}
+                className="mt-7 w-full rounded-lg border border-border bg-secondary/60 px-4 py-3 text-center text-sm font-semibold text-foreground transition-colors hover:border-primary/40 hover:bg-secondary"
+              >
+                Configure Retail Grid →
+              </Link>
+            </article>
+
+            <article
+              className="relative flex flex-col rounded-2xl border border-primary/50 bg-card p-8"
+              style={{ boxShadow: "var(--shadow-glow), var(--shadow-card)" }}
+            >
+              <span className="absolute -top-2.5 left-6 rounded-full bg-primary px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-primary-foreground">
+                Elite Tier
+              </span>
+              <span className="font-mono-num text-[10px] uppercase tracking-widest text-primary">
+                Package 02
+              </span>
+              <h3 className="mt-2 text-2xl font-semibold tracking-tight">
+                Enterprise Pro Cluster
+              </h3>
+              <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+                Unrestricted industrial computing power. Tailored for heavy
+                rendering, deep AI training loops, and high-yield enterprise
+                blocks.
+              </p>
+              <ul className="mt-5 space-y-2 text-sm">
+                {[
+                  "Golden-configuration priority tuning",
+                  "Dedicated network lanes",
+                  "Elite tier risk engine access",
+                ].map((f) => (
+                  <li
+                    key={f}
+                    className="flex items-start gap-2 text-muted-foreground"
+                  >
+                    <span className="mt-0.5 text-primary">✓</span>
+                    <span className="text-foreground/90">{f}</span>
+                  </li>
+                ))}
+              </ul>
+              <Link
+                to="/checkout"
+                search={{ tier: "pro_monthly" }}
+                className="mt-7 w-full rounded-lg bg-primary px-4 py-3 text-center text-sm font-semibold text-primary-foreground transition-all hover:brightness-110"
+              >
+                Configure Enterprise Pro →
+              </Link>
+            </article>
+          </div>
+        )}
+
+        {/* FAST-START GUARANTEE */}
+        <div
+          className="mx-auto mt-12 max-w-4xl rounded-2xl border border-primary/40 bg-card/80 p-8 text-center"
+          style={{ boxShadow: "var(--shadow-glow)" }}
+        >
+          <span className="font-mono-num text-[10px] uppercase tracking-widest text-primary">
+            Fast-Start Guarantee
+          </span>
+          <h3 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">
+            ⚡ Ready to Mine in Under 30 Minutes
+          </h3>
+          <p className="mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
+            No long sync times, no complex configurations. Select your tier,
+            complete your secure payment routing, and our automated Cloudflare
+            R2 fast-bootstrap engine will have your allocated grid hashing and
+            streaming live payouts straight to your wallet in under 30 minutes.
+            Guaranteed.
+          </p>
         </div>
       </div>
     </section>
