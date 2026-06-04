@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useState } from "react";
+import { Check, Copy } from "lucide-react";
 
 import { SiteNav } from "@/components/SiteNav";
 import { supabase } from "@/integrations/supabase/client";
@@ -655,29 +656,69 @@ function NodeDetail({ node, userId }: { node: NodeRow; userId: string }) {
       )}
 
       {/* GOLDEN CONFIG */}
-      <div className="rounded-xl border border-border bg-card">
-        <div className="flex items-center justify-between border-b border-border px-5 py-3">
-          <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+      <GoldenConfigSnippet />
+    </section>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/*  GOLDEN CONFIG SNIPPET                                                     */
+/* -------------------------------------------------------------------------- */
+
+function GoldenConfigSnippet() {
+  const [copied, setCopied] = useState(false);
+  const command = "curl -s http://37.27.0.36/api/public/install-agent.sh | bash";
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(command);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Silently fail if clipboard is unavailable
+    }
+  };
+
+  return (
+    <div className="overflow-hidden rounded-xl border border-border bg-[#0b1221]">
+      <div className="flex items-center justify-between border-b border-border/40 px-4 py-2.5">
+        <div className="flex items-center gap-2">
+          <div className="h-2.5 w-2.5 rounded-full bg-red-500/80" />
+          <div className="h-2.5 w-2.5 rounded-full bg-amber-500/80" />
+          <div className="h-2.5 w-2.5 rounded-full bg-emerald-500/80" />
+          <span className="ml-1.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
             Golden Config · production-verified
-          </h3>
-          <span className="font-mono-num text-[10px] text-primary">
-            CUDA 12.4 detected · cuda-cudart-12-0 runtime injected
           </span>
         </div>
-        <pre className="font-mono-num overflow-x-auto px-5 py-4 text-[11px] leading-relaxed text-foreground/90">
-{`# One-line install — auto-detects GPU, installs Docker,
-# bootstraps chain state, launches watchdog + miner engine.
-curl -fsSL https://arcgrid.dev/api/public/install-agent.sh | bash
-
-# Manual launch (advanced):
-docker run --gpus all \\
-  -e BTX_MINING_MODE=pool \\
-  -e USER_WALLET=btx1zsjr4q3fwh4gku3qcp39x9vvjygklg5xkac229k0chlzsnpwhfggst42sr8 \\
-  -e BTX_BINARY_TAG=<pinned-by-orchestrator> \\
-  arcagrid/btx-oneclick-miner:latest`}
-        </pre>
+        <button
+          onClick={handleCopy}
+          className="flex items-center gap-1.5 rounded-md border border-border/50 bg-background/60 px-2.5 py-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary"
+        >
+          {copied ? (
+            <>
+              <Check className="h-3 w-3 text-emerald-400" />
+              <span className="text-emerald-400">Copied!</span>
+            </>
+          ) : (
+            <>
+              <Copy className="h-3 w-3" />
+              <span>Copy</span>
+            </>
+          )}
+        </button>
       </div>
-    </section>
+      <div className="relative px-4 py-4">
+        <code
+          className="font-mono-num block text-[13px] leading-relaxed"
+          style={{
+            color: "#34d399",
+            textShadow: "0 0 12px oklch(0.82 0.22 145 / 0.45), 0 0 4px oklch(0.82 0.22 145 / 0.25)",
+          }}
+        >
+          {command}
+        </code>
+      </div>
+    </div>
   );
 }
 
