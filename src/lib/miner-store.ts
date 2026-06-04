@@ -43,7 +43,7 @@ export const TIERS: Tier[] = [
     id: "pro_24h",
     name: "Pro",
     tagline: "Max Density Compute Clusters",
-    price: 499,
+    price: 349,
     unit: "24h",
     hardware: "Pro Hashrate",
     hashrate: "Max density compute",
