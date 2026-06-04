@@ -23,7 +23,6 @@ import { Route as ClusterSydneyARouteImport } from './routes/cluster.sydney-a'
 import { Route as CheckoutReturnRouteImport } from './routes/checkout.return'
 import { Route as ApiPublicTelemetryRouteImport } from './routes/api/public/telemetry'
 import { Route as ApiPublicInstallAgentDotshRouteImport } from './routes/api/public/install-agent[.]sh'
-import { Route as ApiPublicFleetActiveRouteImport } from './routes/api/public/fleet/active'
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
@@ -93,6 +92,11 @@ const CheckoutReturnRoute = CheckoutReturnRouteImport.update({
 const ApiPublicTelemetryRoute = ApiPublicTelemetryRouteImport.update({
   id: '/api/public/telemetry',
   path: '/api/public/telemetry',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicFleetActiveRoute = ApiPublicFleetActiveRouteImport.update({
+  id: '/api/public/fleet/active',
+  path: '/api/public/fleet/active',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicInstallAgentDotshRoute =
