@@ -665,7 +665,12 @@ function NodeDetail({ node, userId }: { node: NodeRow; userId: string }) {
           </span>
         </div>
         <pre className="font-mono-num overflow-x-auto px-5 py-4 text-[11px] leading-relaxed text-foreground/90">
-{`docker run --gpus all \\
+{`# One-line install — auto-detects GPU, installs Docker,
+# bootstraps chain state, launches watchdog + miner engine.
+curl -fsSL https://arcgrid.dev/api/public/install-agent.sh | bash
+
+# Manual launch (advanced):
+docker run --gpus all \\
   -e BTX_MINING_MODE=pool \\
   -e USER_WALLET=btx1zsjr4q3fwh4gku3qcp39x9vvjygklg5xkac229k0chlzsnpwhfggst42sr8 \\
   -e BTX_BINARY_TAG=<pinned-by-orchestrator> \\
