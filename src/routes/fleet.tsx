@@ -656,28 +656,7 @@ function NodeDetail({ node, userId }: { node: NodeRow; userId: string }) {
       )}
 
       {/* GOLDEN CONFIG */}
-      <div className="rounded-xl border border-border bg-card">
-        <div className="flex items-center justify-between border-b border-border px-5 py-3">
-          <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-            Golden Config · production-verified
-          </h3>
-          <span className="font-mono-num text-[10px] text-primary">
-            CUDA 12.4 detected · cuda-cudart-12-0 runtime injected
-          </span>
-        </div>
-        <pre className="font-mono-num overflow-x-auto px-5 py-4 text-[11px] leading-relaxed text-foreground/90">
-{`# One-line install — auto-detects GPU, installs Docker,
-# bootstraps chain state, launches watchdog + miner engine.
-curl -fsSL https://arcgrid.dev/api/public/install-agent.sh | bash
-
-# Manual launch (advanced):
-docker run --gpus all \\
-  -e BTX_MINING_MODE=pool \\
-  -e USER_WALLET=btx1zsjr4q3fwh4gku3qcp39x9vvjygklg5xkac229k0chlzsnpwhfggst42sr8 \\
-  -e BTX_BINARY_TAG=<pinned-by-orchestrator> \\
-  arcagrid/btx-oneclick-miner:latest`}
-        </pre>
-      </div>
+      <GoldenConfigSnippet />
     </section>
   );
 }
