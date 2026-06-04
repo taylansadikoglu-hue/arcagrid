@@ -94,11 +94,6 @@ const ApiPublicTelemetryRoute = ApiPublicTelemetryRouteImport.update({
   path: '/api/public/telemetry',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiPublicFleetActiveRoute = ApiPublicFleetActiveRouteImport.update({
-  id: '/api/public/fleet/active',
-  path: '/api/public/fleet/active',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ApiPublicInstallAgentDotshRoute =
   ApiPublicInstallAgentDotshRouteImport.update({
     id: '/api/public/install-agent.sh',
