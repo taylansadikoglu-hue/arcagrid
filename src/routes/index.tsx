@@ -538,7 +538,7 @@ const MANAGED_TIERS: Array<{
     id: "tier2",
     pkg: "Tier 2",
     name: "Mesh Compute · Tier 2",
-    price: 499,
+    price: 349,
     specs:
       "Dedicated Multi-GPU High-Efficiency Array — optimized for aggressive pool block-hunting.",
     features: [
