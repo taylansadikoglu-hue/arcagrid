@@ -77,7 +77,7 @@ export const TIERS: Tier[] = [
     id: "pro_monthly",
     name: "Mesh Compute · Tier 2",
     tagline: "Monthly",
-    price: 499,
+    price: 349,
     unit: "Month",
     hardware: "Dedicated Multi-GPU High-Efficiency Array",
     hashrate: "Max density compute",
