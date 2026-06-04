@@ -649,7 +649,7 @@ function PricingSectionInner() {
             Pick how you deploy
           </h2>
           <p className="mt-3 text-muted-foreground">
-            Bring your own rigs and keep 91% of the upside, or rent fully
+            Bring your own rigs and keep 95% of the upside, or rent fully
             managed grid capacity. Every path rides the same hardened mesh.
           </p>
         </div>
@@ -705,7 +705,7 @@ function PricingSectionInner() {
               </h3>
               <div className="mt-4 flex items-baseline gap-2">
                 <span className="font-mono-num text-4xl font-semibold tracking-tight text-primary">
-                  9%
+                  5%
                 </span>
                 <span className="text-sm text-muted-foreground">
                   Flat Revenue Share
@@ -713,7 +713,7 @@ function PricingSectionInner() {
               </div>
               <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
                 Total fleet orchestration, automated kernel self-healing, and
-                real-time telemetry updates. Keep 91% of your block rewards
+                real-time telemetry updates. Keep 95% of your block rewards
                 while we handle 100% of the upkeep and stability.
               </p>
               <ul className="mt-5 space-y-2 text-sm">
