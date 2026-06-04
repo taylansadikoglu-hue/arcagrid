@@ -182,8 +182,8 @@ function DeployPage() {
               Pick your compute tier
             </h2>
             <p className="mt-3 text-muted-foreground">
-              Pay once for a 24-hour burst or subscribe monthly for sustained
-              throughput. Every tier inherits hard-capped thermal routing and
+              Subscribe monthly for sustained throughput, or bring your own
+              rigs. Every tier inherits hard-capped thermal routing and
               immutable, tag-pinned container releases.
             </p>
           </div>
