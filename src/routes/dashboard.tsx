@@ -354,7 +354,7 @@ function DashboardPage() {
               <p className="mt-2 text-sm text-muted-foreground">
                 Run the command below on any CUDA-capable host. The partner-node
                 image joins your rig to the grid mesh and routes block rewards to
-                your wallet (20% infrastructure fee applied at payout).
+                your wallet (5% flat revenue share applied at payout).
               </p>
               <pre className="mt-4 overflow-x-auto rounded-lg border border-border bg-background/70 p-4 text-xs leading-relaxed">
                 <code className="font-mono-num text-foreground">
