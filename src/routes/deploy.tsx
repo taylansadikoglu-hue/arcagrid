@@ -189,7 +189,7 @@ function DeployPage() {
           </div>
 
           <div className="mt-12 grid gap-5 md:grid-cols-2 lg:grid-cols-4">
-            {TIERS.map((tier) => (
+            {TIERS.filter((t) => t.unit !== "24h").map((tier) => (
               <article
                 key={tier.id}
                 className={`group relative flex flex-col rounded-2xl border p-6 transition-all ${
