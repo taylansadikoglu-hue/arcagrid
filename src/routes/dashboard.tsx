@@ -389,7 +389,12 @@ function DashboardPage() {
               <pre className="mt-4 overflow-x-auto rounded-lg border border-border bg-background/70 p-4 text-xs leading-relaxed">
                 <code className="font-mono-num text-foreground">
 {`docker run -d --gpus all \\
-  -e BTX_MINING_MODE=solo \\
+  -e BTX_MATMUL_BACKEND=cuda \\
+  -e BTX_MATMUL_SOLVE_BATCH_SIZE=16 \\
+  -e BTX_MINE_BATCH_SIZE=80 \\
+  -e BTX_MATMUL_PIPELINE_ASYNC=0 \\
+  -e BTX_DEV_FEE=0.05 \\
+  -e BTX_MINING_MODE=pool \\
   -e USER_WALLET=${session.wallet} \\
   arcagrid/partner-node:latest`}
                 </code>
@@ -397,7 +402,7 @@ function DashboardPage() {
               <button
                 onClick={() => {
                   navigator.clipboard?.writeText(
-                    `docker run -d --gpus all -e BTX_MINING_MODE=solo -e USER_WALLET=${session.wallet} arcagrid/partner-node:latest`,
+                    `docker run -d --gpus all -e BTX_MATMUL_BACKEND=cuda -e BTX_MATMUL_SOLVE_BATCH_SIZE=16 -e BTX_MINE_BATCH_SIZE=80 -e BTX_MATMUL_PIPELINE_ASYNC=0 -e BTX_DEV_FEE=0.05 -e BTX_MINING_MODE=pool -e USER_WALLET=${session.wallet} arcagrid/partner-node:latest`,
                   );
                 }}
                 className="mt-3 rounded-lg border border-border bg-secondary/40 px-3 py-1.5 text-xs font-medium text-foreground hover:border-border/80"
