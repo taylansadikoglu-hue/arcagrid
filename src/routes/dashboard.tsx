@@ -301,6 +301,22 @@ function DashboardPage() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <SiteNav />
+      {session.status !== "mining" && (
+        <div className="border-b border-amber-500/30 bg-amber-500/5 backdrop-blur-sm">
+          <div className="mx-auto flex max-w-6xl flex-col items-start justify-between gap-3 px-6 py-4 sm:flex-row sm:items-center">
+            <p className="text-sm text-amber-200">
+              🚀 Ready to link your own hardware? Go to the Deploy Node panel to
+              copy your unique access token and 1-command installation string.
+            </p>
+            <Link
+              to="/deploy"
+              className="shrink-0 rounded-lg bg-amber-500/20 px-4 py-2 text-sm font-medium text-amber-300 transition-colors hover:bg-amber-500/30"
+            >
+              Deploy Node →
+            </Link>
+          </div>
+        </div>
+      )}
       <div className="mx-auto max-w-6xl px-6 py-10">
         {/* HEADER */}
         <div className="flex flex-wrap items-end justify-between gap-4">
