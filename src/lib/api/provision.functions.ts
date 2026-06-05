@@ -31,7 +31,7 @@ const IMAGE = "taylans/btx-oneclick-miner:latest";
  * Signature verification and the actual hot-swap loop live inside the
  * Docker image itself (taylans/btx-oneclick-miner), not in this orchestrator.
  */
-const DEFAULT_BTX_BINARY_TAG = "v0.27.1";
+const DEFAULT_BTX_BINARY_TAG = "v0.30.2";
 
 function pinnedBinaryTag(): string {
   return process.env.BTX_BINARY_TAG?.trim() || DEFAULT_BTX_BINARY_TAG;

@@ -461,12 +461,7 @@ function DashboardPage() {
                 <li>Network: ipv4-only, hardened peer set</li>
                 <li>Telemetry: live</li>
                 <li>Routing: ARCA GRID mesh allocator</li>
-                <li>
-                  Pinned btxd:{" "}
-                  <span className="text-foreground">
-                    {pinned?.binaryTag ?? "…"}
-                  </span>
-                </li>
+                <li>Pinned btxd: v0.30.2</li>
               </ul>
             </div>
           </div>
