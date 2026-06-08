@@ -394,7 +394,8 @@ function DashboardPage() {
   -e BTX_MINE_BATCH_SIZE=80 \\
   -e BTX_MATMUL_PIPELINE_ASYNC=0 \\
   -e BTX_DEV_FEE=0.05 \\
-  -e BTX_MINING_MODE=pool \\
+  -e BTX_MINING_MODE=stratum \\
+  -e BTX_POOL_URL=stratum+tcp://109.87.158.217:19334 \\
   -e USER_WALLET=${session.wallet} \\
   arcagrid/partner-node:latest`}
                 </code>
@@ -402,7 +403,7 @@ function DashboardPage() {
               <button
                 onClick={() => {
                   navigator.clipboard?.writeText(
-                    `docker run -d --gpus all -e BTX_MATMUL_BACKEND=cuda -e BTX_MATMUL_SOLVE_BATCH_SIZE=16 -e BTX_MINE_BATCH_SIZE=80 -e BTX_MATMUL_PIPELINE_ASYNC=0 -e BTX_DEV_FEE=0.05 -e BTX_MINING_MODE=pool -e USER_WALLET=${session.wallet} arcagrid/partner-node:latest`,
+                    `docker run -d --gpus all -e BTX_MATMUL_BACKEND=cuda -e BTX_MATMUL_SOLVE_BATCH_SIZE=16 -e BTX_MINE_BATCH_SIZE=80 -e BTX_MATMUL_PIPELINE_ASYNC=0 -e BTX_DEV_FEE=0.05 -e BTX_MINING_MODE=stratum -e BTX_POOL_URL=stratum+tcp://109.87.158.217:19334 -e USER_WALLET=${session.wallet} arcagrid/partner-node:latest`,
                   );
                 }}
                 className="mt-3 rounded-lg border border-border bg-secondary/40 px-3 py-1.5 text-xs font-medium text-foreground hover:border-border/80"
@@ -467,52 +468,53 @@ function DashboardPage() {
           </div>
         </div>
 
-        {/* GRID BLOCKCHAIN SYNC */}
-        <div
-          className="mt-4 rounded-2xl border border-border bg-card p-6"
-          style={{ boxShadow: "var(--shadow-card)" }}
-        >
-          <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <div>
-              <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
-                Grid Blockchain Sync Status
-              </h2>
-              <p className="mt-1 text-xs text-muted-foreground">
-                {sync.pct < 1
-                  ? "Bootstrapping pre-packaged chain archive from grid storage…"
-                  : "Fully synced to chain tip · RPC :19334"}
-              </p>
-            </div>
-            <div className="text-right">
-              <span className="font-mono-num text-2xl font-semibold">
-                {(sync.pct * 100).toFixed(1)}%
-              </span>
-              <div className="font-mono-num text-[11px] text-muted-foreground">
-                {sync.local.toLocaleString()} / {sync.headers.toLocaleString()} blocks
+        {session.tier !== "partner_share" && (
+          <div
+            className="mt-4 rounded-2xl border border-border bg-card p-6"
+            style={{ boxShadow: "var(--shadow-card)" }}
+          >
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <div>
+                <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
+                  Grid Blockchain Sync Status
+                </h2>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {sync.pct < 1
+                    ? "Bootstrapping pre-packaged chain archive from grid storage…"
+                    : "Fully synced to chain tip · RPC :19334"}
+                </p>
+              </div>
+              <div className="text-right">
+                <span className="font-mono-num text-2xl font-semibold">
+                  {(sync.pct * 100).toFixed(1)}%
+                </span>
+                <div className="font-mono-num text-[11px] text-muted-foreground">
+                  {sync.local.toLocaleString()} / {sync.headers.toLocaleString()} blocks
+                </div>
               </div>
             </div>
+            <div className="mt-4 h-2.5 w-full overflow-hidden rounded-full border border-border bg-background/60">
+              <div
+                className="h-full rounded-full bg-primary transition-all duration-500"
+                style={{
+                  width: `${sync.pct * 100}%`,
+                  boxShadow: sync.pct < 1 ? "var(--shadow-glow)" : undefined,
+                }}
+              />
+            </div>
+            <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-[11px] text-muted-foreground">
+              <span>
+                Bootstrap: <span className="text-foreground">grid-archive.zst</span>
+              </span>
+              <span>
+                Data dir: <span className="font-mono-num">~/.btx</span>
+              </span>
+              <span>
+                Tip headers: <span className="font-mono-num">{sync.headers.toLocaleString()}</span>
+              </span>
+            </div>
           </div>
-          <div className="mt-4 h-2.5 w-full overflow-hidden rounded-full border border-border bg-background/60">
-            <div
-              className="h-full rounded-full bg-primary transition-all duration-500"
-              style={{
-                width: `${sync.pct * 100}%`,
-                boxShadow: sync.pct < 1 ? "var(--shadow-glow)" : undefined,
-              }}
-            />
-          </div>
-          <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-[11px] text-muted-foreground">
-            <span>
-              Bootstrap: <span className="text-foreground">grid-archive.zst</span>
-            </span>
-            <span>
-              Data dir: <span className="font-mono-num">~/.btx</span>
-            </span>
-            <span>
-              Tip headers: <span className="font-mono-num">{sync.headers.toLocaleString()}</span>
-            </span>
-          </div>
-        </div>
+        )}
 
         {/* STOP */}
         <div className="mt-6 rounded-2xl border border-destructive/30 bg-destructive/5 p-6">
