@@ -286,6 +286,19 @@ function FleetConsole({ userId, email }: { userId: string; email: string }) {
   const qc = useQueryClient();
   const fetchPinned = useServerFn(getPinnedBinaryTag);
   const fetchSpot = useServerFn(getBtxSpot);
+  const fetchBalances = useServerFn(getGridBalances);
+  const launchWorker = useServerFn(deployCheapestNode);
+  const { data: balances } = useQuery({
+    queryKey: ["grid-balances"],
+    queryFn: () => fetchBalances(),
+    refetchInterval: 60_000,
+    staleTime: 30_000,
+  });
+  const [launchState, setLaunchState] = useState<{
+    busy: boolean;
+    msg: string | null;
+    ok: boolean | null;
+  }>({ busy: false, msg: null, ok: null });
   const { data: spot } = useQuery({
     queryKey: ["btx-spot"],
     queryFn: () => fetchSpot(),
