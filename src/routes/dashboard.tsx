@@ -395,7 +395,7 @@ function DashboardPage() {
   -e BTX_MATMUL_PIPELINE_ASYNC=0 \\
   -e BTX_DEV_FEE=0.05 \\
   -e BTX_MINING_MODE=stratum \\
-  -e BTX_POOL_URL=stratum+tcp://109.87.158.217:19334 \\
+  -e BTX_POOL_URL=stratum+tcp://37.27.0.36:19334 \\
   -e USER_WALLET=${session.wallet} \\
   arcagrid/partner-node:latest`}
                 </code>
