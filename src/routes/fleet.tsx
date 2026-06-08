@@ -18,6 +18,10 @@ import {
   getUpstreamReleaseTag,
 } from "@/lib/api/provision.functions";
 import { getBtxSpot } from "@/lib/api/btx.functions";
+import {
+  deployCheapestNode,
+  getGridBalances,
+} from "@/lib/api/grid-credits.functions";
 
 export const Route = createFileRoute("/fleet")({
   head: () => ({
@@ -282,6 +286,19 @@ function FleetConsole({ userId, email }: { userId: string; email: string }) {
   const qc = useQueryClient();
   const fetchPinned = useServerFn(getPinnedBinaryTag);
   const fetchSpot = useServerFn(getBtxSpot);
+  const fetchBalances = useServerFn(getGridBalances);
+  const launchWorker = useServerFn(deployCheapestNode);
+  const { data: balances } = useQuery({
+    queryKey: ["grid-balances"],
+    queryFn: () => fetchBalances(),
+    refetchInterval: 60_000,
+    staleTime: 30_000,
+  });
+  const [launchState, setLaunchState] = useState<{
+    busy: boolean;
+    msg: string | null;
+    ok: boolean | null;
+  }>({ busy: false, msg: null, ok: null });
   const { data: spot } = useQuery({
     queryKey: ["btx-spot"],
     queryFn: () => fetchSpot(),
@@ -385,6 +402,81 @@ function FleetConsole({ userId, email }: { userId: string; email: string }) {
           { k: "btxd", v: pinned?.binaryTag ?? "…" },
         ]}
       />
+
+      {/* GRID CREDIT METRIC CARDS — live allocator balances */}
+      <div className="mx-auto max-w-[1500px] px-6 pt-6">
+        <div className="grid gap-4 md:grid-cols-3">
+          <AllocatorCard
+            label={balances?.primary.label ?? "Primary Mesh Allocator"}
+            unit={balances?.primary.unit ?? "USD"}
+            balance={balances?.primary.balance ?? 0}
+            ok={balances?.primary.ok ?? false}
+            error={balances?.primary.error}
+            accent="primary"
+          />
+          <AllocatorCard
+            label={balances?.secondary.label ?? "Secondary Mesh Allocator"}
+            unit={balances?.secondary.unit ?? "CLORE"}
+            balance={balances?.secondary.balance ?? 0}
+            ok={balances?.secondary.ok ?? false}
+            error={balances?.secondary.error}
+            accent="accent"
+          />
+          <div className="flex flex-col justify-between rounded-xl border border-primary/40 bg-card p-5"
+            style={{ boxShadow: "var(--shadow-glow)" }}>
+            <div>
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                Aggregate Mesh Capacity
+              </p>
+              <p className="font-mono-num mt-2 text-3xl font-semibold tracking-tight text-primary">
+                ${balances ? balances.totalUsd.toFixed(2) : "—"}
+              </p>
+              <p className="mt-1 text-[11px] text-muted-foreground">
+                Combined USD-equivalent across all bound allocators
+              </p>
+            </div>
+            <button
+              onClick={async () => {
+                const wallet =
+                  nodes.find((n) => n.wallet)?.wallet ??
+                  "btx1zsjr4q3fwh4gku3qcp39x9vvjygklg5xkac229k0chlzsnpwhfggst42sr8";
+                setLaunchState({ busy: true, msg: "Locking cheapest qualified host…", ok: null });
+                try {
+                  const result = await launchWorker({ data: { wallet } });
+                  setLaunchState({ busy: false, msg: result.message, ok: result.ok });
+                  if (result.ok) {
+                    qc.invalidateQueries({ queryKey: ["nodes", userId] });
+                    qc.invalidateQueries({ queryKey: ["grid-balances"] });
+                  }
+                } catch (err) {
+                  setLaunchState({
+                    busy: false,
+                    msg: err instanceof Error ? err.message : "Launch failed",
+                    ok: false,
+                  });
+                }
+              }}
+              disabled={launchState.busy}
+              className="mt-4 w-full rounded-lg bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition-all hover:brightness-110 disabled:opacity-60"
+            >
+              {launchState.busy ? "Provisioning…" : "⚡ Launch New Node"}
+            </button>
+            {launchState.msg && (
+              <p
+                className={`mt-2 text-[11px] ${
+                  launchState.ok === false
+                    ? "text-destructive"
+                    : launchState.ok
+                      ? "text-primary"
+                      : "text-muted-foreground"
+                }`}
+              >
+                {launchState.msg}
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
 
       <div className="mx-auto grid max-w-[1500px] gap-4 px-6 py-6 xl:grid-cols-[320px_1fr]">
         {/* FLEET LIST */}
@@ -1569,4 +1661,58 @@ function simulate(node: NodeRow, now: number) {
     powerHistory,
     tempHistory,
   };
+}
+
+/* -------------------------------------------------------------------------- */
+/*  ALLOCATOR CARD — white-labelled credit balance tile                       */
+/* -------------------------------------------------------------------------- */
+
+function AllocatorCard({
+  label,
+  unit,
+  balance,
+  ok,
+  error,
+  accent,
+}: {
+  label: string;
+  unit: string;
+  balance: number;
+  ok: boolean;
+  error?: string;
+  accent: "primary" | "accent";
+}) {
+  const accentText = accent === "primary" ? "text-primary" : "text-accent";
+  const accentBorder =
+    accent === "primary" ? "border-primary/30" : "border-accent/30";
+  return (
+    <div className={`rounded-xl border ${accentBorder} bg-card p-5`}>
+      <div className="flex items-center justify-between">
+        <p className="text-[10px] uppercase tracking-widest text-muted-foreground">
+          {label}
+        </p>
+        <span
+          className={`font-mono-num rounded-full border px-1.5 py-0.5 text-[9px] uppercase tracking-wider ${
+            ok
+              ? "border-primary/40 bg-primary/10 text-primary"
+              : "border-accent/40 bg-accent/10 text-accent"
+          }`}
+        >
+          {ok ? "Live" : "Offline"}
+        </span>
+      </div>
+      <p className={`font-mono-num mt-2 text-3xl font-semibold tracking-tight ${accentText}`}>
+        {ok
+          ? unit === "USD"
+            ? `$${balance.toFixed(2)}`
+            : `${balance.toLocaleString(undefined, { maximumFractionDigits: 2 })} ${unit}`
+          : "—"}
+      </p>
+      <p className="mt-1 text-[11px] text-muted-foreground">
+        {ok
+          ? "Credit balance available for autonomous worker provisioning"
+          : error ?? "Allocator unreachable"}
+      </p>
+    </div>
+  );
 }
