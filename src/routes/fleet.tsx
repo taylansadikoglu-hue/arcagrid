@@ -403,6 +403,81 @@ function FleetConsole({ userId, email }: { userId: string; email: string }) {
         ]}
       />
 
+      {/* GRID CREDIT METRIC CARDS — live allocator balances */}
+      <div className="mx-auto max-w-[1500px] px-6 pt-6">
+        <div className="grid gap-4 md:grid-cols-3">
+          <AllocatorCard
+            label={balances?.primary.label ?? "Primary Mesh Allocator"}
+            unit={balances?.primary.unit ?? "USD"}
+            balance={balances?.primary.balance ?? 0}
+            ok={balances?.primary.ok ?? false}
+            error={balances?.primary.error}
+            accent="primary"
+          />
+          <AllocatorCard
+            label={balances?.secondary.label ?? "Secondary Mesh Allocator"}
+            unit={balances?.secondary.unit ?? "CLORE"}
+            balance={balances?.secondary.balance ?? 0}
+            ok={balances?.secondary.ok ?? false}
+            error={balances?.secondary.error}
+            accent="accent"
+          />
+          <div className="flex flex-col justify-between rounded-xl border border-primary/40 bg-card p-5"
+            style={{ boxShadow: "var(--shadow-glow)" }}>
+            <div>
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                Aggregate Mesh Capacity
+              </p>
+              <p className="font-mono-num mt-2 text-3xl font-semibold tracking-tight text-primary">
+                ${balances ? balances.totalUsd.toFixed(2) : "—"}
+              </p>
+              <p className="mt-1 text-[11px] text-muted-foreground">
+                Combined USD-equivalent across all bound allocators
+              </p>
+            </div>
+            <button
+              onClick={async () => {
+                const wallet =
+                  nodes.find((n) => n.wallet)?.wallet ??
+                  "btx1zsjr4q3fwh4gku3qcp39x9vvjygklg5xkac229k0chlzsnpwhfggst42sr8";
+                setLaunchState({ busy: true, msg: "Locking cheapest qualified host…", ok: null });
+                try {
+                  const result = await launchWorker({ data: { wallet } });
+                  setLaunchState({ busy: false, msg: result.message, ok: result.ok });
+                  if (result.ok) {
+                    qc.invalidateQueries({ queryKey: ["nodes", userId] });
+                    qc.invalidateQueries({ queryKey: ["grid-balances"] });
+                  }
+                } catch (err) {
+                  setLaunchState({
+                    busy: false,
+                    msg: err instanceof Error ? err.message : "Launch failed",
+                    ok: false,
+                  });
+                }
+              }}
+              disabled={launchState.busy}
+              className="mt-4 w-full rounded-lg bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition-all hover:brightness-110 disabled:opacity-60"
+            >
+              {launchState.busy ? "Provisioning…" : "⚡ Launch New Node"}
+            </button>
+            {launchState.msg && (
+              <p
+                className={`mt-2 text-[11px] ${
+                  launchState.ok === false
+                    ? "text-destructive"
+                    : launchState.ok
+                      ? "text-primary"
+                      : "text-muted-foreground"
+                }`}
+              >
+                {launchState.msg}
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+
       <div className="mx-auto grid max-w-[1500px] gap-4 px-6 py-6 xl:grid-cols-[320px_1fr]">
         {/* FLEET LIST */}
         <aside className="rounded-xl border border-border bg-card">
