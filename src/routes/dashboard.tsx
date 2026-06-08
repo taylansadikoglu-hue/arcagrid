@@ -469,7 +469,6 @@ function DashboardPage() {
         </div>
 
         {session.tier !== "partner_share" && (
-          {/* GRID BLOCKCHAIN SYNC */}
           <div
             className="mt-4 rounded-2xl border border-border bg-card p-6"
             style={{ boxShadow: "var(--shadow-card)" }}
