@@ -1662,3 +1662,57 @@ function simulate(node: NodeRow, now: number) {
     tempHistory,
   };
 }
+
+/* -------------------------------------------------------------------------- */
+/*  ALLOCATOR CARD — white-labelled credit balance tile                       */
+/* -------------------------------------------------------------------------- */
+
+function AllocatorCard({
+  label,
+  unit,
+  balance,
+  ok,
+  error,
+  accent,
+}: {
+  label: string;
+  unit: string;
+  balance: number;
+  ok: boolean;
+  error?: string;
+  accent: "primary" | "accent";
+}) {
+  const accentText = accent === "primary" ? "text-primary" : "text-accent";
+  const accentBorder =
+    accent === "primary" ? "border-primary/30" : "border-accent/30";
+  return (
+    <div className={`rounded-xl border ${accentBorder} bg-card p-5`}>
+      <div className="flex items-center justify-between">
+        <p className="text-[10px] uppercase tracking-widest text-muted-foreground">
+          {label}
+        </p>
+        <span
+          className={`font-mono-num rounded-full border px-1.5 py-0.5 text-[9px] uppercase tracking-wider ${
+            ok
+              ? "border-primary/40 bg-primary/10 text-primary"
+              : "border-accent/40 bg-accent/10 text-accent"
+          }`}
+        >
+          {ok ? "Live" : "Offline"}
+        </span>
+      </div>
+      <p className={`font-mono-num mt-2 text-3xl font-semibold tracking-tight ${accentText}`}>
+        {ok
+          ? unit === "USD"
+            ? `$${balance.toFixed(2)}`
+            : `${balance.toLocaleString(undefined, { maximumFractionDigits: 2 })} ${unit}`
+          : "—"}
+      </p>
+      <p className="mt-1 text-[11px] text-muted-foreground">
+        {ok
+          ? "Credit balance available for autonomous worker provisioning"
+          : error ?? "Allocator unreachable"}
+      </p>
+    </div>
+  );
+}
