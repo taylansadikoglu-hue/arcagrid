@@ -564,7 +564,6 @@ function FleetConsole({ userId, email }: { userId: string; email: string }) {
 /* -------------------------------------------------------------------------- */
 
 function NodeDetail({ node, userId }: { node: NodeRow; userId: string }) {
-  // placeholder line to anchor patch
   const qc = useQueryClient();
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
