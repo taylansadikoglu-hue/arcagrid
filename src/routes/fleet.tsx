@@ -18,6 +18,10 @@ import {
   getUpstreamReleaseTag,
 } from "@/lib/api/provision.functions";
 import { getBtxSpot } from "@/lib/api/btx.functions";
+import {
+  deployCheapestNode,
+  getGridBalances,
+} from "@/lib/api/grid-credits.functions";
 
 export const Route = createFileRoute("/fleet")({
   head: () => ({
