@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useState } from "react";
 import { Check, Copy } from "lucide-react";
@@ -17,11 +17,18 @@ import {
   getPinnedBinaryTag,
   getUpstreamReleaseTag,
 } from "@/lib/api/provision.functions";
-import { getBtxSpot } from "@/lib/api/btx.functions";
 import {
   deployCheapestNode,
   getGridBalances,
 } from "@/lib/api/grid-credits.functions";
+import {
+  fetchFleetSummary,
+  fetchFleetNodes,
+  fetchBtxPrice,
+  fetchRoi,
+  type FleetNode,
+  type FleetSummary,
+} from "@/lib/api/grid-api";
 
 export const Route = createFileRoute("/fleet")({
   head: () => ({
@@ -282,10 +289,39 @@ interface NodeRow {
   wallet: string | null;
 }
 
+/**
+ * Project a live `/api/fleet/nodes` row into the existing NodeRow shape so
+ * the detail panel + risk engine keep working without UI changes.
+ * Fields not returned by the public API are filled with safe defaults.
+ */
+function mapApiNodeToRow(n: FleetNode): NodeRow {
+  const status: NodeRow["status"] =
+    n.status === "active" || n.status === "syncing" || n.status === "idle" || n.status === "offline"
+      ? n.status
+      : "active";
+  return {
+    id: String(n.id),
+    name: n.workload || `${n.provider} · ${n.region}`,
+    location: n.region,
+    hardware: n.workload,
+    status,
+    idle_redirect: false,
+    power_cap_w: 300,
+    matmul_backend: "cuda",
+    solve_batch_size: 16,
+    mine_batch_size: 80,
+    min_peers: Number(n.peers) || 1,
+    ld_library_path: "/usr/local/cuda/lib64",
+    cuda_runtime_pin: "12.0",
+    daily_cost_usd: 0,
+    blocks_found: Number(n.blocks) || 0,
+    wallet: null,
+  };
+}
+
 function FleetConsole({ userId, email }: { userId: string; email: string }) {
   const qc = useQueryClient();
   const fetchPinned = useServerFn(getPinnedBinaryTag);
-  const fetchSpot = useServerFn(getBtxSpot);
   const fetchBalances = useServerFn(getGridBalances);
   const launchWorker = useServerFn(deployCheapestNode);
   const { data: balances } = useQuery({
@@ -299,29 +335,45 @@ function FleetConsole({ userId, email }: { userId: string; email: string }) {
     msg: string | null;
     ok: boolean | null;
   }>({ busy: false, msg: null, ok: null });
-  const { data: spot } = useQuery({
-    queryKey: ["btx-spot"],
-    queryFn: () => fetchSpot(),
+  // Live BTX spot — public /api/price, 60s poll, keeps last known on error.
+  const { data: priceData, isLoading: priceLoading } = useQuery({
+    queryKey: ["grid-api", "price"],
+    queryFn: ({ signal }) => fetchBtxPrice(signal),
     refetchInterval: 60_000,
     staleTime: 30_000,
+    placeholderData: keepPreviousData,
+    retry: 1,
   });
-  const btxPrice = spot && spot.ok ? spot.usd : 0;
+  const btxPrice = priceData?.price ?? 0;
   const { data: pinned } = useQuery({
     queryKey: ["pinned-binary-tag"],
     queryFn: () => fetchPinned(),
     staleTime: 60_000,
   });
-  const { data: nodes = [], isLoading } = useQuery({
-    queryKey: ["nodes", userId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("nodes")
-        .select("*")
-        .order("created_at", { ascending: true });
-      if (error) throw error;
-      return data as NodeRow[];
-    },
+  // Live fleet summary — public /api/fleet/summary, 30s poll.
+  const { data: summary, isLoading: summaryLoading } = useQuery({
+    queryKey: ["grid-api", "fleet-summary"],
+    queryFn: ({ signal }) => fetchFleetSummary(signal),
+    refetchInterval: 30_000,
+    staleTime: 15_000,
+    placeholderData: keepPreviousData,
+    retry: 1,
   });
+  // Live fleet nodes — public /api/fleet/nodes, 30s poll. Mapped to the
+  // existing NodeRow shape so the detail panel & risk engine keep working.
+  const { data: apiNodes = [], isLoading: nodesLoading } = useQuery({
+    queryKey: ["grid-api", "fleet-nodes"],
+    queryFn: ({ signal }) => fetchFleetNodes(signal),
+    refetchInterval: 30_000,
+    staleTime: 15_000,
+    placeholderData: keepPreviousData,
+    retry: 1,
+  });
+  const nodes = useMemo(
+    () => apiNodes.map(mapApiNodeToRow),
+    [apiNodes],
+  );
+  const isLoading = nodesLoading;
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const selected = useMemo(
@@ -329,40 +381,19 @@ function FleetConsole({ userId, email }: { userId: string; email: string }) {
     [nodes, selectedId],
   );
 
-  // Provision a starter node automatically if user has none.
-  useEffect(() => {
-    if (isLoading) return;
-    if (nodes.length > 0) return;
-    (async () => {
-      const seeds = [
-        { name: "Sydney Cluster A", location: "AU · Sydney", hardware: "Standard Hashrate", status: "active" as const },
-        { name: "Retail Node 01", location: "US · Dallas", hardware: "Standard Hashrate", status: "syncing" as const },
-        { name: "Retail Node 02", location: "EU · Frankfurt", hardware: "Pro Hashrate", status: "idle" as const },
-      ];
-      await supabase.from("nodes").insert(
-        seeds.map((s) => ({
-          ...s,
-          user_id: userId,
-          wallet:
-            "btx1zsjr4q3fwh4gku3qcp39x9vvjygklg5xkac229k0chlzsnpwhfggst42sr8",
-        })),
-      );
-      qc.invalidateQueries({ queryKey: ["nodes", userId] });
-    })();
-  }, [isLoading, nodes.length, userId, qc]);
-
+  // Totals — `active`/totals counts come from the live summary endpoint;
+  // block + cost figures fall back to a derived heuristic until the ROI
+  // panel resolves a live answer for them.
+  const HOURLY = 0.276;
   const totals = useMemo(() => {
-    const active = nodes.filter((n) => n.status === "active").length;
+    const total = summary?.total_nodes ?? nodes.length;
+    const active = summary?.healthy_nodes ?? 0;
     const blocks = nodes.reduce((s, n) => s + n.blocks_found, 0);
-    // True cost basis: $0.276 / hr → $6.624/day per active node, rounded to $6.62.
-    const HOURLY = 0.276;
-    const DAILY = 6.62;
-    const costDay = active * DAILY;
+    const costDay = active * HOURLY * 24;
     const walletWorth = blocks * 20 * btxPrice;
-    // Daily yield: assume blocks_found is the rolling 24h discovery count
-    // — the same figure projected forward at the live BTX rate.
     const yieldDay = walletWorth;
     return {
+      total,
       active,
       blocks,
       costDay,
@@ -371,7 +402,7 @@ function FleetConsole({ userId, email }: { userId: string; email: string }) {
       hourly: HOURLY,
       net: yieldDay - costDay,
     };
-  }, [nodes, btxPrice]);
+  }, [summary, nodes, btxPrice]);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -383,10 +414,19 @@ function FleetConsole({ userId, email }: { userId: string; email: string }) {
       <TickerBar
         items={[
           { k: "Operator", v: email || "—" },
-          { k: "Active", v: `${totals.active}/${nodes.length}` },
+          {
+            k: "Active",
+            v: summaryLoading && !summary
+              ? "…"
+              : `${totals.active}/${totals.total}`,
+          },
           {
             k: "BTX spot",
-            v: btxPrice ? `$${btxPrice.toFixed(btxPrice >= 1 ? 4 : 6)}` : "…",
+            v: priceLoading && !priceData
+              ? "…"
+              : btxPrice
+                ? `$${btxPrice.toFixed(btxPrice >= 1 ? 4 : 6)}`
+                : "—",
             accent: "primary",
           },
           { k: "Daily yield", v: `$${totals.yieldDay.toFixed(2)}` },
@@ -397,7 +437,14 @@ function FleetConsole({ userId, email }: { userId: string; email: string }) {
             accent: totals.net >= 0 ? "primary" : "destructive",
           },
           { k: "Blocks", v: String(totals.blocks) },
-          { k: "Pool peers", v: "≥ 1" },
+          {
+            k: "Uptime",
+            v: summary ? `${summary.uptime_pct.toFixed(2)}%` : "…",
+          },
+          {
+            k: "GPUs",
+            v: summary ? String(summary.active_gpus) : "…",
+          },
           { k: "CUDA", v: "12.0 pinned" },
           { k: "btxd", v: pinned?.binaryTag ?? "…" },
         ]}
@@ -542,14 +589,7 @@ function FleetConsole({ userId, email }: { userId: string; email: string }) {
           )}
 
           {/* ROI MODULE */}
-          <RoiPanel
-            yieldDay={totals.yieldDay}
-            costDay={totals.costDay}
-            blocks={totals.blocks}
-            hourly={totals.hourly}
-            walletWorth={totals.walletWorth}
-            btxPrice={btxPrice}
-          />
+          <RoiPanel blocks={totals.blocks} />
 
           {/* UPSTREAM RELEASE AUDIT */}
           <UpstreamReleasePanel />
@@ -1532,70 +1572,78 @@ function Sparkline({
   );
 }
 
-function RoiPanel({
-  yieldDay,
-  costDay,
-  blocks,
-  hourly,
-  walletWorth,
-  btxPrice,
-}: {
-  yieldDay: number;
-  costDay: number;
-  blocks: number;
-  hourly: number;
-  walletWorth: number;
-  btxPrice: number;
-}) {
-  const net = yieldDay - costDay;
-  const netTone = net >= 0 ? "primary" : "destructive";
-  const breakEvenHrs =
-    yieldDay > 0 ? (costDay / yieldDay) * 24 : Number.POSITIVE_INFINITY;
+function RoiPanel({ blocks }: { blocks: number }) {
+  const [cost, setCost] = useState(100);
+  const [hashrate, setHashrate] = useState(50);
+  const { data, isLoading, isFetching, isError } = useQuery({
+    queryKey: ["grid-api", "roi", cost, hashrate],
+    queryFn: ({ signal }) => fetchRoi(cost, hashrate, signal),
+    placeholderData: keepPreviousData,
+    staleTime: 15_000,
+    retry: 1,
+  });
+  const tone = (data?.net_daily_usd ?? 0) >= 0 ? "primary" : "destructive";
+  const fmt = (v?: number) =>
+    typeof v === "number" ? `$${v.toFixed(2)}` : isLoading ? "…" : "—";
   return (
     <section className="rounded-xl border border-border bg-card">
-      <div className="flex items-center justify-between border-b border-border px-5 py-3">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-5 py-3">
         <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-          Billing & ROI · 24h rolling
+          Billing & ROI · live oracle
+          {isFetching && (
+            <span className="ml-2 text-[10px] normal-case tracking-normal text-muted-foreground/70">
+              refreshing…
+            </span>
+          )}
         </h3>
-        <span className="font-mono-num text-[10px] text-muted-foreground">
-          Cost basis ${(hourly * 24).toFixed(2)}/day
-        </span>
+        <div className="flex flex-wrap items-center gap-3">
+          <label className="flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-muted-foreground">
+            Cost $/day
+            <input
+              type="number"
+              min={0}
+              value={cost}
+              onChange={(e) => setCost(Math.max(0, Number(e.target.value) || 0))}
+              className="font-mono-num w-20 rounded border border-input bg-background/60 px-2 py-1 text-xs text-foreground outline-none focus:border-primary/60"
+            />
+          </label>
+          <label className="flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-muted-foreground">
+            Hashrate
+            <input
+              type="number"
+              min={0}
+              value={hashrate}
+              onChange={(e) => setHashrate(Math.max(0, Number(e.target.value) || 0))}
+              className="font-mono-num w-20 rounded border border-input bg-background/60 px-2 py-1 text-xs text-foreground outline-none focus:border-primary/60"
+            />
+          </label>
+        </div>
       </div>
       <div className="grid gap-px bg-border sm:grid-cols-4">
-        <RoiCell label="Daily Yield" value={`$${yieldDay.toFixed(2)}`} tone="primary" />
-        <RoiCell label="Daily Cost" value={`$${costDay.toFixed(2)}`} />
         <RoiCell
-          label="Net / Day"
-          value={`${net >= 0 ? "+" : ""}$${net.toFixed(2)}`}
-          tone={netTone}
-        />
-        <RoiCell
-          label="Wallet Worth"
+          label="Daily BTX"
           value={
-            btxPrice > 0
-              ? `$${walletWorth.toFixed(2)}`
-              : "awaiting oracle…"
+            typeof data?.daily_btx === "number"
+              ? data.daily_btx.toFixed(6)
+              : isLoading
+                ? "…"
+                : "—"
           }
-          tone="accent"
+          tone="primary"
         />
+        <RoiCell label="Daily Yield" value={fmt(data?.daily_usd)} tone="primary" />
+        <RoiCell label="Net / Day" value={fmt(data?.net_daily_usd)} tone={tone} />
+        <RoiCell label="Net 30d" value={fmt(data?.net_30d_usd)} tone={tone} />
         <RoiCell label="Total Blocks Found" value={String(blocks)} tone="accent" />
-        <RoiCell
-          label="Projected 30d"
-          value={`${net >= 0 ? "+" : ""}$${(net * 30).toFixed(0)}`}
-          tone={netTone}
-        />
-        <RoiCell
-          label="Break-even"
-          value={
-            yieldDay <= 0
-              ? "—"
-              : breakEvenHrs <= 24
-                ? `${breakEvenHrs.toFixed(1)}h`
-                : `${(breakEvenHrs / 24).toFixed(1)}d`
-          }
-        />
+        <RoiCell label="Cost input" value={`$${cost.toFixed(2)}/day`} />
+        <RoiCell label="Hashrate input" value={String(hashrate)} />
         <RoiCell label="Settlement" value="On-chain · auto" />
       </div>
+      {isError && (
+        <p className="border-t border-border px-5 py-2 text-[11px] text-muted-foreground">
+          Oracle unreachable — showing last known values.
+        </p>
+      )}
     </section>
   );
 }
