@@ -289,6 +289,36 @@ interface NodeRow {
   wallet: string | null;
 }
 
+/**
+ * Project a live `/api/fleet/nodes` row into the existing NodeRow shape so
+ * the detail panel + risk engine keep working without UI changes.
+ * Fields not returned by the public API are filled with safe defaults.
+ */
+function mapApiNodeToRow(n: FleetNode): NodeRow {
+  const status: NodeRow["status"] =
+    n.status === "active" || n.status === "syncing" || n.status === "idle" || n.status === "offline"
+      ? n.status
+      : "active";
+  return {
+    id: String(n.id),
+    name: n.workload || `${n.provider} · ${n.region}`,
+    location: n.region,
+    hardware: n.workload,
+    status,
+    idle_redirect: false,
+    power_cap_w: 300,
+    matmul_backend: "cuda",
+    solve_batch_size: 16,
+    mine_batch_size: 80,
+    min_peers: Number(n.peers) || 1,
+    ld_library_path: "/usr/local/cuda/lib64",
+    cuda_runtime_pin: "12.0",
+    daily_cost_usd: 0,
+    blocks_found: Number(n.blocks) || 0,
+    wallet: null,
+  };
+}
+
 function FleetConsole({ userId, email }: { userId: string; email: string }) {
   const qc = useQueryClient();
   const fetchPinned = useServerFn(getPinnedBinaryTag);
