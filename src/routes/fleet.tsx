@@ -589,14 +589,7 @@ function FleetConsole({ userId, email }: { userId: string; email: string }) {
           )}
 
           {/* ROI MODULE */}
-          <RoiPanel
-            yieldDay={totals.yieldDay}
-            costDay={totals.costDay}
-            blocks={totals.blocks}
-            hourly={totals.hourly}
-            walletWorth={totals.walletWorth}
-            btxPrice={btxPrice}
-          />
+          <RoiPanel blocks={totals.blocks} />
 
           {/* UPSTREAM RELEASE AUDIT */}
           <UpstreamReleasePanel />
@@ -1579,70 +1572,78 @@ function Sparkline({
   );
 }
 
-function RoiPanel({
-  yieldDay,
-  costDay,
-  blocks,
-  hourly,
-  walletWorth,
-  btxPrice,
-}: {
-  yieldDay: number;
-  costDay: number;
-  blocks: number;
-  hourly: number;
-  walletWorth: number;
-  btxPrice: number;
-}) {
-  const net = yieldDay - costDay;
-  const netTone = net >= 0 ? "primary" : "destructive";
-  const breakEvenHrs =
-    yieldDay > 0 ? (costDay / yieldDay) * 24 : Number.POSITIVE_INFINITY;
+function RoiPanel({ blocks }: { blocks: number }) {
+  const [cost, setCost] = useState(100);
+  const [hashrate, setHashrate] = useState(50);
+  const { data, isLoading, isFetching, isError } = useQuery({
+    queryKey: ["grid-api", "roi", cost, hashrate],
+    queryFn: ({ signal }) => fetchRoi(cost, hashrate, signal),
+    placeholderData: keepPreviousData,
+    staleTime: 15_000,
+    retry: 1,
+  });
+  const tone = (data?.net_daily_usd ?? 0) >= 0 ? "primary" : "destructive";
+  const fmt = (v?: number) =>
+    typeof v === "number" ? `$${v.toFixed(2)}` : isLoading ? "…" : "—";
   return (
     <section className="rounded-xl border border-border bg-card">
-      <div className="flex items-center justify-between border-b border-border px-5 py-3">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-5 py-3">
         <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-          Billing & ROI · 24h rolling
+          Billing & ROI · live oracle
+          {isFetching && (
+            <span className="ml-2 text-[10px] normal-case tracking-normal text-muted-foreground/70">
+              refreshing…
+            </span>
+          )}
         </h3>
-        <span className="font-mono-num text-[10px] text-muted-foreground">
-          Cost basis ${(hourly * 24).toFixed(2)}/day
-        </span>
+        <div className="flex flex-wrap items-center gap-3">
+          <label className="flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-muted-foreground">
+            Cost $/day
+            <input
+              type="number"
+              min={0}
+              value={cost}
+              onChange={(e) => setCost(Math.max(0, Number(e.target.value) || 0))}
+              className="font-mono-num w-20 rounded border border-input bg-background/60 px-2 py-1 text-xs text-foreground outline-none focus:border-primary/60"
+            />
+          </label>
+          <label className="flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-muted-foreground">
+            Hashrate
+            <input
+              type="number"
+              min={0}
+              value={hashrate}
+              onChange={(e) => setHashrate(Math.max(0, Number(e.target.value) || 0))}
+              className="font-mono-num w-20 rounded border border-input bg-background/60 px-2 py-1 text-xs text-foreground outline-none focus:border-primary/60"
+            />
+          </label>
+        </div>
       </div>
       <div className="grid gap-px bg-border sm:grid-cols-4">
-        <RoiCell label="Daily Yield" value={`$${yieldDay.toFixed(2)}`} tone="primary" />
-        <RoiCell label="Daily Cost" value={`$${costDay.toFixed(2)}`} />
         <RoiCell
-          label="Net / Day"
-          value={`${net >= 0 ? "+" : ""}$${net.toFixed(2)}`}
-          tone={netTone}
-        />
-        <RoiCell
-          label="Wallet Worth"
+          label="Daily BTX"
           value={
-            btxPrice > 0
-              ? `$${walletWorth.toFixed(2)}`
-              : "awaiting oracle…"
+            typeof data?.daily_btx === "number"
+              ? data.daily_btx.toFixed(6)
+              : isLoading
+                ? "…"
+                : "—"
           }
-          tone="accent"
+          tone="primary"
         />
+        <RoiCell label="Daily Yield" value={fmt(data?.daily_usd)} tone="primary" />
+        <RoiCell label="Net / Day" value={fmt(data?.net_daily_usd)} tone={tone} />
+        <RoiCell label="Net 30d" value={fmt(data?.net_30d_usd)} tone={tone} />
         <RoiCell label="Total Blocks Found" value={String(blocks)} tone="accent" />
-        <RoiCell
-          label="Projected 30d"
-          value={`${net >= 0 ? "+" : ""}$${(net * 30).toFixed(0)}`}
-          tone={netTone}
-        />
-        <RoiCell
-          label="Break-even"
-          value={
-            yieldDay <= 0
-              ? "—"
-              : breakEvenHrs <= 24
-                ? `${breakEvenHrs.toFixed(1)}h`
-                : `${(breakEvenHrs / 24).toFixed(1)}d`
-          }
-        />
+        <RoiCell label="Cost input" value={`$${cost.toFixed(2)}/day`} />
+        <RoiCell label="Hashrate input" value={String(hashrate)} />
         <RoiCell label="Settlement" value="On-chain · auto" />
       </div>
+      {isError && (
+        <p className="border-t border-border px-5 py-2 text-[11px] text-muted-foreground">
+          Oracle unreachable — showing last known values.
+        </p>
+      )}
     </section>
   );
 }
