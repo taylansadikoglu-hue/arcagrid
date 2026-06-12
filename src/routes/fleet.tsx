@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useState } from "react";
 import { Check, Copy } from "lucide-react";
@@ -17,11 +17,18 @@ import {
   getPinnedBinaryTag,
   getUpstreamReleaseTag,
 } from "@/lib/api/provision.functions";
-import { getBtxSpot } from "@/lib/api/btx.functions";
 import {
   deployCheapestNode,
   getGridBalances,
 } from "@/lib/api/grid-credits.functions";
+import {
+  fetchFleetSummary,
+  fetchFleetNodes,
+  fetchBtxPrice,
+  fetchRoi,
+  type FleetNode,
+  type FleetSummary,
+} from "@/lib/api/grid-api";
 
 export const Route = createFileRoute("/fleet")({
   head: () => ({
@@ -285,7 +292,6 @@ interface NodeRow {
 function FleetConsole({ userId, email }: { userId: string; email: string }) {
   const qc = useQueryClient();
   const fetchPinned = useServerFn(getPinnedBinaryTag);
-  const fetchSpot = useServerFn(getBtxSpot);
   const fetchBalances = useServerFn(getGridBalances);
   const launchWorker = useServerFn(deployCheapestNode);
   const { data: balances } = useQuery({
@@ -299,29 +305,45 @@ function FleetConsole({ userId, email }: { userId: string; email: string }) {
     msg: string | null;
     ok: boolean | null;
   }>({ busy: false, msg: null, ok: null });
-  const { data: spot } = useQuery({
-    queryKey: ["btx-spot"],
-    queryFn: () => fetchSpot(),
+  // Live BTX spot — public /api/price, 60s poll, keeps last known on error.
+  const { data: priceData, isLoading: priceLoading } = useQuery({
+    queryKey: ["grid-api", "price"],
+    queryFn: ({ signal }) => fetchBtxPrice(signal),
     refetchInterval: 60_000,
     staleTime: 30_000,
+    placeholderData: keepPreviousData,
+    retry: 1,
   });
-  const btxPrice = spot && spot.ok ? spot.usd : 0;
+  const btxPrice = priceData?.price ?? 0;
   const { data: pinned } = useQuery({
     queryKey: ["pinned-binary-tag"],
     queryFn: () => fetchPinned(),
     staleTime: 60_000,
   });
-  const { data: nodes = [], isLoading } = useQuery({
-    queryKey: ["nodes", userId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("nodes")
-        .select("*")
-        .order("created_at", { ascending: true });
-      if (error) throw error;
-      return data as NodeRow[];
-    },
+  // Live fleet summary — public /api/fleet/summary, 30s poll.
+  const { data: summary, isLoading: summaryLoading } = useQuery({
+    queryKey: ["grid-api", "fleet-summary"],
+    queryFn: ({ signal }) => fetchFleetSummary(signal),
+    refetchInterval: 30_000,
+    staleTime: 15_000,
+    placeholderData: keepPreviousData,
+    retry: 1,
   });
+  // Live fleet nodes — public /api/fleet/nodes, 30s poll. Mapped to the
+  // existing NodeRow shape so the detail panel & risk engine keep working.
+  const { data: apiNodes = [], isLoading: nodesLoading } = useQuery({
+    queryKey: ["grid-api", "fleet-nodes"],
+    queryFn: ({ signal }) => fetchFleetNodes(signal),
+    refetchInterval: 30_000,
+    staleTime: 15_000,
+    placeholderData: keepPreviousData,
+    retry: 1,
+  });
+  const nodes = useMemo(
+    () => apiNodes.map(mapApiNodeToRow),
+    [apiNodes],
+  );
+  const isLoading = nodesLoading;
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const selected = useMemo(
@@ -329,40 +351,19 @@ function FleetConsole({ userId, email }: { userId: string; email: string }) {
     [nodes, selectedId],
   );
 
-  // Provision a starter node automatically if user has none.
-  useEffect(() => {
-    if (isLoading) return;
-    if (nodes.length > 0) return;
-    (async () => {
-      const seeds = [
-        { name: "Sydney Cluster A", location: "AU · Sydney", hardware: "Standard Hashrate", status: "active" as const },
-        { name: "Retail Node 01", location: "US · Dallas", hardware: "Standard Hashrate", status: "syncing" as const },
-        { name: "Retail Node 02", location: "EU · Frankfurt", hardware: "Pro Hashrate", status: "idle" as const },
-      ];
-      await supabase.from("nodes").insert(
-        seeds.map((s) => ({
-          ...s,
-          user_id: userId,
-          wallet:
-            "btx1zsjr4q3fwh4gku3qcp39x9vvjygklg5xkac229k0chlzsnpwhfggst42sr8",
-        })),
-      );
-      qc.invalidateQueries({ queryKey: ["nodes", userId] });
-    })();
-  }, [isLoading, nodes.length, userId, qc]);
-
+  // Totals — `active`/totals counts come from the live summary endpoint;
+  // block + cost figures fall back to a derived heuristic until the ROI
+  // panel resolves a live answer for them.
+  const HOURLY = 0.276;
   const totals = useMemo(() => {
-    const active = nodes.filter((n) => n.status === "active").length;
+    const total = summary?.total_nodes ?? nodes.length;
+    const active = summary?.healthy_nodes ?? 0;
     const blocks = nodes.reduce((s, n) => s + n.blocks_found, 0);
-    // True cost basis: $0.276 / hr → $6.624/day per active node, rounded to $6.62.
-    const HOURLY = 0.276;
-    const DAILY = 6.62;
-    const costDay = active * DAILY;
+    const costDay = active * HOURLY * 24;
     const walletWorth = blocks * 20 * btxPrice;
-    // Daily yield: assume blocks_found is the rolling 24h discovery count
-    // — the same figure projected forward at the live BTX rate.
     const yieldDay = walletWorth;
     return {
+      total,
       active,
       blocks,
       costDay,
@@ -371,7 +372,7 @@ function FleetConsole({ userId, email }: { userId: string; email: string }) {
       hourly: HOURLY,
       net: yieldDay - costDay,
     };
-  }, [nodes, btxPrice]);
+  }, [summary, nodes, btxPrice]);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -383,10 +384,19 @@ function FleetConsole({ userId, email }: { userId: string; email: string }) {
       <TickerBar
         items={[
           { k: "Operator", v: email || "—" },
-          { k: "Active", v: `${totals.active}/${nodes.length}` },
+          {
+            k: "Active",
+            v: summaryLoading && !summary
+              ? "…"
+              : `${totals.active}/${totals.total}`,
+          },
           {
             k: "BTX spot",
-            v: btxPrice ? `$${btxPrice.toFixed(btxPrice >= 1 ? 4 : 6)}` : "…",
+            v: priceLoading && !priceData
+              ? "…"
+              : btxPrice
+                ? `$${btxPrice.toFixed(btxPrice >= 1 ? 4 : 6)}`
+                : "—",
             accent: "primary",
           },
           { k: "Daily yield", v: `$${totals.yieldDay.toFixed(2)}` },
@@ -397,7 +407,14 @@ function FleetConsole({ userId, email }: { userId: string; email: string }) {
             accent: totals.net >= 0 ? "primary" : "destructive",
           },
           { k: "Blocks", v: String(totals.blocks) },
-          { k: "Pool peers", v: "≥ 1" },
+          {
+            k: "Uptime",
+            v: summary ? `${summary.uptime_pct.toFixed(2)}%` : "…",
+          },
+          {
+            k: "GPUs",
+            v: summary ? String(summary.active_gpus) : "…",
+          },
           { k: "CUDA", v: "12.0 pinned" },
           { k: "btxd", v: pinned?.binaryTag ?? "…" },
         ]}
