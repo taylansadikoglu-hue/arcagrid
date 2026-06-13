@@ -65,3 +65,13 @@ export const fetchFleetSummaryAuthed = createServerFn({ method: "GET" }).handler
     return (await res.json()) as Json;
   },
 );
+
+export const fetchMyFleetNodes = createServerFn({ method: "GET" }).handler(
+  async (): Promise<Json> => {
+    const res = await fetch(`${BASE}/api/fleet/nodes`, {
+      headers: authHeaders(),
+    });
+    if (!res.ok) throw new Error(`/api/fleet/nodes → ${res.status}`);
+    return (await res.json()) as Json;
+  },
+);
