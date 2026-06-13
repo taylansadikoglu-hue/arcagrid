@@ -690,12 +690,12 @@ interface OperatorWallet {
 }
 
 interface PoolOverviewLike {
+  pool_hashrate?: number;
   connected_miners?: number;
-  totals?: { miner_hashrate_sum?: number };
   blocks_found?: number;
+  fee?: number;
   estimated_next_block?: string | number;
   round_luck?: number;
-  fee_percent?: number;
 }
 
 function OperatorPanel() {
