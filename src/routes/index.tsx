@@ -619,16 +619,22 @@ function PricingSectionInner() {
 /*  LIVE ROI & PROFITABILITY ESTIMATOR                                        */
 /* -------------------------------------------------------------------------- */
 
-const MOCK_BTX_SPOT_USD = 5.22;
-
 function RoiCalculator() {
   const [rigCost, setRigCost] = useState(3.6); // $/day
   const [hashrate, setHashrate] = useState(883); // N/s
 
+  const { data: priceData } = useQuery({
+    queryKey: ["btx-price"],
+    queryFn: ({ signal }) => fetchBtxPrice(signal),
+    refetchInterval: 60_000,
+    staleTime: 55_000,
+  });
+  const spotUsd = priceData?.price ?? 0;
+
   const result = useMemo(() => {
     // Yield model: 883 N/s reference ≈ 1.6 BTX/day (mock baseline).
     const dailyBtx = (hashrate / 883) * 1.6;
-    const dailyYieldUsd = dailyBtx * MOCK_BTX_SPOT_USD;
+    const dailyYieldUsd = dailyBtx * spotUsd;
     const dailyCost = rigCost;
     const dailyNet = dailyYieldUsd - dailyCost;
     return {
@@ -638,7 +644,7 @@ function RoiCalculator() {
       dailyNet,
       net30: dailyNet * 30,
     };
-  }, [rigCost, hashrate]);
+  }, [rigCost, hashrate, spotUsd]);
 
   return (
     <section className="border-t border-border/60 py-20">
@@ -666,7 +672,7 @@ function RoiCalculator() {
             </span>
             <span className="font-mono-num inline-flex items-center gap-2 text-[10px] uppercase tracking-widest text-primary">
               <span className="pulse-dot inline-block h-1.5 w-1.5 rounded-full bg-primary" />
-              BTX spot ${MOCK_BTX_SPOT_USD.toFixed(2)}
+              BTX spot{spotUsd > 0 ? ` $${spotUsd.toFixed(4)}` : " loading…"}
             </span>
           </div>
 
