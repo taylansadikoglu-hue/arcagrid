@@ -1,19 +1,36 @@
 /**
- * Live grid REST client for https://api.arcgrid.dev.
+ * Live grid REST client.
  *
- * All endpoints are public (no auth headers) and return JSON. Callers
- * pair these with TanStack Query `placeholderData: keepPreviousData`
+ * Two upstreams:
+ *   - https://api.arcgrid.dev       — fleet/price/quick-stats
+ *   - https://pool.arcgrid.dev      — pool, miners, blocks, wallet
+ *
+ * Public endpoints are unauthenticated. Privileged fleet operations
+ * (deploy/sync) go through server functions in
+ * `src/lib/api/fleet-ops.functions.ts` so the ops token is never
+ * shipped to the browser bundle.
+ *
+ * Callers pair these with TanStack Query `placeholderData: keepPreviousData`
  * so the UI keeps the last known value on transient errors.
  */
 
-const BASE = "https://api.arcgrid.dev";
+export const GRID_API_BASE = "https://api.arcgrid.dev";
+export const POOL_API_BASE = "https://pool.arcgrid.dev";
 
-async function getJson<T>(path: string, signal?: AbortSignal): Promise<T> {
-  const res = await fetch(`${BASE}${path}`, {
+// UI display constants — these are the public-facing values shown to users.
+export const POOL_FEE_PERCENT = 2;
+export const STRATUM_URL = "stratum+tcp://pool.arcgrid.dev:3333";
+export const DASHBOARD_URL = "https://pool.arcgrid.dev";
+
+async function getJson<T>(
+  url: string,
+  signal?: AbortSignal,
+): Promise<T> {
+  const res = await fetch(url, {
     headers: { accept: "application/json" },
     signal,
   });
-  if (!res.ok) throw new Error(`${path} → ${res.status}`);
+  if (!res.ok) throw new Error(`${url} → ${res.status}`);
   return (await res.json()) as T;
 }
 
@@ -51,13 +68,13 @@ export interface RoiResult {
 }
 
 export const fetchFleetSummary = (signal?: AbortSignal) =>
-  getJson<FleetSummary>("/api/fleet/summary", signal);
+  getJson<FleetSummary>(`${GRID_API_BASE}/api/fleet/summary`, signal);
 
 export const fetchFleetNodes = (signal?: AbortSignal) =>
-  getJson<FleetNode[]>("/api/fleet/nodes", signal);
+  getJson<FleetNode[]>(`${GRID_API_BASE}/api/fleet/nodes`, signal);
 
 export const fetchBtxPrice = (signal?: AbortSignal) =>
-  getJson<BtxPrice>("/api/price", signal);
+  getJson<BtxPrice>(`${GRID_API_BASE}/api/price`, signal);
 
 export const fetchRoi = (
   cost: number,
@@ -65,6 +82,68 @@ export const fetchRoi = (
   signal?: AbortSignal,
 ) =>
   getJson<RoiResult>(
-    `/api/roi?cost=${encodeURIComponent(cost)}&hashrate=${encodeURIComponent(hashrate)}`,
+    `${GRID_API_BASE}/api/roi?cost=${encodeURIComponent(cost)}&hashrate=${encodeURIComponent(hashrate)}`,
     signal,
   );
+
+// ──────────────────────────────────────────────────────────────
+// Pool public endpoints (pool.arcgrid.dev)
+// ──────────────────────────────────────────────────────────────
+
+export interface PoolOverview {
+  connected_miners: number;
+  fee_percent: number;
+  totals: {
+    shares: number;
+    miner_hashrate_sum: number;
+  };
+  chain: { height: number };
+  stratum_port: number;
+}
+
+export interface PoolMiner {
+  worker_name: string;
+  hashrate: number;
+  shares_valid: number;
+  last_seen: number;
+}
+
+export interface PoolBlock {
+  height: number;
+  hash: string;
+  reward: number;
+  finder?: string;
+  found_at: number;
+}
+
+export interface WalletBalance {
+  address: string;
+  balance: number;
+  pending?: number;
+  paid?: number;
+}
+
+export interface QuickStats {
+  hashrate: number;
+  miners: number;
+  height: number;
+  [k: string]: unknown;
+}
+
+export const fetchPoolOverview = (signal?: AbortSignal) =>
+  getJson<PoolOverview>(`${POOL_API_BASE}/api/pool`, signal);
+
+export const fetchPoolMiners = (signal?: AbortSignal) =>
+  getJson<PoolMiner[]>(`${POOL_API_BASE}/api/miners`, signal);
+
+export const fetchRecentBlocks = (signal?: AbortSignal) =>
+  getJson<PoolBlock[]>(`${POOL_API_BASE}/api/blocks`, signal);
+
+export const fetchWalletBalance = (address: string, signal?: AbortSignal) =>
+  getJson<WalletBalance>(
+    `${POOL_API_BASE}/api/wallet/${encodeURIComponent(address)}`,
+    signal,
+  );
+
+export const fetchQuickStats = (signal?: AbortSignal) =>
+  getJson<QuickStats>(`${GRID_API_BASE}/api/pool/stats`, signal);
