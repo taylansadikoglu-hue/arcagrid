@@ -12,6 +12,14 @@ import {
   failoverInstance,
 } from "@/lib/api/provision.functions";
 import { fetchMyFleetNodes } from "@/lib/api/fleet-ops.functions";
+import {
+  fetchOperatorWallet,
+  setAutoheal,
+  setTuning,
+  rentRigs,
+} from "@/lib/api/fleet-ops.functions";
+import { fetchPoolMiners, fetchPoolOverview, type PoolMiner } from "@/lib/api/grid-api";
+import { useAuth } from "@/lib/use-auth";
 import { captureError } from "@/lib/observability";
 
 export const Route = createFileRoute("/dashboard")({
@@ -575,6 +583,9 @@ function DashboardPage() {
 
         {/* MY RIGS — operator-only fleet rows from /api/fleet/nodes (X-API-Token) */}
         <MyRigsTable />
+
+        {/* OPERATOR-ONLY CONTROL PANEL */}
+        <OperatorPanel />
       </div>
     </div>
   );
