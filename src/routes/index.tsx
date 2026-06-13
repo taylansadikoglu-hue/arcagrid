@@ -57,64 +57,7 @@ const FEATURES = [
   },
 ];
 
-const STATS = [
-  { value: "12", label: "Healthy nodes" },
-  { value: "0", label: "Offline nodes" },
-  { value: "48", label: "Active GPUs" },
-  { value: "99.97%", label: "Fleet uptime (30d)" },
-];
 
-const FLEET = [
-  {
-    provider: "Vast.ai",
-    live: true,
-    region: "EU-Central",
-    gpu: "24GB GPU class",
-    workload: "BTX",
-    status: "Healthy",
-    wallet: "1,800 BTX",
-    block: "115,513",
-    peers: 14,
-    temp: "74°C",
-    util: "100%",
-  },
-  {
-    provider: "Clore Cloud",
-    region: "US-East",
-    gpu: "24GB GPU class",
-    workload: "AI Inference",
-    status: "Healthy",
-    wallet: "—",
-    block: "—",
-    peers: 22,
-    temp: "68°C",
-    util: "92%",
-  },
-  {
-    provider: "Hetzner",
-    region: "EU-West",
-    gpu: "16GB GPU class",
-    workload: "BTX",
-    status: "Healthy",
-    wallet: "942 BTX",
-    block: "115,512",
-    peers: 11,
-    temp: "71°C",
-    util: "98%",
-  },
-  {
-    provider: "RunPod",
-    region: "APAC",
-    gpu: "24GB GPU class",
-    workload: "Custom Container",
-    status: "Syncing",
-    wallet: "—",
-    block: "115,508",
-    peers: 9,
-    temp: "76°C",
-    util: "84%",
-  },
-];
 
 const PAIN_POINTS = [
   "Silent node failures",
