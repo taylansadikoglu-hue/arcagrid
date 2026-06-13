@@ -1,7 +1,16 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 
 import { SiteNav } from "@/components/SiteNav";
+import {
+  fetchFleetNodes,
+  fetchPoolOverview,
+  fetchPoolMiners,
+  fetchBtxPrice,
+  type FleetNode,
+  type PoolMiner,
+} from "@/lib/api/grid-api";
 
 export const Route = createFileRoute("/")({
   head: () => ({
