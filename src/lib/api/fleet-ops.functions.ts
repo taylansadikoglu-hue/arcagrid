@@ -75,3 +75,39 @@ export const fetchMyFleetNodes = createServerFn({ method: "GET" }).handler(
     return (await res.json()) as Json;
   },
 );
+
+// ──────────────────────────────────────────────────────────────
+// Operator-only endpoints (X-API-Token via ARCGRID_OPS_TOKEN)
+// ──────────────────────────────────────────────────────────────
+
+export const fetchOperatorWallet = createServerFn({ method: "GET" }).handler(
+  async (): Promise<Json> => {
+    const res = await fetch(`${BASE}/api/operator/wallet`, {
+      headers: authHeaders(),
+    });
+    if (!res.ok) throw new Error(`/api/operator/wallet → ${res.status}`);
+    return (await res.json()) as Json;
+  },
+);
+
+export const setAutoheal = createServerFn({ method: "POST" })
+  .inputValidator((input: { enabled: boolean }) => ({
+    enabled: Boolean(input?.enabled),
+  }))
+  .handler(async ({ data }) => postOps("/api/operator/autoheal", data));
+
+export const setTuning = createServerFn({ method: "POST" })
+  .inputValidator((input: { max_watts?: number; turbo?: boolean }) => ({
+    max_watts:
+      typeof input?.max_watts === "number"
+        ? Math.max(50, Math.min(300, Math.round(input.max_watts)))
+        : undefined,
+    turbo: typeof input?.turbo === "boolean" ? input.turbo : undefined,
+  }))
+  .handler(async ({ data }) => postOps("/api/operator/tuning", data));
+
+export const rentRigs = createServerFn({ method: "POST" })
+  .inputValidator((input: { count: number }) => ({
+    count: Math.max(1, Math.min(10, Number(input?.count ?? 1) || 1)),
+  }))
+  .handler(async ({ data }) => postOps("/api/operator/rent", data));
