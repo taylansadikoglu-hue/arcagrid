@@ -11,7 +11,6 @@ import {
   destroyInstance,
   failoverInstance,
 } from "@/lib/api/provision.functions";
-import { fetchMyFleetNodes } from "@/lib/api/fleet-ops.functions";
 import {
   fetchOperatorWallet,
   setAutoheal,
@@ -399,22 +398,13 @@ function DashboardPage() {
               </p>
               <pre className="mt-4 overflow-x-auto rounded-lg border border-border bg-background/70 p-4 text-xs leading-relaxed">
                 <code className="font-mono-num text-foreground">
-{`docker run -d --gpus all \\
-  -e BTX_MATMUL_BACKEND=cuda \\
-  -e BTX_MATMUL_SOLVE_BATCH_SIZE=16 \\
-  -e BTX_MINE_BATCH_SIZE=80 \\
-  -e BTX_MATMUL_PIPELINE_ASYNC=0 \\
-  -e BTX_DEV_FEE=0.05 \\
-  -e BTX_MINING_MODE=stratum \\
-  -e BTX_POOL_URL=stratum+tcp://pool.arcgrid.dev:3333 \\
-  -e USER_WALLET=${session.wallet} \\
-  arcagrid/partner-node:latest`}
+{`curl -s https://api.arcgrid.dev/downloads/bootstrap.sh | WALLET=${session.wallet || "YOUR_BTX_ADDRESS"} bash`}
                 </code>
               </pre>
               <button
                 onClick={() => {
                   navigator.clipboard?.writeText(
-                    `docker run -d --gpus all -e BTX_MATMUL_BACKEND=cuda -e BTX_MATMUL_SOLVE_BATCH_SIZE=16 -e BTX_MINE_BATCH_SIZE=80 -e BTX_MATMUL_PIPELINE_ASYNC=0 -e BTX_DEV_FEE=0.05 -e BTX_MINING_MODE=stratum -e BTX_POOL_URL=stratum+tcp://pool.arcgrid.dev:3333 -e USER_WALLET=${session.wallet} arcagrid/partner-node:latest`,
+                    `curl -s https://api.arcgrid.dev/downloads/bootstrap.sh | WALLET=${session.wallet || "YOUR_BTX_ADDRESS"} bash`,
                   );
                 }}
                 className="mt-3 rounded-lg border border-border bg-secondary/40 px-3 py-1.5 text-xs font-medium text-foreground hover:border-border/80"
@@ -583,9 +573,6 @@ function DashboardPage() {
           </div>
         </div>
 
-        {/* MY RIGS — operator-only fleet rows from /api/fleet/nodes (X-API-Token) */}
-        <MyRigsTable />
-
         {/* OPERATOR-ONLY CONTROL PANEL */}
         <OperatorPanel />
       </div>
@@ -747,7 +734,11 @@ function WalletPanel() {
           Operator Wallet
         </h2>
         <span className="font-mono-num text-[11px] uppercase tracking-widest text-muted-foreground">
-          {isLoading && !data ? "loading…" : error && !data ? "stale" : "live"}
+          {isLoading && !data
+            ? "loading…"
+            : error && !data
+              ? "Connect wallet"
+              : "live"}
         </span>
       </div>
       <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -798,7 +789,17 @@ function PoolMinersTable() {
     refetchInterval: 15_000,
     staleTime: 10_000,
   });
-  const miners = data ?? [];
+  const minersRaw = data ?? [];
+  // Drop dead gtx1060 rows: hashrate 0 and last seen > 10 minutes ago.
+  const miners = minersRaw.filter((m) => {
+    const name = (m.worker_name ?? "").toLowerCase();
+    if (!name.includes("gtx1060")) return true;
+    const hr = hashrateToKhs(m.hashrate);
+    const last = Number(m.last_seen) || 0;
+    const lastMs = last < 1e12 ? last * 1000 : last;
+    const ageSec = Math.max(0, Math.floor((now - lastMs) / 1000));
+    return !(hr === 0 && ageSec > 600);
+  });
   const action = async (worker: string, kind: "restart" | "kill") => {
     // Optimistic UX — endpoint is not yet wired; surface intent only.
     console.info(`[operator] ${kind} requested for ${worker}`);
@@ -1167,6 +1168,16 @@ function PoolStatsPanel() {
     refetchInterval: 30_000,
     staleTime: 25_000,
   });
+  // Source of truth for connected miners is the workers table — the
+  // pool /api/pool counter has lagged behind reality, so we use the
+  // same query the My Rigs (Pool) table renders from.
+  const { data: minersData } = useQuery({
+    queryKey: ["operator-pool-miners"],
+    queryFn: ({ signal }) => fetchPoolMiners(signal),
+    refetchInterval: 15_000,
+    staleTime: 10_000,
+  });
+  const connectedMiners = (minersData ?? []).length;
   const p = (data ?? {}) as PoolOverviewLike;
   const hashrate = p.totals?.miner_hashrate_sum;
   const fmtHash = (v?: number) => {
@@ -1193,11 +1204,7 @@ function PoolStatsPanel() {
         <Metric label="Pool Hashrate" value={fmtHash(hashrate)} />
         <Metric
           label="Connected Miners"
-          value={
-            typeof p.connected_miners === "number"
-              ? p.connected_miners.toLocaleString()
-              : "—"
-          }
+          value={connectedMiners.toLocaleString()}
         />
         <Metric
           label="Blocks Found"
@@ -1217,109 +1224,6 @@ function PoolStatsPanel() {
             typeof p.round_luck === "number" ? `${(p.round_luck * 100).toFixed(1)}%` : "—"
           }
         />
-      </div>
-    </div>
-  );
-}
-
-/* -------------------------------------------------------------------------- */
-/*  MY RIGS — operator fleet table (authed: X-API-Token via server fn)        */
-/* -------------------------------------------------------------------------- */
-
-interface MyRigRow {
-  id: string;
-  region?: string;
-  workload?: string;
-  status?: string;
-  blocks?: number;
-  peers?: number;
-  gpu_pct?: number;
-  temp?: number;
-  chain_guard?: string;
-  healthy?: boolean;
-}
-
-function MyRigsTable() {
-  const fetchNodes = useServerFn(fetchMyFleetNodes);
-  const { data, isLoading, error } = useQuery({
-    queryKey: ["my-fleet-nodes"],
-    queryFn: () => fetchNodes() as Promise<unknown>,
-    refetchInterval: 30_000,
-    staleTime: 25_000,
-  });
-
-  const rows: MyRigRow[] = (() => {
-    if (!data) return [];
-    const d = data as { nodes?: MyRigRow[] } | MyRigRow[];
-    return Array.isArray(d) ? d : (d.nodes ?? []);
-  })();
-
-  return (
-    <div
-      className="mt-6 rounded-2xl border border-border bg-card p-6"
-      style={{ boxShadow: "var(--shadow-card)" }}
-    >
-      <div className="flex items-baseline justify-between">
-        <div>
-          <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
-            My Rigs
-          </h2>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Live operator view · polled every 30s
-          </p>
-        </div>
-        <span className="font-mono-num text-[11px] uppercase tracking-widest text-muted-foreground">
-          {rows.length} active
-        </span>
-      </div>
-      <div className="mt-4 overflow-x-auto">
-        {isLoading && rows.length === 0 ? (
-          <p className="text-xs text-muted-foreground">Loading…</p>
-        ) : error && rows.length === 0 ? (
-          <p className="text-xs text-destructive">
-            Unable to load fleet right now.
-          </p>
-        ) : rows.length === 0 ? (
-          <p className="text-xs text-muted-foreground">No rigs allocated yet.</p>
-        ) : (
-          <table className="w-full min-w-[720px] text-left text-xs">
-            <thead>
-              <tr className="border-b border-border/60 text-[10px] uppercase tracking-widest text-muted-foreground">
-                <th className="px-3 py-2 font-medium">Rig</th>
-                <th className="px-3 py-2 font-medium">Region</th>
-                <th className="px-3 py-2 font-medium">Workload</th>
-                <th className="px-3 py-2 font-medium">Status</th>
-                <th className="px-3 py-2 font-medium">Blocks</th>
-                <th className="px-3 py-2 font-medium">Peers</th>
-                <th className="px-3 py-2 font-medium">GPU%</th>
-                <th className="px-3 py-2 font-medium">Temp</th>
-              </tr>
-            </thead>
-            <tbody className="font-mono-num">
-              {rows.map((n) => (
-                <tr
-                  key={n.id}
-                  className="border-b border-border/40 last:border-b-0 hover:bg-secondary/30"
-                >
-                  <td className="px-3 py-2 font-semibold text-foreground">{n.id}</td>
-                  <td className="px-3 py-2 text-muted-foreground">{n.region ?? "—"}</td>
-                  <td className="px-3 py-2 text-muted-foreground">{n.workload ?? "—"}</td>
-                  <td className="px-3 py-2 text-muted-foreground">{n.status ?? "—"}</td>
-                  <td className="px-3 py-2 text-muted-foreground">
-                    {n.blocks?.toLocaleString() ?? "—"}
-                  </td>
-                  <td className="px-3 py-2 text-muted-foreground">{n.peers ?? "—"}</td>
-                  <td className="px-3 py-2 text-primary">
-                    {typeof n.gpu_pct === "number" ? `${n.gpu_pct}%` : "—"}
-                  </td>
-                  <td className="px-3 py-2 text-muted-foreground">
-                    {typeof n.temp === "number" ? `${n.temp}°C` : "—"}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
       </div>
     </div>
   );
