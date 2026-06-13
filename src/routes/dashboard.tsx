@@ -1167,6 +1167,7 @@ function PoolStatsPanel() {
     queryFn: ({ signal }) => fetchPoolOverview(signal),
     refetchInterval: 30_000,
     staleTime: 25_000,
+    placeholderData: keepPreviousData,
   });
   // Source of truth for connected miners is the workers table — the
   // pool /api/pool counter has lagged behind reality, so we use the
@@ -1176,10 +1177,11 @@ function PoolStatsPanel() {
     queryFn: ({ signal }) => fetchPoolMiners(signal),
     refetchInterval: 15_000,
     staleTime: 10_000,
+    placeholderData: keepPreviousData,
   });
   const connectedMiners = (minersData ?? []).length;
   const p = (data ?? {}) as PoolOverviewLike;
-  const hashrate = p.totals?.miner_hashrate_sum;
+  const hashrate = p.pool_hashrate;
   const fmtHash = (v?: number) => {
     if (typeof v !== "number" || !isFinite(v)) return "—";
     if (v >= 1e9) return `${(v / 1e9).toFixed(2)} GH/s`;
