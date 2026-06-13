@@ -17,6 +17,8 @@ import {
   setAutoheal,
   setTuning,
   rentRigs,
+  CLEAN_FLEET_GPU_ALLOWLIST,
+  CLEAN_FLEET_FILTERS,
 } from "@/lib/api/fleet-ops.functions";
 import { fetchPoolMiners, fetchPoolOverview, type PoolMiner } from "@/lib/api/grid-api";
 import { useAuth } from "@/lib/use-auth";
@@ -910,6 +912,7 @@ function FleetControls() {
   const [rentCount, setRentCount] = useState(1);
   const [renting, setRenting] = useState(false);
   const [rentMsg, setRentMsg] = useState<string | null>(null);
+  const [cleanFleetOnly, setCleanFleetOnly] = useState(true);
 
   const wrap = async (key: string, fn: () => Promise<unknown>) => {
     setBusy(key);
@@ -1066,6 +1069,56 @@ function FleetControls() {
                 </span>
               </div>
             </div>
+            <div className="mt-5 rounded-lg border border-border bg-background/40 p-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="text-xs font-semibold uppercase tracking-widest text-foreground">
+                    Clean Fleet Only
+                  </span>
+                  <p className="mt-0.5 text-[11px] text-muted-foreground">
+                    Enforce GPU allowlist + minimum specs.
+                  </p>
+                </div>
+                <button
+                  onClick={() => setCleanFleetOnly((v) => !v)}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                    cleanFleetOnly ? "bg-primary" : "bg-secondary"
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-background transition-transform ${
+                      cleanFleetOnly ? "translate-x-6" : "translate-x-1"
+                    }`}
+                  />
+                </button>
+              </div>
+              {cleanFleetOnly && (
+                <ul className="font-mono-num mt-3 space-y-1 text-[11px] text-muted-foreground">
+                  <li>
+                    GPUs:{" "}
+                    <span className="text-foreground">
+                      {CLEAN_FLEET_GPU_ALLOWLIST.join(" · ")}
+                    </span>
+                  </li>
+                  <li>
+                    Min VRAM:{" "}
+                    <span className="text-foreground">
+                      {CLEAN_FLEET_FILTERS.min_vram_gb} GB
+                    </span>{" "}
+                    · CC ≥{" "}
+                    <span className="text-foreground">
+                      {CLEAN_FLEET_FILTERS.min_compute_capability.toFixed(1)}
+                    </span>
+                  </li>
+                  <li>
+                    Max price:{" "}
+                    <span className="text-foreground">
+                      ${CLEAN_FLEET_FILTERS.max_price_usd_per_day.toFixed(2)}/day
+                    </span>
+                  </li>
+                </ul>
+              )}
+            </div>
             {rentMsg && (
               <p className="mt-3 rounded border border-border bg-secondary/40 px-3 py-2 text-xs text-muted-foreground">
                 {rentMsg}
@@ -1084,7 +1137,9 @@ function FleetControls() {
                   setRenting(true);
                   setRentMsg(null);
                   try {
-                    await rentFn({ data: { count: rentCount } });
+                    await rentFn({
+                      data: { count: rentCount, clean_fleet_only: cleanFleetOnly },
+                    });
                     setRentMsg(`Allocation request submitted for ${rentCount} rig(s).`);
                   } catch (e) {
                     setRentMsg(`Failed: ${(e as Error).message}`);

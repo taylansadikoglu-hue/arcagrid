@@ -106,8 +106,28 @@ export const setTuning = createServerFn({ method: "POST" })
   }))
   .handler(async ({ data }) => postOps("/api/operator/tuning", data));
 
+export const CLEAN_FLEET_GPU_ALLOWLIST = [
+  "RTX 5060 Ti",
+  "RTX 4070",
+  "RTX 3080",
+  "RTX 4080",
+] as const;
+
+export const CLEAN_FLEET_FILTERS = {
+  gpu_allowlist: CLEAN_FLEET_GPU_ALLOWLIST,
+  min_vram_gb: 8,
+  min_compute_capability: 8.0,
+  max_price_usd_per_day: 2.5,
+} as const;
+
 export const rentRigs = createServerFn({ method: "POST" })
-  .inputValidator((input: { count: number }) => ({
-    count: Math.max(1, Math.min(10, Number(input?.count ?? 1) || 1)),
-  }))
+  .inputValidator(
+    (input: { count: number; clean_fleet_only?: boolean }) => {
+      const count = Math.max(1, Math.min(10, Number(input?.count ?? 1) || 1));
+      const cleanOnly = Boolean(input?.clean_fleet_only ?? true);
+      return cleanOnly
+        ? { count, clean_fleet_only: true, filters: CLEAN_FLEET_FILTERS }
+        : { count, clean_fleet_only: false };
+    },
+  )
   .handler(async ({ data }) => postOps("/api/operator/rent", data));
