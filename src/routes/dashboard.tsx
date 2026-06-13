@@ -11,7 +11,6 @@ import {
   destroyInstance,
   failoverInstance,
 } from "@/lib/api/provision.functions";
-import { fetchMyFleetNodes } from "@/lib/api/fleet-ops.functions";
 import {
   fetchOperatorWallet,
   setAutoheal,
