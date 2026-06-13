@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 
 import { SiteNav } from "@/components/SiteNav";
@@ -690,12 +690,12 @@ interface OperatorWallet {
 }
 
 interface PoolOverviewLike {
+  pool_hashrate?: number;
   connected_miners?: number;
-  totals?: { miner_hashrate_sum?: number };
   blocks_found?: number;
+  fee?: number;
   estimated_next_block?: string | number;
   round_luck?: number;
-  fee_percent?: number;
 }
 
 function OperatorPanel() {
@@ -1167,6 +1167,7 @@ function PoolStatsPanel() {
     queryFn: ({ signal }) => fetchPoolOverview(signal),
     refetchInterval: 30_000,
     staleTime: 25_000,
+    placeholderData: keepPreviousData,
   });
   // Source of truth for connected miners is the workers table — the
   // pool /api/pool counter has lagged behind reality, so we use the
@@ -1176,10 +1177,11 @@ function PoolStatsPanel() {
     queryFn: ({ signal }) => fetchPoolMiners(signal),
     refetchInterval: 15_000,
     staleTime: 10_000,
+    placeholderData: keepPreviousData,
   });
   const connectedMiners = (minersData ?? []).length;
   const p = (data ?? {}) as PoolOverviewLike;
-  const hashrate = p.totals?.miner_hashrate_sum;
+  const hashrate = p.pool_hashrate;
   const fmtHash = (v?: number) => {
     if (typeof v !== "number" || !isFinite(v)) return "—";
     if (v >= 1e9) return `${(v / 1e9).toFixed(2)} GH/s`;

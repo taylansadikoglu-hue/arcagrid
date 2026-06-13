@@ -91,14 +91,12 @@ export const fetchRoi = (
 // ──────────────────────────────────────────────────────────────
 
 export interface PoolOverview {
+  pool_hashrate: number;
   connected_miners: number;
-  fee_percent: number;
-  totals: {
-    shares: number;
-    miner_hashrate_sum: number;
-  };
-  chain: { height: number };
-  stratum_port: number;
+  blocks_found: number;
+  fee: number;
+  estimated_next_block?: string | number;
+  round_luck?: number;
 }
 
 export interface PoolMiner {
