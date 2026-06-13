@@ -673,3 +673,106 @@ function fmtDuration(ms: number) {
   const sec = s % 60;
   return `${h}h ${String(m).padStart(2, "0")}m ${String(sec).padStart(2, "0")}s`;
 }
+
+/* -------------------------------------------------------------------------- */
+/*  MY RIGS — operator fleet table (authed: X-API-Token via server fn)        */
+/* -------------------------------------------------------------------------- */
+
+interface MyRigRow {
+  id: string;
+  region?: string;
+  workload?: string;
+  status?: string;
+  blocks?: number;
+  peers?: number;
+  gpu_pct?: number;
+  temp?: number;
+  chain_guard?: string;
+  healthy?: boolean;
+}
+
+function MyRigsTable() {
+  const fetchNodes = useServerFn(fetchMyFleetNodes);
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["my-fleet-nodes"],
+    queryFn: () => fetchNodes() as Promise<unknown>,
+    refetchInterval: 30_000,
+    staleTime: 25_000,
+  });
+
+  const rows: MyRigRow[] = (() => {
+    if (!data) return [];
+    const d = data as { nodes?: MyRigRow[] } | MyRigRow[];
+    return Array.isArray(d) ? d : (d.nodes ?? []);
+  })();
+
+  return (
+    <div
+      className="mt-6 rounded-2xl border border-border bg-card p-6"
+      style={{ boxShadow: "var(--shadow-card)" }}
+    >
+      <div className="flex items-baseline justify-between">
+        <div>
+          <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
+            My Rigs
+          </h2>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Live operator view · polled every 30s
+          </p>
+        </div>
+        <span className="font-mono-num text-[11px] uppercase tracking-widest text-muted-foreground">
+          {rows.length} active
+        </span>
+      </div>
+      <div className="mt-4 overflow-x-auto">
+        {isLoading && rows.length === 0 ? (
+          <p className="text-xs text-muted-foreground">Loading…</p>
+        ) : error && rows.length === 0 ? (
+          <p className="text-xs text-destructive">
+            Unable to load fleet right now.
+          </p>
+        ) : rows.length === 0 ? (
+          <p className="text-xs text-muted-foreground">No rigs allocated yet.</p>
+        ) : (
+          <table className="w-full min-w-[720px] text-left text-xs">
+            <thead>
+              <tr className="border-b border-border/60 text-[10px] uppercase tracking-widest text-muted-foreground">
+                <th className="px-3 py-2 font-medium">Rig</th>
+                <th className="px-3 py-2 font-medium">Region</th>
+                <th className="px-3 py-2 font-medium">Workload</th>
+                <th className="px-3 py-2 font-medium">Status</th>
+                <th className="px-3 py-2 font-medium">Blocks</th>
+                <th className="px-3 py-2 font-medium">Peers</th>
+                <th className="px-3 py-2 font-medium">GPU%</th>
+                <th className="px-3 py-2 font-medium">Temp</th>
+              </tr>
+            </thead>
+            <tbody className="font-mono-num">
+              {rows.map((n) => (
+                <tr
+                  key={n.id}
+                  className="border-b border-border/40 last:border-b-0 hover:bg-secondary/30"
+                >
+                  <td className="px-3 py-2 font-semibold text-foreground">{n.id}</td>
+                  <td className="px-3 py-2 text-muted-foreground">{n.region ?? "—"}</td>
+                  <td className="px-3 py-2 text-muted-foreground">{n.workload ?? "—"}</td>
+                  <td className="px-3 py-2 text-muted-foreground">{n.status ?? "—"}</td>
+                  <td className="px-3 py-2 text-muted-foreground">
+                    {n.blocks?.toLocaleString() ?? "—"}
+                  </td>
+                  <td className="px-3 py-2 text-muted-foreground">{n.peers ?? "—"}</td>
+                  <td className="px-3 py-2 text-primary">
+                    {typeof n.gpu_pct === "number" ? `${n.gpu_pct}%` : "—"}
+                  </td>
+                  <td className="px-3 py-2 text-muted-foreground">
+                    {typeof n.temp === "number" ? `${n.temp}°C` : "—"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </div>
+  );
+}
