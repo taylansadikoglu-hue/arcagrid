@@ -790,7 +790,17 @@ function PoolMinersTable() {
     refetchInterval: 15_000,
     staleTime: 10_000,
   });
-  const miners = data ?? [];
+  const minersRaw = data ?? [];
+  // Drop dead gtx1060 rows: hashrate 0 and last seen > 10 minutes ago.
+  const miners = minersRaw.filter((m) => {
+    const name = (m.worker_name ?? "").toLowerCase();
+    if (!name.includes("gtx1060")) return true;
+    const hr = hashrateToKhs(m.hashrate);
+    const last = Number(m.last_seen) || 0;
+    const lastMs = last < 1e12 ? last * 1000 : last;
+    const ageSec = Math.max(0, Math.floor((now - lastMs) / 1000));
+    return !(hr === 0 && ageSec > 600);
+  });
   const action = async (worker: string, kind: "restart" | "kill") => {
     // Optimistic UX — endpoint is not yet wired; surface intent only.
     console.info(`[operator] ${kind} requested for ${worker}`);
