@@ -1169,6 +1169,16 @@ function PoolStatsPanel() {
     refetchInterval: 30_000,
     staleTime: 25_000,
   });
+  // Source of truth for connected miners is the workers table — the
+  // pool /api/pool counter has lagged behind reality, so we use the
+  // same query the My Rigs (Pool) table renders from.
+  const { data: minersData } = useQuery({
+    queryKey: ["operator-pool-miners"],
+    queryFn: ({ signal }) => fetchPoolMiners(signal),
+    refetchInterval: 15_000,
+    staleTime: 10_000,
+  });
+  const connectedMiners = (minersData ?? []).length;
   const p = (data ?? {}) as PoolOverviewLike;
   const hashrate = p.totals?.miner_hashrate_sum;
   const fmtHash = (v?: number) => {
@@ -1195,11 +1205,7 @@ function PoolStatsPanel() {
         <Metric label="Pool Hashrate" value={fmtHash(hashrate)} />
         <Metric
           label="Connected Miners"
-          value={
-            typeof p.connected_miners === "number"
-              ? p.connected_miners.toLocaleString()
-              : "—"
-          }
+          value={connectedMiners.toLocaleString()}
         />
         <Metric
           label="Blocks Found"
