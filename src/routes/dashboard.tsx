@@ -735,7 +735,11 @@ function WalletPanel() {
           Operator Wallet
         </h2>
         <span className="font-mono-num text-[11px] uppercase tracking-widest text-muted-foreground">
-          {isLoading && !data ? "loading…" : error && !data ? "stale" : "live"}
+          {isLoading && !data
+            ? "loading…"
+            : error && !data
+              ? "Connect wallet"
+              : "live"}
         </span>
       </div>
       <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
