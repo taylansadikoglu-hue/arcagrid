@@ -21,7 +21,15 @@ function authHeaders(): Record<string, string> {
   };
 }
 
-async function postOps<T>(path: string, body: unknown): Promise<T> {
+type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | Json[]
+  | { [k: string]: Json };
+
+async function postOps(path: string, body: unknown): Promise<Json> {
   const res = await fetch(`${BASE}${path}`, {
     method: "POST",
     headers: authHeaders(),
@@ -31,7 +39,7 @@ async function postOps<T>(path: string, body: unknown): Promise<T> {
     const text = await res.text().catch(() => "");
     throw new Error(`${path} → ${res.status} ${text}`.trim());
   }
-  return (await res.json()) as T;
+  return (await res.json()) as Json;
 }
 
 export const deployFleet = createServerFn({ method: "POST" })
@@ -49,11 +57,11 @@ export const syncClore = createServerFn({ method: "POST" }).handler(
 );
 
 export const fetchFleetSummaryAuthed = createServerFn({ method: "GET" }).handler(
-  async () => {
+  async (): Promise<Json> => {
     const res = await fetch(`${BASE}/api/fleet/summary`, {
       headers: authHeaders(),
     });
     if (!res.ok) throw new Error(`/api/fleet/summary → ${res.status}`);
-    return (await res.json()) as unknown;
+    return (await res.json()) as Json;
   },
 );
