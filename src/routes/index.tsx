@@ -1,7 +1,16 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 
 import { SiteNav } from "@/components/SiteNav";
+import {
+  fetchFleetNodes,
+  fetchPoolOverview,
+  fetchPoolMiners,
+  fetchBtxPrice,
+  type FleetNode,
+  type PoolMiner,
+} from "@/lib/api/grid-api";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -48,64 +57,7 @@ const FEATURES = [
   },
 ];
 
-const STATS = [
-  { value: "12", label: "Healthy nodes" },
-  { value: "0", label: "Offline nodes" },
-  { value: "48", label: "Active GPUs" },
-  { value: "99.97%", label: "Fleet uptime (30d)" },
-];
 
-const FLEET = [
-  {
-    provider: "Vast.ai",
-    live: true,
-    region: "EU-Central",
-    gpu: "24GB GPU class",
-    workload: "BTX",
-    status: "Healthy",
-    wallet: "1,800 BTX",
-    block: "115,513",
-    peers: 14,
-    temp: "74°C",
-    util: "100%",
-  },
-  {
-    provider: "Clore Cloud",
-    region: "US-East",
-    gpu: "24GB GPU class",
-    workload: "AI Inference",
-    status: "Healthy",
-    wallet: "—",
-    block: "—",
-    peers: 22,
-    temp: "68°C",
-    util: "92%",
-  },
-  {
-    provider: "Hetzner",
-    region: "EU-West",
-    gpu: "16GB GPU class",
-    workload: "BTX",
-    status: "Healthy",
-    wallet: "942 BTX",
-    block: "115,512",
-    peers: 11,
-    temp: "71°C",
-    util: "98%",
-  },
-  {
-    provider: "RunPod",
-    region: "APAC",
-    gpu: "24GB GPU class",
-    workload: "Custom Container",
-    status: "Syncing",
-    wallet: "—",
-    block: "115,508",
-    peers: 9,
-    temp: "76°C",
-    util: "84%",
-  },
-];
 
 const PAIN_POINTS = [
   "Silent node failures",
@@ -199,116 +151,10 @@ function Landing() {
       </section>
 
       {/* LIVE FLEET PREVIEW */}
-      <section className="border-t border-border/60 pb-20">
-        <div className="mx-auto max-w-7xl px-6">
-          <div className="mx-auto mb-6 max-w-2xl pt-12 text-center">
-            <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-              Live Fleet Snapshot
-            </h2>
-            <p className="mt-2 text-sm text-muted-foreground">
-              This data updates from active infrastructure monitored by ArcGrid.
-            </p>
-          </div>
-          <div
-            className="overflow-hidden rounded-2xl border border-primary/30 bg-card/80 backdrop-blur"
-            style={{ boxShadow: "var(--shadow-glow), var(--shadow-card)" }}
-          >
-            <div className="flex items-center justify-between border-b border-border/60 bg-background/60 px-4 py-2.5">
-              <div className="flex items-center gap-2">
-                <span className="h-2.5 w-2.5 rounded-full bg-destructive/60" />
-                <span className="h-2.5 w-2.5 rounded-full bg-primary/50" />
-                <span className="h-2.5 w-2.5 rounded-full bg-primary" />
-                <span className="ml-3 font-mono-num text-[11px] uppercase tracking-widest text-muted-foreground">
-                  arcgrid · fleet console
-                </span>
-              </div>
-              <span className="inline-flex items-center gap-1.5 font-mono-num text-[10px] uppercase tracking-widest text-primary">
-                <span className="pulse-dot inline-block h-1.5 w-1.5 rounded-full bg-primary" />
-                live
-              </span>
-            </div>
+      <LiveFleetSection />
 
-            <div className="grid grid-cols-2 gap-px border-b border-border/60 bg-border/60 sm:grid-cols-4">
-              {STATS.map((s) => (
-                <div key={s.label} className="bg-card/80 px-4 py-4">
-                  <div className="font-mono-num text-2xl font-semibold text-primary">
-                    {s.value}
-                  </div>
-                  <div className="mt-1 text-[10px] uppercase tracking-widest text-muted-foreground">
-                    {s.label}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[760px] text-left text-xs">
-                <thead>
-                  <tr className="border-b border-border/60 text-[10px] uppercase tracking-widest text-muted-foreground">
-                    <th className="px-4 py-3 font-medium">Node</th>
-                    <th className="px-4 py-3 font-medium">Workload</th>
-                    <th className="px-4 py-3 font-medium">Status</th>
-                    <th className="px-4 py-3 font-medium">Wallet</th>
-                    <th className="px-4 py-3 font-medium">Block</th>
-                    <th className="px-4 py-3 font-medium">Peers</th>
-                    <th className="px-4 py-3 font-medium">Temp</th>
-                    <th className="px-4 py-3 font-medium">GPU%</th>
-                  </tr>
-                </thead>
-                <tbody className="font-mono-num">
-                  {FLEET.map((n) => (
-                    <tr
-                      key={n.provider}
-                      className="border-b border-border/40 last:border-b-0 hover:bg-secondary/30"
-                    >
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold text-foreground">
-                            {n.provider}
-                          </span>
-                          {n.live && (
-                            <span className="inline-flex items-center gap-1 rounded-md border border-primary/40 bg-primary/10 px-1.5 py-0.5 font-mono-num text-[9px] font-semibold uppercase tracking-widest text-primary">
-                              <span className="pulse-dot inline-block h-1 w-1 rounded-full bg-primary" />
-                              Live
-                            </span>
-                          )}
-                        </div>
-                        <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
-                          {n.region} · {n.gpu}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-muted-foreground">{n.workload}</td>
-                      <td className="px-4 py-3">
-                        <span
-                          className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-[10px] uppercase tracking-widest ${
-                            n.status === "Healthy"
-                              ? "border-primary/40 bg-primary/10 text-primary"
-                              : "border-border bg-secondary/40 text-muted-foreground"
-                          }`}
-                        >
-                          <span
-                            className={`h-1.5 w-1.5 rounded-full ${
-                              n.status === "Healthy"
-                                ? "bg-primary pulse-dot"
-                                : "bg-muted-foreground"
-                            }`}
-                          />
-                          {n.status}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-muted-foreground">{n.wallet}</td>
-                      <td className="px-4 py-3 text-muted-foreground">{n.block}</td>
-                      <td className="px-4 py-3 text-muted-foreground">{n.peers}</td>
-                      <td className="px-4 py-3 text-muted-foreground">{n.temp}</td>
-                      <td className="px-4 py-3 text-primary">{n.util}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* POOL OVERVIEW + MINERS */}
+      <PoolSection />
 
       {/* FEATURES */}
       <section className="border-t border-border/60 py-20">
@@ -773,16 +619,22 @@ function PricingSectionInner() {
 /*  LIVE ROI & PROFITABILITY ESTIMATOR                                        */
 /* -------------------------------------------------------------------------- */
 
-const MOCK_BTX_SPOT_USD = 5.22;
-
 function RoiCalculator() {
   const [rigCost, setRigCost] = useState(3.6); // $/day
   const [hashrate, setHashrate] = useState(883); // N/s
 
+  const { data: priceData } = useQuery({
+    queryKey: ["btx-price"],
+    queryFn: ({ signal }) => fetchBtxPrice(signal),
+    refetchInterval: 60_000,
+    staleTime: 55_000,
+  });
+  const spotUsd = priceData?.price ?? 0;
+
   const result = useMemo(() => {
     // Yield model: 883 N/s reference ≈ 1.6 BTX/day (mock baseline).
     const dailyBtx = (hashrate / 883) * 1.6;
-    const dailyYieldUsd = dailyBtx * MOCK_BTX_SPOT_USD;
+    const dailyYieldUsd = dailyBtx * spotUsd;
     const dailyCost = rigCost;
     const dailyNet = dailyYieldUsd - dailyCost;
     return {
@@ -792,7 +644,7 @@ function RoiCalculator() {
       dailyNet,
       net30: dailyNet * 30,
     };
-  }, [rigCost, hashrate]);
+  }, [rigCost, hashrate, spotUsd]);
 
   return (
     <section className="border-t border-border/60 py-20">
@@ -820,7 +672,7 @@ function RoiCalculator() {
             </span>
             <span className="font-mono-num inline-flex items-center gap-2 text-[10px] uppercase tracking-widest text-primary">
               <span className="pulse-dot inline-block h-1.5 w-1.5 rounded-full bg-primary" />
-              BTX spot ${MOCK_BTX_SPOT_USD.toFixed(2)}
+              BTX spot{spotUsd > 0 ? ` $${spotUsd.toFixed(4)}` : " loading…"}
             </span>
           </div>
 
@@ -980,6 +832,326 @@ function RoiOutput({
         }
       >
         {value}
+      </div>
+    </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/*  LIVE FLEET SECTION — pulls /api/fleet/nodes (provider names masked)       */
+/* -------------------------------------------------------------------------- */
+
+function LiveFleetSection() {
+  const { data, isLoading } = useQuery({
+    queryKey: ["fleet-nodes"],
+    queryFn: ({ signal }) => fetchFleetNodes(signal),
+    refetchInterval: 30_000,
+    staleTime: 25_000,
+  });
+
+  // Endpoint may return an array OR {nodes:[...]}; normalize.
+  const nodes: FleetNode[] = (() => {
+    if (!data) return [];
+    const d = data as unknown as FleetNode[] | { nodes: FleetNode[] };
+    return Array.isArray(d) ? d : (d.nodes ?? []);
+  })();
+
+  const stats = useMemo(() => {
+    const total = nodes.length;
+    const healthy = nodes.filter(
+      (n) => n.status === "active" || n.status === "mining" || n.chain_guard === "healthy",
+    ).length;
+    const offline = nodes.filter((n) => n.status === "offline").length;
+    const avgUptime = total > 0 ? (healthy / total) * 100 : 0;
+    return [
+      { value: String(healthy), label: "Healthy nodes" },
+      { value: String(offline), label: "Offline nodes" },
+      { value: String(total), label: "Active rigs" },
+      {
+        value: total > 0 ? `${avgUptime.toFixed(1)}%` : "—",
+        label: "Fleet health",
+      },
+    ];
+  }, [nodes]);
+
+  return (
+    <section className="border-t border-border/60 pb-20">
+      <div className="mx-auto max-w-7xl px-6">
+        <div className="mx-auto mb-6 max-w-2xl pt-12 text-center">
+          <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">
+            Live Fleet Snapshot
+          </h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            This data updates from active infrastructure monitored by Arca Grid.
+          </p>
+        </div>
+        <div
+          className="overflow-hidden rounded-2xl border border-primary/30 bg-card/80 backdrop-blur"
+          style={{ boxShadow: "var(--shadow-glow), var(--shadow-card)" }}
+        >
+          <div className="flex items-center justify-between border-b border-border/60 bg-background/60 px-4 py-2.5">
+            <div className="flex items-center gap-2">
+              <span className="h-2.5 w-2.5 rounded-full bg-destructive/60" />
+              <span className="h-2.5 w-2.5 rounded-full bg-primary/50" />
+              <span className="h-2.5 w-2.5 rounded-full bg-primary" />
+              <span className="ml-3 font-mono-num text-[11px] uppercase tracking-widest text-muted-foreground">
+                arcgrid · fleet console
+              </span>
+            </div>
+            <span className="inline-flex items-center gap-1.5 font-mono-num text-[10px] uppercase tracking-widest text-primary">
+              <span className="pulse-dot inline-block h-1.5 w-1.5 rounded-full bg-primary" />
+              live
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 gap-px border-b border-border/60 bg-border/60 sm:grid-cols-4">
+            {stats.map((s) => (
+              <div key={s.label} className="bg-card/80 px-4 py-4">
+                <div className="font-mono-num text-2xl font-semibold text-primary">
+                  {s.value}
+                </div>
+                <div className="mt-1 text-[10px] uppercase tracking-widest text-muted-foreground">
+                  {s.label}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[760px] text-left text-xs">
+              <thead>
+                <tr className="border-b border-border/60 text-[10px] uppercase tracking-widest text-muted-foreground">
+                  <th className="px-4 py-3 font-medium">Rig</th>
+                  <th className="px-4 py-3 font-medium">Workload</th>
+                  <th className="px-4 py-3 font-medium">Status</th>
+                  <th className="px-4 py-3 font-medium">Blocks</th>
+                  <th className="px-4 py-3 font-medium">Peers</th>
+                  <th className="px-4 py-3 font-medium">Temp</th>
+                  <th className="px-4 py-3 font-medium">GPU%</th>
+                </tr>
+              </thead>
+              <tbody className="font-mono-num">
+                {isLoading && nodes.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="px-4 py-6 text-center text-muted-foreground">
+                      Loading fleet…
+                    </td>
+                  </tr>
+                ) : nodes.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="px-4 py-6 text-center text-muted-foreground">
+                      No rigs reporting.
+                    </td>
+                  </tr>
+                ) : (
+                  nodes.map((n) => {
+                    const healthy =
+                      n.status === "active" || n.status === "mining" || n.chain_guard === "healthy";
+                    return (
+                      <tr
+                        key={n.id}
+                        className="border-b border-border/40 last:border-b-0 hover:bg-secondary/30"
+                      >
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold text-foreground">{n.id}</span>
+                            <span className="inline-flex items-center gap-1 rounded-md border border-primary/40 bg-primary/10 px-1.5 py-0.5 font-mono-num text-[9px] font-semibold uppercase tracking-widest text-primary">
+                              <span className="pulse-dot inline-block h-1 w-1 rounded-full bg-primary" />
+                              Live
+                            </span>
+                          </div>
+                          <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                            {n.region}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-muted-foreground">{n.workload}</td>
+                        <td className="px-4 py-3">
+                          <span
+                            className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-[10px] uppercase tracking-widest ${
+                              healthy
+                                ? "border-primary/40 bg-primary/10 text-primary"
+                                : "border-border bg-secondary/40 text-muted-foreground"
+                            }`}
+                          >
+                            <span
+                              className={`h-1.5 w-1.5 rounded-full ${
+                                healthy ? "bg-primary pulse-dot" : "bg-muted-foreground"
+                              }`}
+                            />
+                            {n.status}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-muted-foreground">
+                          {n.blocks?.toLocaleString() ?? "—"}
+                        </td>
+                        <td className="px-4 py-3 text-muted-foreground">{n.peers ?? "—"}</td>
+                        <td className="px-4 py-3 text-muted-foreground">
+                          {typeof n.temp === "number" ? `${n.temp}°C` : "—"}
+                        </td>
+                        <td className="px-4 py-3 text-primary">
+                          {typeof n.gpu_pct === "number" ? `${n.gpu_pct}%` : "—"}
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/*  POOL OVERVIEW + MINERS — pulls /api/pool and /api/miners                  */
+/* -------------------------------------------------------------------------- */
+
+interface PoolOverviewLive {
+  connected_miners?: number;
+  fee_percent?: number;
+  totals?: {
+    miner_hashrate_sum?: number;
+    blocks?: number;
+    shares?: number;
+  };
+  chain?: { height?: number };
+}
+
+function formatHashrate(hps: number): string {
+  if (!hps || hps <= 0) return "0 H/s";
+  const units = ["H/s", "kH/s", "MH/s", "GH/s", "TH/s"];
+  let v = hps;
+  let i = 0;
+  while (v >= 1000 && i < units.length - 1) {
+    v /= 1000;
+    i++;
+  }
+  return `${v.toFixed(2)} ${units[i]}`;
+}
+
+function formatLastSeen(ts: number): string {
+  // last_seen is a Unix seconds float
+  const sec = ts > 1e12 ? ts / 1000 : ts;
+  const delta = Math.max(0, Date.now() / 1000 - sec);
+  if (delta < 60) return `${Math.floor(delta)}s ago`;
+  if (delta < 3600) return `${Math.floor(delta / 60)}m ago`;
+  if (delta < 86400) return `${Math.floor(delta / 3600)}h ago`;
+  return `${Math.floor(delta / 86400)}d ago`;
+}
+
+function PoolSection() {
+  const { data: pool } = useQuery({
+    queryKey: ["pool-overview"],
+    queryFn: ({ signal }) => fetchPoolOverview(signal) as unknown as Promise<PoolOverviewLive>,
+    refetchInterval: 30_000,
+    staleTime: 25_000,
+  });
+  const { data: miners, isLoading: minersLoading } = useQuery({
+    queryKey: ["pool-miners"],
+    queryFn: ({ signal }) => fetchPoolMiners(signal),
+    refetchInterval: 30_000,
+    staleTime: 25_000,
+  });
+
+  const minerRows: PoolMiner[] = miners ?? [];
+  const hashrateSum = pool?.totals?.miner_hashrate_sum ?? 0;
+  const blocks = pool?.totals?.blocks ?? 0;
+  const connected = pool?.connected_miners ?? 0;
+  const fee = pool?.fee_percent ?? 2;
+
+  return (
+    <section className="border-t border-border/60 pb-20">
+      <div className="mx-auto max-w-7xl px-6">
+        <div className="mx-auto mb-6 max-w-2xl pt-12 text-center">
+          <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">
+            Pool Overview
+          </h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Live stats from <span className="font-mono-num">pool.arcgrid.dev</span>.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-border bg-border sm:grid-cols-4">
+          <PoolStat label="Connected miners" value={connected.toString()} />
+          <PoolStat label="Pool hashrate" value={formatHashrate(hashrateSum)} />
+          <PoolStat label="Blocks found" value={blocks.toString()} />
+          <PoolStat label="Pool fee" value={`${fee.toFixed(1)}%`} />
+        </div>
+
+        <div className="mt-8 overflow-hidden rounded-2xl border border-border bg-card/80">
+          <div className="flex items-center justify-between border-b border-border/60 bg-background/60 px-4 py-2.5">
+            <span className="font-mono-num text-[11px] uppercase tracking-widest text-muted-foreground">
+              arcgrid · miners
+            </span>
+            <span className="font-mono-num text-[10px] uppercase tracking-widest text-muted-foreground">
+              {minerRows.length} workers
+            </span>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[640px] text-left text-xs">
+              <thead>
+                <tr className="border-b border-border/60 text-[10px] uppercase tracking-widest text-muted-foreground">
+                  <th className="px-4 py-3 font-medium">Worker</th>
+                  <th className="px-4 py-3 font-medium">Hashrate</th>
+                  <th className="px-4 py-3 font-medium">Valid shares</th>
+                  <th className="px-4 py-3 font-medium">Last seen</th>
+                </tr>
+              </thead>
+              <tbody className="font-mono-num">
+                {minersLoading && minerRows.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="px-4 py-6 text-center text-muted-foreground">
+                      Loading miners…
+                    </td>
+                  </tr>
+                ) : minerRows.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="px-4 py-6 text-center text-muted-foreground">
+                      No workers connected.
+                    </td>
+                  </tr>
+                ) : (
+                  minerRows.map((m) => {
+                    const hr =
+                      typeof m.hashrate === "number"
+                        ? formatHashrate(m.hashrate)
+                        : (m.hashrate?.display ?? formatHashrate(m.hashrate?.raw ?? 0));
+                    return (
+                      <tr
+                        key={m.worker_name}
+                        className="border-b border-border/40 last:border-b-0 hover:bg-secondary/30"
+                      >
+                        <td className="px-4 py-3 font-semibold text-foreground">
+                          {m.worker_name}
+                        </td>
+                        <td className="px-4 py-3 text-primary">{hr}</td>
+                        <td className="px-4 py-3 text-muted-foreground">
+                          {m.shares_valid?.toLocaleString() ?? "—"}
+                        </td>
+                        <td className="px-4 py-3 text-muted-foreground">
+                          {m.last_seen ? formatLastSeen(m.last_seen) : "—"}
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function PoolStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="bg-card/80 px-4 py-4">
+      <div className="font-mono-num text-2xl font-semibold text-primary">{value}</div>
+      <div className="mt-1 text-[10px] uppercase tracking-widest text-muted-foreground">
+        {label}
       </div>
     </div>
   );

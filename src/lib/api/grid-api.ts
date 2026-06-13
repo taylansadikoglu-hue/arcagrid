@@ -103,7 +103,14 @@ export interface PoolOverview {
 
 export interface PoolMiner {
   worker_name: string;
-  hashrate: number;
+  hashrate:
+    | number
+    | {
+        value: number;
+        unit: string;
+        display: string;
+        raw?: number;
+      };
   shares_valid: number;
   last_seen: number;
 }
@@ -133,8 +140,17 @@ export interface QuickStats {
 export const fetchPoolOverview = (signal?: AbortSignal) =>
   getJson<PoolOverview>(`${POOL_API_BASE}/api/pool`, signal);
 
-export const fetchPoolMiners = (signal?: AbortSignal) =>
-  getJson<PoolMiner[]>(`${POOL_API_BASE}/api/miners`, signal);
+export const fetchPoolMiners = async (
+  signal?: AbortSignal,
+): Promise<PoolMiner[]> => {
+  // Endpoint returns { miners: [...] } — unwrap defensively in case the
+  // shape ever flips back to a bare array.
+  const raw = await getJson<{ miners: PoolMiner[] } | PoolMiner[]>(
+    `${POOL_API_BASE}/api/miners`,
+    signal,
+  );
+  return Array.isArray(raw) ? raw : (raw?.miners ?? []);
+};
 
 export const fetchRecentBlocks = (signal?: AbortSignal) =>
   getJson<PoolBlock[]>(`${POOL_API_BASE}/api/blocks`, signal);
