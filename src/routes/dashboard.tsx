@@ -11,6 +11,7 @@ import {
   destroyInstance,
   failoverInstance,
 } from "@/lib/api/provision.functions";
+import { fetchMyFleetNodes } from "@/lib/api/fleet-ops.functions";
 import { captureError } from "@/lib/observability";
 
 export const Route = createFileRoute("/dashboard")({
@@ -462,7 +463,7 @@ function DashboardPage() {
                 <li>Network: ipv4-only, hardened peer set</li>
                 <li>Telemetry: live</li>
                 <li>Routing: ARCA GRID mesh allocator</li>
-                <li>Pinned btxd: v0.30.2</li>
+                <li>Pinned btxd: v0.32.3</li>
               </ul>
             </div>
           </div>
@@ -571,6 +572,9 @@ function DashboardPage() {
             )}
           </div>
         </div>
+
+        {/* MY RIGS — operator-only fleet rows from /api/fleet/nodes (X-API-Token) */}
+        <MyRigsTable />
       </div>
     </div>
   );
