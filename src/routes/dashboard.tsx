@@ -683,10 +683,10 @@ function fmtDuration(ms: number) {
 const OPERATOR_EMAIL = "taylan.sadikoglu@gmail.com";
 
 interface OperatorWallet {
-  balance?: number;
+  btx_balance?: number;
+  clore_balance?: number;
+  active_rigs?: number;
   address?: string;
-  blocks_found?: number;
-  total_earned?: number;
 }
 
 interface PoolOverviewLike {
@@ -718,8 +718,9 @@ function WalletPanel() {
   const { data, isLoading, error } = useQuery({
     queryKey: ["operator-wallet"],
     queryFn: () => fetchWallet() as Promise<OperatorWallet>,
-    refetchInterval: 30_000,
-    staleTime: 25_000,
+    refetchInterval: 60_000,
+    staleTime: 55_000,
+    placeholderData: keepPreviousData,
   });
   const w = (data ?? {}) as OperatorWallet;
   const addr = w.address
@@ -745,19 +746,17 @@ function WalletPanel() {
       <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Metric
           label="BTX Balance"
-          value={typeof w.balance === "number" ? w.balance.toFixed(4) : "—"}
+          value={typeof w.btx_balance === "number" ? w.btx_balance.toFixed(4) : "—"}
+        />
+        <Metric
+          label="CLORE Balance"
+          value={typeof w.clore_balance === "number" ? w.clore_balance.toFixed(4) : "—"}
+        />
+        <Metric
+          label="Active Rigs"
+          value={typeof w.active_rigs === "number" ? w.active_rigs.toLocaleString() : "—"}
         />
         <Metric label="Address" value={addr} />
-        <Metric
-          label="Blocks Found"
-          value={typeof w.blocks_found === "number" ? w.blocks_found.toLocaleString() : "—"}
-        />
-        <Metric
-          label="Total Earned"
-          value={
-            typeof w.total_earned === "number" ? `${w.total_earned.toFixed(4)} BTX` : "—"
-          }
-        />
       </div>
     </div>
   );
