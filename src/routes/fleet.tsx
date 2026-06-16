@@ -1789,7 +1789,7 @@ function AllocatorCard({
         </span>
       </div>
       <p className={`font-mono-num mt-2 text-3xl font-semibold tracking-tight ${accentText}`}>
-        {ok
+        {ok && Number.isFinite(balance)
           ? unit === "USD"
             ? `$${balance.toFixed(2)}`
             : `${balance.toLocaleString(undefined, { maximumFractionDigits: 2 })} ${unit}`
