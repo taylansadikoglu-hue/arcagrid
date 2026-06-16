@@ -317,7 +317,7 @@ function DashboardPage() {
               <span className="font-mono-num text-foreground">{session.instanceId}</span>
             </p>
             <h1 className="mt-1 text-3xl font-semibold tracking-tight">
-              {tier.name} Rig · {tier.tagline}
+              {tier?.name} Rig · {tier?.tagline}
             </h1>
           </div>
           <StatusBadge
@@ -414,7 +414,7 @@ function DashboardPage() {
             </div>
             <Sparkline
               history={history}
-              max={tier.id.startsWith("pro") ? 3 : 1.8}
+              max={tier?.id?.startsWith("pro") ? 3 : 1.8}
             />
 
             <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
