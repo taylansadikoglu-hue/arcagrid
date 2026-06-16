@@ -861,11 +861,10 @@ function MyRigsTable() {
                 const ns = w.hashrate_ns ?? w.hashrate;
                 const gpu = w.gpu_pct ?? w.gpu;
                 const watts = w.watts ?? w.power;
+                const temp = w.temp ?? w.gpu_temp ?? w.temperature;
                 return (
-                  <tr
-                    key={w._name}
-                    className="border-b border-border/40 last:border-b-0 hover:bg-secondary/30"
-                  >
+                  <Fragment key={w._name}>
+                  <tr className="border-b border-border/40 hover:bg-secondary/30">
                     <td className="px-3 py-2 font-semibold text-foreground">{w._name}</td>
                     <td className="px-3 py-2 text-primary">
                       {typeof ns === "number" ? ns.toLocaleString() : "—"}
@@ -894,6 +893,16 @@ function MyRigsTable() {
                       </button>
                     </td>
                   </tr>
+                  <tr className="border-b border-border/40 last:border-b-0 bg-background/40">
+                    <td colSpan={7} className="px-3 py-3">
+                      <RigControls
+                        worker={w._name}
+                        liveWatts={typeof watts === "number" ? watts : undefined}
+                        liveTemp={typeof temp === "number" ? temp : undefined}
+                      />
+                    </td>
+                  </tr>
+                  </Fragment>
                 );
               })}
             </tbody>
