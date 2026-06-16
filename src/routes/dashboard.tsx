@@ -705,9 +705,10 @@ function OperatorPanel() {
   return (
     <div className="mt-6 grid gap-4">
       <WalletPanel />
-      <PoolMinersTable />
+      <MyRigsTable />
       <FleetControls />
       <PoolStatsPanel />
+      <OrchestraOsPanel />
     </div>
   );
 }
