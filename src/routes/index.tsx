@@ -599,13 +599,13 @@ function PricingSectionInner() {
             Fast-Start Guarantee
           </span>
           <h3 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">
-            ⚡ Ready to Mine in Under 30 Minutes
+            ⚡ Ready to Mine in Under 5 Minutes
           </h3>
           <p className="mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
             No long sync times, no complex configurations. Select your tier,
             complete your secure payment routing, and our automated Cloudflare
             R2 fast-bootstrap engine will have your allocated grid hashing and
-            streaming live payouts straight to your wallet in under 30 minutes.
+            streaming live payouts straight to your wallet in under 5 minutes.
             Guaranteed.
           </p>
         </div>
