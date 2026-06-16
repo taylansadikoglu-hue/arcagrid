@@ -308,30 +308,29 @@ function Landing() {
         </div>
       </section>
 
-      {/* FOUNDER NOTE */}
+      {/* LIVE STATS */}
       <section className="border-t border-border/60 py-16">
-        <div className="mx-auto max-w-3xl px-6 text-center">
-          <span className="font-mono-num text-[10px] uppercase tracking-widest text-primary">
-            Built by operators
-          </span>
-          <h2 className="mt-2 text-2xl font-semibold tracking-tight">
-            From the workbench, not the whitepaper.
-          </h2>
-          <p className="mt-4 text-sm leading-relaxed text-muted-foreground sm:text-base">
-            ArcGrid was created from real-world experience deploying and
-            maintaining GPU infrastructure for BTX workloads across multiple
-            providers. No buzzwords. No abstractions. Just better
-            infrastructure operations.
-          </p>
+        <div className="mx-auto max-w-4xl px-6">
+          <div className="grid grid-cols-1 gap-px overflow-hidden rounded-2xl border border-border bg-border sm:grid-cols-3">
+            <div className="bg-card/80 px-6 py-6 text-center">
+              <div className="font-mono-num text-3xl font-semibold text-primary">4,000+</div>
+              <div className="mt-1 text-[10px] uppercase tracking-widest text-muted-foreground">Shares validated</div>
+            </div>
+            <div className="bg-card/80 px-6 py-6 text-center">
+              <div className="font-mono-num text-3xl font-semibold text-primary">0</div>
+              <div className="mt-1 text-[10px] uppercase tracking-widest text-muted-foreground">Rejected</div>
+            </div>
+            <div className="bg-card/80 px-6 py-6 text-center">
+              <div className="font-mono-num text-3xl font-semibold text-primary">June 2026</div>
+              <div className="mt-1 text-[10px] uppercase tracking-widest text-muted-foreground">Mining since</div>
+            </div>
+          </div>
         </div>
       </section>
 
       <footer className="border-t border-border/60 py-8">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-6 text-xs text-muted-foreground sm:flex-row">
-          <span>© {new Date().getFullYear()} Arca Grid</span>
-          <span className="font-mono-num text-muted-foreground">
-            Arca Grid · The Operating System for Distributed GPU Fleets
-          </span>
+          <span>© 2026 Arca Grid · pool.arcgrid.dev · Built for BTX network decentralisation</span>
         </div>
       </footer>
     </div>
