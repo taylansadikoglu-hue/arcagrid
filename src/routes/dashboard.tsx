@@ -997,7 +997,12 @@ function PoolStatsPanel() {
     staleTime: 25_000,
     placeholderData: keepPreviousData,
   });
-  const p = data ?? ({} as Partial<typeof data extends infer T ? T : never>);
+  const p = (data ?? {}) as {
+    pool_hashrate?: number;
+    connected_miners?: number;
+    blocks_found?: number;
+    fee?: number;
+  };
   const fmtHash = (v?: number) => {
     if (typeof v !== "number" || !isFinite(v)) return "—";
     if (v >= 1e9) return `${(v / 1e9).toFixed(2)} GH/s`;
