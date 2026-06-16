@@ -1055,16 +1055,6 @@ function formatHashrate(hps: number): string {
   return `${v.toFixed(2)} ${units[i]}`;
 }
 
-function formatLastSeen(ts: number): string {
-  // last_seen is a Unix seconds float
-  const sec = ts > 1e12 ? ts / 1000 : ts;
-  const delta = Math.max(0, Date.now() / 1000 - sec);
-  if (delta < 60) return `${Math.floor(delta)}s ago`;
-  if (delta < 3600) return `${Math.floor(delta / 60)}m ago`;
-  if (delta < 86400) return `${Math.floor(delta / 3600)}h ago`;
-  return `${Math.floor(delta / 86400)}d ago`;
-}
-
 function PoolSection() {
   const { data: pool } = useQuery({
     queryKey: ["pool-overview"],
