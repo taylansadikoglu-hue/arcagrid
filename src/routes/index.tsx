@@ -619,6 +619,15 @@ function PricingSectionInner() {
 /* -------------------------------------------------------------------------- */
 
 function RoiCalculator() {
+  const GPU_NS = {
+    "RTX 5060 Ti": 3500,
+    "RTX 3070": 1800,
+    "RTX 3080": 2800,
+    "RTX 4070": 3200,
+    "RTX 4090": 9000,
+    Other: 1000,
+  } as const;
+  type GpuModel = keyof typeof GPU_NS;
   const [rigCost, setRigCost] = useState(3.6); // $/day
   const [gpuCount, setGpuCount] = useState(1);
   const [gpuModel, setGpuModel] = useState<GpuModel>("RTX 5060 Ti");
@@ -715,7 +724,7 @@ function RoiCalculator() {
                   onChange={(e) => setGpuModel(e.target.value as keyof typeof GPU_NS)}
                   className="font-mono-num mt-2 w-full rounded-md border border-input bg-background/60 px-3 py-1.5 text-xs outline-none focus:border-primary/60 focus:ring-2 focus:ring-primary/20"
                 >
-                  {(Object.keys(GPU_NS) as Array<keyof typeof GPU_NS>).map((g) => (
+                  {(Object.keys(GPU_NS) as GpuModel[]).map((g) => (
                     <option key={g} value={g}>{g} — {GPU_NS[g]} N/s</option>
                   ))}
                 </select>
