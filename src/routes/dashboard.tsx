@@ -699,19 +699,38 @@ function OperatorPanel() {
   );
 }
 
+function useMyRigs() {
+  return useQuery({
+    queryKey: ["operator-arcgrid-miners"],
+    queryFn: ({ signal }) => fetchPoolMiners(signal),
+    refetchInterval: 15_000,
+    staleTime: 10_000,
+    placeholderData: keepPreviousData,
+    select: (miners: PoolMiner[]) =>
+      miners.filter((m) => {
+        const n = (m.worker_name ?? "").trim();
+        return n.toLowerCase().includes("arcagrid") || n.startsWith("O-178");
+      }),
+  });
+}
+
 function WalletPanel() {
   const fetchWallet = useServerFn(fetchOperatorWallet);
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading } = useQuery({
     queryKey: ["operator-wallet"],
-    queryFn: () => fetchWallet() as Promise<OperatorWallet>,
+    queryFn: () =>
+      (fetchWallet() as Promise<OperatorWallet>).catch(() => ({}) as OperatorWallet),
     refetchInterval: 60_000,
     staleTime: 55_000,
     placeholderData: keepPreviousData,
+    retry: false,
   });
   const w = (data ?? {}) as OperatorWallet;
   const addr = w.address
     ? `${w.address.slice(0, 8)}…${w.address.slice(-6)}`
     : "—";
+  const { data: rigs } = useMyRigs();
+  const activeRigsCount = rigs?.length;
   return (
     <div
       className="rounded-2xl border border-primary/30 bg-card p-6"
@@ -722,11 +741,7 @@ function WalletPanel() {
           Operator Wallet
         </h2>
         <span className="font-mono-num text-[11px] uppercase tracking-widest text-muted-foreground">
-          {isLoading && !data
-            ? "loading…"
-            : error && !data
-              ? "Connect wallet"
-              : "live"}
+          {isLoading && !data ? "loading…" : "live"}
         </span>
       </div>
       <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -740,7 +755,11 @@ function WalletPanel() {
         />
         <Metric
           label="Active Rigs"
-          value={typeof w.active_rigs === "number" ? w.active_rigs.toLocaleString() : "—"}
+          value={
+            typeof activeRigsCount === "number"
+              ? activeRigsCount.toLocaleString()
+              : "—"
+          }
         />
         <Metric label="Address" value={addr} />
       </div>
