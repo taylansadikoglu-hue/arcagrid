@@ -49,10 +49,15 @@ export const Route = createFileRoute("/dashboard")({
   component: DashboardPage,
 });
 
+const OPERATOR_EMAIL = "taylan.sadikoglu@gmail.com";
+
 function DashboardPage() {
+  const { user } = useAuth();
   const { session, setSession, hydrated } = useMinerSession();
   const navigate = useNavigate();
+  const isOperator = user?.email?.toLowerCase() === OPERATOR_EMAIL;
   const [now, setNow] = useState(Date.now());
+
   const [confirming, setConfirming] = useState(false);
   const [terminating, setTerminating] = useState(false);
   const [termError, setTermError] = useState<string | null>(null);
@@ -195,44 +200,12 @@ function DashboardPage() {
     );
   }
 
-  if (!session) {
-    return (
-      <div className="min-h-screen bg-background text-foreground">
-        <SiteNav />
-        <div className="border-b border-amber-500/30 bg-amber-500/5 backdrop-blur-sm">
-          <div className="mx-auto flex max-w-6xl flex-col items-start justify-between gap-3 px-6 py-4 sm:flex-row sm:items-center">
-            <p className="text-sm text-amber-200">
-              🚀 Ready to link your own hardware? Go to the Deploy Node panel to
-              copy your unique access token and 1-command installation string.
-            </p>
-            <Link
-              to="/deploy"
-              className="shrink-0 rounded-lg bg-amber-500/20 px-4 py-2 text-sm font-medium text-amber-300 transition-colors hover:bg-amber-500/30"
-            >
-              Deploy Node →
-            </Link>
-          </div>
-        </div>
-        <div className="mx-auto grid max-w-md gap-4 px-6 py-24 text-center">
-          <h1 className="text-2xl font-semibold">No active session</h1>
-          <p className="text-sm text-muted-foreground">
-            You haven't launched a miner yet. Pick a tier to get started.
-          </p>
-          <Link
-            to="/"
-            className="mx-auto rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:brightness-110"
-          >
-            Launch a miner
-          </Link>
-        </div>
-      </div>
-    );
-  }
 
-  const tier = tierById(session.tier);
+
+  const tier = session ? tierById(session.tier) : null;
   // Defensive: an unknown tier id (stale localStorage from an older build)
   // would otherwise crash on access. Purge and bounce home.
-  if (!tier) {
+  if (session && !tier) {
     try {
       localStorage.removeItem("btx-miner-session");
     } catch {
@@ -257,16 +230,18 @@ function DashboardPage() {
       </div>
     );
   }
-  const elapsed = Math.max(0, now - session.startedAt);
-  const remaining = Math.max(0, session.expiresAt - now);
+  const elapsed = session ? Math.max(0, now - session.startedAt) : 0;
+  const remaining = session ? Math.max(0, session.expiresAt - now) : 0;
   const uptimeMs = telemetry?.uptime_seconds
     ? telemetry.uptime_seconds * 1000
     : elapsed;
-  const earned = ((hashrate * uptimeMs) / 1000 / 3600) * 0.00012;
+  const earned = session ? ((hashrate * uptimeMs) / 1000 / 3600) * 0.00012 : 0;
   const peers = telemetry?.current_peer_count;
-  const isActive =
-    session.status === "mining" &&
-    (liveStatus === "active" || liveStatus === "degraded");
+  const isActive = session
+    ? session.status === "mining" &&
+      (liveStatus === "active" || liveStatus === "degraded")
+    : false;
+
 
   const stop = async () => {
     if (!session) return;
@@ -314,7 +289,7 @@ function DashboardPage() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <SiteNav />
-      {session.status !== "mining" && (
+      {session && session.status !== "mining" && (
         <div className="border-b border-amber-500/30 bg-amber-500/5 backdrop-blur-sm">
           <div className="mx-auto flex max-w-6xl flex-col items-start justify-between gap-3 px-6 py-4 sm:flex-row sm:items-center">
             <p className="text-sm text-amber-200">
@@ -331,6 +306,9 @@ function DashboardPage() {
         </div>
       )}
       <div className="mx-auto max-w-6xl px-6 py-10">
+        {session && (
+          <>
+
         {/* HEADER */}
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
@@ -376,7 +354,7 @@ function DashboardPage() {
 
         {/* MAIN GRID */}
         <div className="mt-8 grid gap-4 lg:grid-cols-3">
-          {session.tier === "partner_share" && (
+          {session.tier === "partner_share" && !isOperator && (
             <div
               className="lg:col-span-3 rounded-2xl border border-primary/40 bg-card p-6"
               style={{ boxShadow: "var(--shadow-card)" }}
@@ -416,6 +394,7 @@ function DashboardPage() {
               </button>
             </div>
           )}
+
           {/* STATUS CARD */}
           <div
             className="rounded-2xl border border-border bg-card p-6 lg:col-span-2"
@@ -575,13 +554,16 @@ function DashboardPage() {
             )}
           </div>
         </div>
+        </>
+      )}
 
-        {/* OPERATOR-ONLY CONTROL PANEL */}
-        <OperatorPanel />
+      {/* OPERATOR-ONLY CONTROL PANEL */}
+      <OperatorPanel />
       </div>
     </div>
   );
 }
+
 
 function StatusBadge({
   mining,
@@ -683,9 +665,8 @@ function fmtDuration(ms: number) {
 /*  Sections: Wallet · My Rigs (pool) · Fleet Controls · Pool Stats           */
 /* -------------------------------------------------------------------------- */
 
-const OPERATOR_EMAIL = "taylan.sadikoglu@gmail.com";
-
 interface OperatorWallet {
+
   btx_balance?: number;
   clore_balance?: number;
   active_rigs?: number;
