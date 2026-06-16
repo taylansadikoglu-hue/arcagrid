@@ -153,6 +153,9 @@ export interface MineBtxWorker {
   last_share_age_s?: number;
   last_share?: number;
   last_seen?: number;
+  temp?: number;
+  gpu_temp?: number;
+  temperature?: number;
 }
 
 export const fetchMineBtxWorkers = createServerFn({ method: "GET" }).handler(
