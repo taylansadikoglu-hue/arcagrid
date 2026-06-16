@@ -511,7 +511,9 @@ function FleetConsole({ userId, email }: { userId: string; email: string }) {
                 Aggregate Mesh Capacity
               </p>
               <p className="font-mono-num mt-2 text-3xl font-semibold tracking-tight text-primary">
-                ${balances ? balances.totalUsd.toFixed(2) : "—"}
+                {balances && Number.isFinite(balances.totalUsd)
+                  ? `$${balances.totalUsd.toFixed(2)}`
+                  : "—"}
               </p>
               <p className="mt-1 text-[11px] text-muted-foreground">
                 Combined USD-equivalent across all bound allocators
