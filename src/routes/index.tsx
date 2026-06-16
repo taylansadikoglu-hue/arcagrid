@@ -842,7 +842,7 @@ function RoiOutput({
 
 function LiveFleetSection() {
   const { data, isLoading } = useQuery({
-    queryKey: ["public-minebtx-workers"],
+    queryKey: ["public-arcgrid-workers"],
     queryFn: ({ signal }) => fetchPublicWorkers(signal),
     refetchInterval: 30_000,
     staleTime: 25_000,
