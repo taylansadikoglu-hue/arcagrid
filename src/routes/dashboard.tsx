@@ -17,6 +17,9 @@ import {
   rentRigs,
   fetchMineBtxWorkers,
   restartRig,
+  setRigWatts,
+  setRigTurbo,
+  setRigThermal,
   type MineBtxWorker,
 } from "@/lib/api/fleet-ops.functions";
 import { fetchPoolOverview } from "@/lib/api/grid-api";
