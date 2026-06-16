@@ -74,13 +74,21 @@ const CAPABILITIES_TODAY = [
   "Peer Monitoring",
   "Health Telemetry",
   "Multi-Provider Visibility",
+  "One-click Deployment",
+  "Automated Recovery",
+  "Self-Healing Watchdog",
+  "Auto-provisioning",
+  "Docker Deployment",
+  "DC Installer (Orchestra OS)",
 ];
 
 const CAPABILITIES_NEXT = [
-  "One-click Deployment",
-  "Automated Recovery",
-  "Fleet Scheduling",
-  "Capacity Optimization",
+  "Dynamic Auto-scaling",
+  "Multi-tenant DC Billing",
+  "v0.33 Coordinated Upgrade",
+  "White-label Pool Deployment",
+  "Capacity Marketplace",
+  "Mobile App",
 ];
 
 function Landing() {
