@@ -14,12 +14,12 @@ import {
 import {
   fetchOperatorWallet,
   setAutoheal,
-  setTuning,
   rentRigs,
-  CLEAN_FLEET_GPU_ALLOWLIST,
-  CLEAN_FLEET_FILTERS,
+  fetchMineBtxWorkers,
+  restartRig,
+  type MineBtxWorker,
 } from "@/lib/api/fleet-ops.functions";
-import { fetchPoolMiners, fetchPoolOverview, type PoolMiner } from "@/lib/api/grid-api";
+import { fetchPoolOverview } from "@/lib/api/grid-api";
 import { useAuth } from "@/lib/use-auth";
 import { captureError } from "@/lib/observability";
 
