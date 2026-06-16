@@ -440,7 +440,7 @@ function ManagedTiers() {
 
           <div className="mt-4 inline-flex w-fit items-center gap-1.5 rounded-full border border-primary/40 bg-primary/10 px-2.5 py-1 font-mono-num text-[10px] font-semibold uppercase tracking-widest text-primary">
             <span className="pulse-dot inline-block h-1.5 w-1.5 rounded-full bg-primary" />
-            ⚡ Pay to Mine in under 30 Mins
+            ⚡ Pay to Mine in under 5 Mins
           </div>
 
           <ul className="mt-4 space-y-2 text-sm">
@@ -478,7 +478,7 @@ function PricingSectionInner() {
       <div className="mx-auto max-w-7xl px-6">
         <div className="mx-auto max-w-2xl text-center">
           <span className="font-mono-num text-[10px] uppercase tracking-widest text-primary">
-            Compute Tiers
+            How to get started
           </span>
           <h2 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">
             Pick how you deploy
@@ -506,7 +506,7 @@ function PricingSectionInner() {
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              Bring Your Own Rigs (BYO)
+              Bring Your Own Hardware
             </button>
             <button
               role="tab"
@@ -518,7 +518,7 @@ function PricingSectionInner() {
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              Rent Arca Managed Nodes
+              Rent Managed Service
             </button>
           </div>
         </div>
@@ -533,10 +533,10 @@ function PricingSectionInner() {
                 Zero Upfront
               </span>
               <span className="font-mono-num text-[10px] uppercase tracking-widest text-primary">
-                Bring Your Own Rigs
+                Bring Your Own Hardware
               </span>
               <h3 className="mt-2 text-2xl font-semibold tracking-tight">
-                Infrastructure Core
+                Managed Service
               </h3>
               <div className="mt-4 flex items-baseline gap-2">
                 <span className="font-mono-num text-4xl font-semibold tracking-tight text-primary">
@@ -572,7 +572,7 @@ function PricingSectionInner() {
                 search={{ tier: "partner_share" }}
                 className="mt-7 w-full rounded-lg bg-accent px-4 py-3 text-center text-sm font-semibold text-accent-foreground transition-all hover:brightness-110"
               >
-                Activate Infrastructure Core →
+                Activate Managed Service →
               </Link>
             </article>
           </div>
