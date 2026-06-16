@@ -15,14 +15,16 @@ import {
   fetchOperatorWallet,
   setAutoheal,
   rentRigs,
-  fetchMineBtxWorkers,
   restartRig,
   setRigWatts,
   setRigTurbo,
   setRigThermal,
-  type MineBtxWorker,
 } from "@/lib/api/fleet-ops.functions";
-import { fetchPoolOverview } from "@/lib/api/grid-api";
+import {
+  fetchPoolOverview,
+  fetchPoolMiners,
+  type PoolMiner,
+} from "@/lib/api/grid-api";
 import { useAuth } from "@/lib/use-auth";
 import { captureError } from "@/lib/observability";
 
@@ -697,19 +699,38 @@ function OperatorPanel() {
   );
 }
 
+function useMyRigs() {
+  return useQuery({
+    queryKey: ["operator-arcgrid-miners"],
+    queryFn: ({ signal }) => fetchPoolMiners(signal),
+    refetchInterval: 15_000,
+    staleTime: 10_000,
+    placeholderData: keepPreviousData,
+    select: (miners: PoolMiner[]) =>
+      miners.filter((m) => {
+        const n = (m.worker_name ?? "").trim();
+        return n.toLowerCase().includes("arcagrid") || n.startsWith("O-178");
+      }),
+  });
+}
+
 function WalletPanel() {
   const fetchWallet = useServerFn(fetchOperatorWallet);
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading } = useQuery({
     queryKey: ["operator-wallet"],
-    queryFn: () => fetchWallet() as Promise<OperatorWallet>,
+    queryFn: () =>
+      (fetchWallet() as Promise<OperatorWallet>).catch(() => ({}) as OperatorWallet),
     refetchInterval: 60_000,
     staleTime: 55_000,
     placeholderData: keepPreviousData,
+    retry: false,
   });
   const w = (data ?? {}) as OperatorWallet;
   const addr = w.address
     ? `${w.address.slice(0, 8)}…${w.address.slice(-6)}`
     : "—";
+  const { data: rigs } = useMyRigs();
+  const activeRigsCount = rigs?.length;
   return (
     <div
       className="rounded-2xl border border-primary/30 bg-card p-6"
@@ -720,11 +741,7 @@ function WalletPanel() {
           Operator Wallet
         </h2>
         <span className="font-mono-num text-[11px] uppercase tracking-widest text-muted-foreground">
-          {isLoading && !data
-            ? "loading…"
-            : error && !data
-              ? "Connect wallet"
-              : "live"}
+          {isLoading && !data ? "loading…" : "live"}
         </span>
       </div>
       <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -738,7 +755,11 @@ function WalletPanel() {
         />
         <Metric
           label="Active Rigs"
-          value={typeof w.active_rigs === "number" ? w.active_rigs.toLocaleString() : "—"}
+          value={
+            typeof activeRigsCount === "number"
+              ? activeRigsCount.toLocaleString()
+              : "—"
+          }
         />
         <Metric label="Address" value={addr} />
       </div>
@@ -749,12 +770,6 @@ function WalletPanel() {
 /* -------------------------------------------------------------------------- */
 /*  MY RIGS — workers from pool.arcgrid.dev filtered to operator's fleet      */
 /* -------------------------------------------------------------------------- */
-
-function isMyRig(name: string): boolean {
-  const n = (name ?? "").trim();
-  if (!n) return false;
-  return n.toLowerCase().includes("arcagrid") || n.startsWith("O-178");
-}
 
 const PERF_LABELS: Record<number, string> = {
   25: "Eco",
@@ -865,26 +880,37 @@ function RigControls({
 }
 
 function MyRigsTable() {
-  const fetchWorkers = useServerFn(fetchMineBtxWorkers);
   const restart = useServerFn(restartRig);
   const [busy, setBusy] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
-  const { data, isLoading, error } = useQuery({
-    queryKey: ["operator-arcgrid-workers"],
-    queryFn: () => fetchWorkers() as Promise<MineBtxWorker[]>,
-    refetchInterval: 15_000,
-    staleTime: 10_000,
-    placeholderData: keepPreviousData,
-  });
-  const rows = (data ?? [])
-    .map((w) => ({ ...w, _name: w.worker ?? w.name ?? "" }))
-    .filter((w) => isMyRig(w._name));
+  const { data: rows = [], isLoading, error } = useMyRigs();
 
-  const fmtAge = (s?: number) => {
-    if (typeof s !== "number" || !isFinite(s) || s < 0) return "—";
+  const hashrateNumber = (
+    h: PoolMiner["hashrate"],
+  ): number | undefined => {
+    if (typeof h === "number") return h;
+    if (h && typeof h === "object") {
+      if (typeof h.raw === "number") return h.raw;
+      if (typeof h.value === "number") return h.value;
+    }
+    return undefined;
+  };
+
+  const fmtAge = (lastSeen?: number) => {
+    if (typeof lastSeen !== "number" || !isFinite(lastSeen)) return "—";
+    // last_seen may be unix seconds (large) or already an "age in seconds".
+    const nowSec = Date.now() / 1000;
+    const s = lastSeen > 1e9 ? nowSec - lastSeen : lastSeen;
+    if (s < 0 || !isFinite(s)) return "—";
     if (s < 60) return `${Math.floor(s)}s ago`;
     if (s < 3600) return `${Math.floor(s / 60)}m ago`;
     return `${Math.floor(s / 3600)}h ago`;
+  };
+
+  const ageSeconds = (lastSeen?: number): number | undefined => {
+    if (typeof lastSeen !== "number" || !isFinite(lastSeen)) return undefined;
+    const nowSec = Date.now() / 1000;
+    return lastSeen > 1e9 ? nowSec - lastSeen : lastSeen;
   };
 
   const doRestart = async (worker: string) => {
@@ -936,8 +962,7 @@ function MyRigsTable() {
               <tr className="border-b border-border/60 text-[10px] uppercase tracking-widest text-muted-foreground">
                 <th className="px-3 py-2 font-medium">Worker</th>
                 <th className="px-3 py-2 font-medium">N/s</th>
-                <th className="px-3 py-2 font-medium">GPU%</th>
-                <th className="px-3 py-2 font-medium">Watts</th>
+                <th className="px-3 py-2 font-medium">Shares</th>
                 <th className="px-3 py-2 font-medium">Last Share</th>
                 <th className="px-3 py-2 font-medium">Status</th>
                 <th className="px-3 py-2 font-medium">Actions</th>
@@ -945,26 +970,23 @@ function MyRigsTable() {
             </thead>
             <tbody className="font-mono-num">
               {rows.map((w) => {
-                const age = typeof w.last_share_age_s === "number" ? w.last_share_age_s : undefined;
+                const name = w.worker_name;
+                const age = ageSeconds(w.last_seen);
                 const healthy = typeof age === "number" && age < 3600;
-                const ns = w.hashrate_ns ?? w.hashrate;
-                const gpu = w.gpu_pct ?? w.gpu;
-                const watts = w.watts ?? w.power;
-                const temp = w.temp ?? w.gpu_temp ?? w.temperature;
+                const ns = hashrateNumber(w.hashrate);
                 return (
-                  <Fragment key={w._name}>
+                  <Fragment key={name}>
                   <tr className="border-b border-border/40 hover:bg-secondary/30">
-                    <td className="px-3 py-2 font-semibold text-foreground">{w._name}</td>
+                    <td className="px-3 py-2 font-semibold text-foreground">{name}</td>
                     <td className="px-3 py-2 text-primary">
                       {typeof ns === "number" ? ns.toLocaleString() : "—"}
                     </td>
                     <td className="px-3 py-2 text-muted-foreground">
-                      {typeof gpu === "number" ? `${gpu}%` : "—"}
+                      {typeof w.shares_valid === "number"
+                        ? w.shares_valid.toLocaleString()
+                        : "—"}
                     </td>
-                    <td className="px-3 py-2 text-muted-foreground">
-                      {typeof watts === "number" ? `${watts}W` : "—"}
-                    </td>
-                    <td className="px-3 py-2 text-muted-foreground">{fmtAge(age)}</td>
+                    <td className="px-3 py-2 text-muted-foreground">{fmtAge(w.last_seen)}</td>
                     <td className="px-3 py-2">
                       <span
                         className={`inline-block h-2 w-2 rounded-full ${
@@ -974,21 +996,17 @@ function MyRigsTable() {
                     </td>
                     <td className="px-3 py-2">
                       <button
-                        onClick={() => doRestart(w._name)}
-                        disabled={busy === w._name}
+                        onClick={() => doRestart(name)}
+                        disabled={busy === name}
                         className="rounded border border-border bg-secondary/50 px-2 py-1 text-[10px] uppercase tracking-wider text-foreground hover:bg-secondary disabled:opacity-50"
                       >
-                        {busy === w._name ? "…" : "Restart"}
+                        {busy === name ? "…" : "Restart"}
                       </button>
                     </td>
                   </tr>
                   <tr className="border-b border-border/40 last:border-b-0 bg-background/40">
-                    <td colSpan={7} className="px-3 py-3">
-                      <RigControls
-                        worker={w._name}
-                        liveWatts={typeof watts === "number" ? watts : undefined}
-                        liveTemp={typeof temp === "number" ? temp : undefined}
-                      />
+                    <td colSpan={6} className="px-3 py-3">
+                      <RigControls worker={name} />
                     </td>
                   </tr>
                   </Fragment>
@@ -1012,15 +1030,26 @@ function FleetControls() {
   const [autoheal, setAutohealLocal] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
+  const [rentError, setRentError] = useState<string | null>(null);
 
-  const wrap = async (key: string, label: string, fn: () => Promise<unknown>) => {
+  const wrap = async (
+    key: string,
+    label: string,
+    fn: () => Promise<unknown>,
+    opts?: { isRent?: boolean },
+  ) => {
     setBusy(key);
     setMsg(null);
+    if (opts?.isRent) setRentError(null);
     try {
       await fn();
       setMsg(`${label} OK`);
-    } catch (e) {
-      setMsg(`${label} failed: ${(e as Error).message}`);
+    } catch {
+      if (opts?.isRent) {
+        setRentError("Rent failed — check API");
+      } else {
+        setMsg(`${label} failed`);
+      }
     } finally {
       setBusy(null);
     }
@@ -1046,6 +1075,7 @@ function FleetControls() {
           onClick={() =>
             wrap("t1", "Rent Tier 1", () =>
               rentFn({ data: { tier: 1, count: 1, clean_fleet_only: false } }),
+              { isRent: true },
             )
           }
           disabled={busy === "t1"}
@@ -1057,6 +1087,7 @@ function FleetControls() {
           onClick={() =>
             wrap("t2", "Rent Tier 2", () =>
               rentFn({ data: { tier: 2, count: 1, clean_fleet_only: false } }),
+              { isRent: true },
             )
           }
           disabled={busy === "t2"}
@@ -1082,6 +1113,9 @@ function FleetControls() {
           Auto-heal {autoheal ? "ON" : "OFF"}
         </button>
       </div>
+      {rentError && (
+        <p className="mt-2 text-[11px] text-destructive">{rentError}</p>
+      )}
     </div>
   );
 }
@@ -1103,7 +1137,12 @@ function PoolStatsPanel() {
     connected_miners?: number;
     blocks_found?: number;
     fee?: number;
+    totals?: { miner_hashrate_sum?: number };
   };
+  const poolHashrate =
+    typeof p.pool_hashrate === "number"
+      ? p.pool_hashrate
+      : p.totals?.miner_hashrate_sum;
   const fmtHash = (v?: number) => {
     if (typeof v !== "number" || !isFinite(v)) return "—";
     if (v >= 1e9) return `${(v / 1e9).toFixed(2)} GH/s`;
@@ -1125,7 +1164,7 @@ function PoolStatsPanel() {
         </span>
       </div>
       <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Metric label="Pool Hashrate" value={fmtHash(p.pool_hashrate)} />
+        <Metric label="Pool Hashrate" value={fmtHash(poolHashrate)} />
         <Metric
           label="Connected Miners"
           value={
