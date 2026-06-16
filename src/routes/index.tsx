@@ -5,9 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { SiteNav } from "@/components/SiteNav";
 import {
   fetchPoolOverview,
-  fetchPoolMiners,
   fetchBtxPrice,
-  type PoolMiner,
 } from "@/lib/api/grid-api";
 import { fetchPublicWorkers, type MineBtxWorkerPublic } from "@/lib/api/grid-api";
 
@@ -109,17 +107,8 @@ function Landing() {
               Cluster Architecture
             </h1>
             <p className="mx-auto mt-5 max-w-2xl text-balance text-base text-muted-foreground sm:text-lg">
-              High-Density GPU Grid Orchestration.
+              Turn idle GPUs into revenue. Automatically.
             </p>
-            <div className="mt-6 inline-flex flex-col items-center gap-1.5 rounded-xl border border-primary/30 bg-primary/5 px-4 py-3">
-              <span className="inline-flex items-center gap-2 font-mono-num text-[10px] font-semibold uppercase tracking-widest text-primary">
-                <span className="pulse-dot inline-block h-2 w-2 rounded-full bg-primary" />
-                Live Production Infrastructure
-              </span>
-              <span className="text-xs text-muted-foreground">
-                Monitoring active BTX workloads across distributed GPU providers in real time.
-              </span>
-            </div>
             <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <Link
                 to="/deploy"
@@ -149,11 +138,14 @@ function Landing() {
         </div>
       </section>
 
+      {/* JOIN THE POOL (merged pool overview + CTA + stratum) */}
+      <PoolSection />
+
+      {/* ROI CALCULATOR */}
+      <RoiCalculator />
+
       {/* LIVE FLEET PREVIEW */}
       <LiveFleetSection />
-
-      {/* POOL OVERVIEW + MINERS */}
-      <PoolSection />
 
       {/* FEATURES */}
       <section className="border-t border-border/60 py-20">
@@ -191,9 +183,6 @@ function Landing() {
 
       {/* PRICING TIERS */}
       <PricingSection />
-
-      {/* ROI CALCULATOR */}
-      <RoiCalculator />
 
       {/* WHY ARCA GRID */}
       <section className="border-t border-border/60 py-20">
@@ -317,30 +306,29 @@ function Landing() {
         </div>
       </section>
 
-      {/* FOUNDER NOTE */}
+      {/* LIVE STATS */}
       <section className="border-t border-border/60 py-16">
-        <div className="mx-auto max-w-3xl px-6 text-center">
-          <span className="font-mono-num text-[10px] uppercase tracking-widest text-primary">
-            Built by operators
-          </span>
-          <h2 className="mt-2 text-2xl font-semibold tracking-tight">
-            From the workbench, not the whitepaper.
-          </h2>
-          <p className="mt-4 text-sm leading-relaxed text-muted-foreground sm:text-base">
-            ArcGrid was created from real-world experience deploying and
-            maintaining GPU infrastructure for BTX workloads across multiple
-            providers. No buzzwords. No abstractions. Just better
-            infrastructure operations.
-          </p>
+        <div className="mx-auto max-w-4xl px-6">
+          <div className="grid grid-cols-1 gap-px overflow-hidden rounded-2xl border border-border bg-border sm:grid-cols-3">
+            <div className="bg-card/80 px-6 py-6 text-center">
+              <div className="font-mono-num text-3xl font-semibold text-primary">4,000+</div>
+              <div className="mt-1 text-[10px] uppercase tracking-widest text-muted-foreground">Shares validated</div>
+            </div>
+            <div className="bg-card/80 px-6 py-6 text-center">
+              <div className="font-mono-num text-3xl font-semibold text-primary">0</div>
+              <div className="mt-1 text-[10px] uppercase tracking-widest text-muted-foreground">Rejected</div>
+            </div>
+            <div className="bg-card/80 px-6 py-6 text-center">
+              <div className="font-mono-num text-3xl font-semibold text-primary">June 2026</div>
+              <div className="mt-1 text-[10px] uppercase tracking-widest text-muted-foreground">Mining since</div>
+            </div>
+          </div>
         </div>
       </section>
 
       <footer className="border-t border-border/60 py-8">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-6 text-xs text-muted-foreground sm:flex-row">
-          <span>© {new Date().getFullYear()} Arca Grid</span>
-          <span className="font-mono-num text-muted-foreground">
-            Arca Grid · The Operating System for Distributed GPU Fleets
-          </span>
+          <span>© 2026 Arca Grid · pool.arcgrid.dev · Built for BTX network decentralisation</span>
         </div>
       </footer>
     </div>
@@ -450,7 +438,7 @@ function ManagedTiers() {
 
           <div className="mt-4 inline-flex w-fit items-center gap-1.5 rounded-full border border-primary/40 bg-primary/10 px-2.5 py-1 font-mono-num text-[10px] font-semibold uppercase tracking-widest text-primary">
             <span className="pulse-dot inline-block h-1.5 w-1.5 rounded-full bg-primary" />
-            ⚡ Pay to Mine in under 30 Mins
+            ⚡ Pay to Mine in under 5 Mins
           </div>
 
           <ul className="mt-4 space-y-2 text-sm">
@@ -488,7 +476,7 @@ function PricingSectionInner() {
       <div className="mx-auto max-w-7xl px-6">
         <div className="mx-auto max-w-2xl text-center">
           <span className="font-mono-num text-[10px] uppercase tracking-widest text-primary">
-            Compute Tiers
+            How to get started
           </span>
           <h2 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">
             Pick how you deploy
@@ -516,7 +504,7 @@ function PricingSectionInner() {
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              Bring Your Own Rigs (BYO)
+              Bring Your Own Hardware
             </button>
             <button
               role="tab"
@@ -528,7 +516,7 @@ function PricingSectionInner() {
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              Rent Arca Managed Nodes
+              Rent Managed Service
             </button>
           </div>
         </div>
@@ -543,10 +531,10 @@ function PricingSectionInner() {
                 Zero Upfront
               </span>
               <span className="font-mono-num text-[10px] uppercase tracking-widest text-primary">
-                Bring Your Own Rigs
+                Bring Your Own Hardware
               </span>
               <h3 className="mt-2 text-2xl font-semibold tracking-tight">
-                Infrastructure Core
+                Managed Service
               </h3>
               <div className="mt-4 flex items-baseline gap-2">
                 <span className="font-mono-num text-4xl font-semibold tracking-tight text-primary">
@@ -582,7 +570,7 @@ function PricingSectionInner() {
                 search={{ tier: "partner_share" }}
                 className="mt-7 w-full rounded-lg bg-accent px-4 py-3 text-center text-sm font-semibold text-accent-foreground transition-all hover:brightness-110"
               >
-                Activate Infrastructure Core →
+                Activate Managed Service →
               </Link>
             </article>
           </div>
@@ -1067,16 +1055,6 @@ function formatHashrate(hps: number): string {
   return `${v.toFixed(2)} ${units[i]}`;
 }
 
-function formatLastSeen(ts: number): string {
-  // last_seen is a Unix seconds float
-  const sec = ts > 1e12 ? ts / 1000 : ts;
-  const delta = Math.max(0, Date.now() / 1000 - sec);
-  if (delta < 60) return `${Math.floor(delta)}s ago`;
-  if (delta < 3600) return `${Math.floor(delta / 60)}m ago`;
-  if (delta < 86400) return `${Math.floor(delta / 3600)}h ago`;
-  return `${Math.floor(delta / 86400)}d ago`;
-}
-
 function PoolSection() {
   const { data: pool } = useQuery({
     queryKey: ["pool-overview"],
@@ -1084,97 +1062,59 @@ function PoolSection() {
     refetchInterval: 30_000,
     staleTime: 25_000,
   });
-  const { data: miners, isLoading: minersLoading } = useQuery({
-    queryKey: ["pool-miners"],
-    queryFn: ({ signal }) => fetchPoolMiners(signal),
-    refetchInterval: 30_000,
-    staleTime: 25_000,
-  });
-
-  const minerRows: PoolMiner[] = miners ?? [];
   const hashrateSum = pool?.totals?.miner_hashrate_sum ?? 0;
-  const blocks = pool?.totals?.blocks ?? 0;
   const connected = pool?.connected_miners ?? 0;
   const fee = pool?.fee_percent ?? 2;
 
+  const stratum = "stratum+tcp://pool.arcgrid.dev:3333";
+
   return (
-    <section className="border-t border-border/60 pb-20">
+    <section className="border-t border-border/60 py-16">
       <div className="mx-auto max-w-7xl px-6">
-        <div className="mx-auto mb-6 max-w-2xl pt-12 text-center">
+        <div className="mx-auto mb-8 max-w-2xl text-center">
+          <span className="font-mono-num text-[10px] uppercase tracking-widest text-primary">
+            Join the Pool
+          </span>
           <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-            Pool Overview
+            Start mining BTX in 5 minutes
           </h2>
           <p className="mt-2 text-sm text-muted-foreground">
-            Live stats from <span className="font-mono-num">pool.arcgrid.dev</span>.
+            Fair proportional payouts. Low share difficulty. No signup required.
           </p>
         </div>
 
-        <div className="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-border bg-border sm:grid-cols-4">
+        <div className="mx-auto grid max-w-4xl grid-cols-1 gap-px overflow-hidden rounded-2xl border border-border bg-border sm:grid-cols-3">
+          <PoolStat label="Pool fee" value={`${fee.toFixed(1)}%`} />
           <PoolStat label="Connected miners" value={connected.toString()} />
           <PoolStat label="Pool hashrate" value={formatHashrate(hashrateSum)} />
-          <PoolStat label="Blocks found" value={blocks.toString()} />
-          <PoolStat label="Pool fee" value={`${fee.toFixed(1)}%`} />
         </div>
 
-        <div className="mt-8 overflow-hidden rounded-2xl border border-border bg-card/80">
-          <div className="flex items-center justify-between border-b border-border/60 bg-background/60 px-4 py-2.5">
-            <span className="font-mono-num text-[11px] uppercase tracking-widest text-muted-foreground">
-              arcgrid · miners
-            </span>
+        <div className="mx-auto mt-8 max-w-4xl rounded-2xl border border-primary/30 bg-card/80 p-6 sm:p-8" style={{ boxShadow: "var(--shadow-glow)" }}>
+          <div className="flex flex-col items-start gap-2">
             <span className="font-mono-num text-[10px] uppercase tracking-widest text-muted-foreground">
-              {minerRows.length} workers
+              Mining server address
             </span>
+            <code className="block w-full overflow-x-auto rounded-lg border border-border bg-background/70 px-4 py-3 font-mono-num text-sm text-primary">
+              {stratum}
+            </code>
+            <p className="text-xs text-muted-foreground">
+              Point any BTX-compatible miner here using your wallet as the username.
+            </p>
           </div>
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[640px] text-left text-xs">
-              <thead>
-                <tr className="border-b border-border/60 text-[10px] uppercase tracking-widest text-muted-foreground">
-                  <th className="px-4 py-3 font-medium">Worker</th>
-                  <th className="px-4 py-3 font-medium">Hashrate</th>
-                  <th className="px-4 py-3 font-medium">Valid shares</th>
-                  <th className="px-4 py-3 font-medium">Last seen</th>
-                </tr>
-              </thead>
-              <tbody className="font-mono-num">
-                {minersLoading && minerRows.length === 0 ? (
-                  <tr>
-                    <td colSpan={4} className="px-4 py-6 text-center text-muted-foreground">
-                      Loading miners…
-                    </td>
-                  </tr>
-                ) : minerRows.length === 0 ? (
-                  <tr>
-                    <td colSpan={4} className="px-4 py-6 text-center text-muted-foreground">
-                      No workers connected.
-                    </td>
-                  </tr>
-                ) : (
-                  minerRows.map((m) => {
-                    const hr =
-                      typeof m.hashrate === "number"
-                        ? formatHashrate(m.hashrate)
-                        : (m.hashrate?.display ?? formatHashrate(m.hashrate?.raw ?? 0));
-                    return (
-                      <tr
-                        key={m.worker_name}
-                        className="border-b border-border/40 last:border-b-0 hover:bg-secondary/30"
-                      >
-                        <td className="px-4 py-3 font-semibold text-foreground">
-                          {m.worker_name}
-                        </td>
-                        <td className="px-4 py-3 text-primary">{hr}</td>
-                        <td className="px-4 py-3 text-muted-foreground">
-                          {m.shares_valid?.toLocaleString() ?? "—"}
-                        </td>
-                        <td className="px-4 py-3 text-muted-foreground">
-                          {m.last_seen ? formatLastSeen(m.last_seen) : "—"}
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
+          <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
+            <Link
+              to="/join"
+              className="inline-flex items-center justify-center rounded-lg bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground transition-all hover:brightness-110"
+              style={{ boxShadow: "var(--shadow-glow)" }}
+            >
+              Start Mining Now →
+            </Link>
+            <Link
+              to="/deploy"
+              className="inline-flex items-center justify-center rounded-lg border border-border bg-secondary/40 px-6 py-3 text-sm font-semibold text-foreground transition-colors hover:border-primary/40 hover:bg-secondary"
+            >
+              Deploy Managed Rig
+            </Link>
           </div>
         </div>
       </div>

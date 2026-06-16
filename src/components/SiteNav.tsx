@@ -45,35 +45,35 @@ export function SiteNav() {
             className="rounded-md px-3 py-1.5 text-muted-foreground transition-colors hover:text-foreground"
             activeProps={{ className: "text-foreground" }}
           >
-            Join Pool
+            Pool
           </Link>
           <Link
             to="/dashboard"
             className="rounded-md px-3 py-1.5 text-muted-foreground transition-colors hover:text-foreground"
             activeProps={{ className: "text-foreground" }}
           >
-            🖥️ Dashboard
+            Dashboard
           </Link>
           <Link
             to="/deploy"
             className="rounded-md px-3 py-1.5 text-muted-foreground transition-colors hover:text-foreground"
             activeProps={{ className: "text-foreground" }}
           >
-            ⚡ Deploy Node
+            Deploy Node
           </Link>
           <Link
             to="/billing"
             className="rounded-md px-3 py-1.5 text-muted-foreground transition-colors hover:text-foreground"
             activeProps={{ className: "text-foreground" }}
           >
-            💳 Billing & Payouts
+            Billing & Payouts
           </Link>
           <Link
             to="/support"
             className="rounded-md px-3 py-1.5 text-muted-foreground transition-colors hover:text-foreground"
             activeProps={{ className: "text-foreground" }}
           >
-            🛠️ Support & Registry
+            Support & Registry
           </Link>
           {user ? (
             <button
