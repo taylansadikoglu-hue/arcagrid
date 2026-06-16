@@ -4,11 +4,9 @@ import { useQuery } from "@tanstack/react-query";
 
 import { SiteNav } from "@/components/SiteNav";
 import {
-  fetchFleetNodes,
   fetchPoolOverview,
   fetchPoolMiners,
   fetchBtxPrice,
-  type FleetNode,
   type PoolMiner,
 } from "@/lib/api/grid-api";
 import { fetchPublicWorkers, type MineBtxWorkerPublic } from "@/lib/api/grid-api";
