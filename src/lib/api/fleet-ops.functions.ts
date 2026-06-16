@@ -122,12 +122,65 @@ export const CLEAN_FLEET_FILTERS = {
 
 export const rentRigs = createServerFn({ method: "POST" })
   .inputValidator(
-    (input: { count: number; clean_fleet_only?: boolean }) => {
+    (input: { count: number; clean_fleet_only?: boolean; tier?: number }) => {
       const count = Math.max(1, Math.min(10, Number(input?.count ?? 1) || 1));
       const cleanOnly = Boolean(input?.clean_fleet_only ?? true);
-      return cleanOnly
-        ? { count, clean_fleet_only: true, filters: CLEAN_FLEET_FILTERS }
-        : { count, clean_fleet_only: false };
+      const tier =
+        typeof input?.tier === "number" ? Math.max(1, Math.min(3, Math.round(input.tier))) : undefined;
+      const base: Record<string, unknown> = { count };
+      if (tier != null) base.tier = tier;
+      if (cleanOnly) {
+        base.clean_fleet_only = true;
+        base.filters = CLEAN_FLEET_FILTERS;
+      } else {
+        base.clean_fleet_only = false;
+      }
+      return base as { count: number; tier?: number; clean_fleet_only: boolean };
     },
   )
   .handler(async ({ data }) => postOps("/api/operator/rent", data));
+
+// Worker rows from the upstream pool (pool.minebtx.com/api/workers).
+export interface MineBtxWorker {
+  worker?: string;
+  name?: string;
+  hashrate_ns?: number;
+  hashrate?: number;
+  gpu_pct?: number;
+  gpu?: number;
+  watts?: number;
+  power?: number;
+  last_share_age_s?: number;
+  last_share?: number;
+  last_seen?: number;
+}
+
+export const fetchMineBtxWorkers = createServerFn({ method: "GET" }).handler(
+  async (): Promise<MineBtxWorker[]> => {
+    const res = await fetch("https://pool.minebtx.com/api/workers", {
+      headers: { accept: "application/json" },
+    });
+    if (!res.ok) throw new Error(`pool.minebtx.com/api/workers → ${res.status}`);
+    const raw = (await res.json()) as
+      | MineBtxWorker[]
+      | { workers?: MineBtxWorker[] };
+    return Array.isArray(raw) ? raw : (raw?.workers ?? []);
+  },
+);
+
+export const restartRig = createServerFn({ method: "POST" })
+  .inputValidator((input: { worker: string }) => ({
+    worker: String(input?.worker ?? "").trim(),
+  }))
+  .handler(async ({ data }) => {
+    if (!data.worker) throw new Error("worker required");
+    const res = await fetch(
+      `${BASE}/api/operator/rig/${encodeURIComponent(data.worker)}/restart`,
+      { method: "POST", headers: authHeaders() },
+    );
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new Error(`restart ${data.worker} → ${res.status} ${text}`.trim());
+    }
+    return (await res.json().catch(() => ({ ok: true }))) as Json;
+  });
