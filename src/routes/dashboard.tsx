@@ -15,14 +15,16 @@ import {
   fetchOperatorWallet,
   setAutoheal,
   rentRigs,
-  fetchMineBtxWorkers,
   restartRig,
   setRigWatts,
   setRigTurbo,
   setRigThermal,
-  type MineBtxWorker,
 } from "@/lib/api/fleet-ops.functions";
-import { fetchPoolOverview } from "@/lib/api/grid-api";
+import {
+  fetchPoolOverview,
+  fetchPoolMiners,
+  type PoolMiner,
+} from "@/lib/api/grid-api";
 import { useAuth } from "@/lib/use-auth";
 import { captureError } from "@/lib/observability";
 
