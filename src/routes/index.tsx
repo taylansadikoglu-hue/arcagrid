@@ -109,17 +109,8 @@ function Landing() {
               Cluster Architecture
             </h1>
             <p className="mx-auto mt-5 max-w-2xl text-balance text-base text-muted-foreground sm:text-lg">
-              High-Density GPU Grid Orchestration.
+              Turn idle GPUs into revenue. Automatically.
             </p>
-            <div className="mt-6 inline-flex flex-col items-center gap-1.5 rounded-xl border border-primary/30 bg-primary/5 px-4 py-3">
-              <span className="inline-flex items-center gap-2 font-mono-num text-[10px] font-semibold uppercase tracking-widest text-primary">
-                <span className="pulse-dot inline-block h-2 w-2 rounded-full bg-primary" />
-                Live Production Infrastructure
-              </span>
-              <span className="text-xs text-muted-foreground">
-                Monitoring active BTX workloads across distributed GPU providers in real time.
-              </span>
-            </div>
             <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <Link
                 to="/deploy"
@@ -149,11 +140,14 @@ function Landing() {
         </div>
       </section>
 
+      {/* JOIN THE POOL (merged pool overview + CTA + stratum) */}
+      <PoolSection />
+
+      {/* ROI CALCULATOR */}
+      <RoiCalculator />
+
       {/* LIVE FLEET PREVIEW */}
       <LiveFleetSection />
-
-      {/* POOL OVERVIEW + MINERS */}
-      <PoolSection />
 
       {/* FEATURES */}
       <section className="border-t border-border/60 py-20">
@@ -191,9 +185,6 @@ function Landing() {
 
       {/* PRICING TIERS */}
       <PricingSection />
-
-      {/* ROI CALCULATOR */}
-      <RoiCalculator />
 
       {/* WHY ARCA GRID */}
       <section className="border-t border-border/60 py-20">
