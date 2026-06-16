@@ -1137,7 +1137,12 @@ function PoolStatsPanel() {
     connected_miners?: number;
     blocks_found?: number;
     fee?: number;
+    totals?: { miner_hashrate_sum?: number };
   };
+  const poolHashrate =
+    typeof p.pool_hashrate === "number"
+      ? p.pool_hashrate
+      : p.totals?.miner_hashrate_sum;
   const fmtHash = (v?: number) => {
     if (typeof v !== "number" || !isFinite(v)) return "—";
     if (v >= 1e9) return `${(v / 1e9).toFixed(2)} GH/s`;
@@ -1159,7 +1164,7 @@ function PoolStatsPanel() {
         </span>
       </div>
       <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Metric label="Pool Hashrate" value={fmtHash(p.pool_hashrate)} />
+        <Metric label="Pool Hashrate" value={fmtHash(poolHashrate)} />
         <Metric
           label="Connected Miners"
           value={
