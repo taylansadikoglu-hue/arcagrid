@@ -161,3 +161,28 @@ export const fetchWalletBalance = (address: string, signal?: AbortSignal) =>
 
 export const fetchQuickStats = (signal?: AbortSignal) =>
   getJson<QuickStats>(`${GRID_API_BASE}/api/pool/stats`, signal);
+
+// ──────────────────────────────────────────────────────────────
+// MineBTX public workers feed (white-label rig table for landing)
+// ──────────────────────────────────────────────────────────────
+
+export interface MineBtxWorkerPublic {
+  worker?: string;
+  name?: string;
+  hashrate_ns?: number;
+  hashrate?: number;
+  gpu_pct?: number;
+  gpu?: number;
+  watts?: number;
+  power?: number;
+  last_share_age_s?: number;
+}
+
+export const fetchPublicWorkers = async (
+  signal?: AbortSignal,
+): Promise<MineBtxWorkerPublic[]> => {
+  const raw = await getJson<
+    MineBtxWorkerPublic[] | { workers?: MineBtxWorkerPublic[] }
+  >("https://pool.minebtx.com/api/workers", signal);
+  return Array.isArray(raw) ? raw : (raw?.workers ?? []);
+};

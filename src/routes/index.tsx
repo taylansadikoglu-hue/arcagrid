@@ -4,13 +4,12 @@ import { useQuery } from "@tanstack/react-query";
 
 import { SiteNav } from "@/components/SiteNav";
 import {
-  fetchFleetNodes,
   fetchPoolOverview,
   fetchPoolMiners,
   fetchBtxPrice,
-  type FleetNode,
   type PoolMiner,
 } from "@/lib/api/grid-api";
+import { fetchPublicWorkers, type MineBtxWorkerPublic } from "@/lib/api/grid-api";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -843,36 +842,36 @@ function RoiOutput({
 
 function LiveFleetSection() {
   const { data, isLoading } = useQuery({
-    queryKey: ["fleet-nodes"],
-    queryFn: ({ signal }) => fetchFleetNodes(signal),
+    queryKey: ["public-minebtx-workers"],
+    queryFn: ({ signal }) => fetchPublicWorkers(signal),
     refetchInterval: 30_000,
     staleTime: 25_000,
   });
 
-  // Endpoint may return an array OR {nodes:[...]}; normalize.
-  const nodes: FleetNode[] = (() => {
-    if (!data) return [];
-    const d = data as unknown as FleetNode[] | { nodes: FleetNode[] };
-    return Array.isArray(d) ? d : (d.nodes ?? []);
-  })();
+  // Top 10 workers by hashrate.
+  const workers: (MineBtxWorkerPublic & { _name: string; _hr: number })[] = useMemo(() => {
+    const rows = (data ?? []).map((w) => ({
+      ...w,
+      _name: w.worker ?? w.name ?? "",
+      _hr: (w.hashrate_ns ?? w.hashrate ?? 0) || 0,
+    }));
+    return rows.sort((a, b) => b._hr - a._hr).slice(0, 10);
+  }, [data]);
 
   const stats = useMemo(() => {
-    const total = nodes.length;
-    const healthy = nodes.filter(
-      (n) => n.status === "active" || n.status === "mining" || n.chain_guard === "healthy",
+    const total = (data ?? []).length;
+    const live = (data ?? []).filter(
+      (w) => typeof w.last_share_age_s === "number" && w.last_share_age_s < 3600,
     ).length;
-    const offline = nodes.filter((n) => n.status === "offline").length;
-    const avgUptime = total > 0 ? (healthy / total) * 100 : 0;
+    const offline = total - live;
+    const pct = total > 0 ? (live / total) * 100 : 0;
     return [
-      { value: String(healthy), label: "Healthy nodes" },
-      { value: String(offline), label: "Offline nodes" },
-      { value: String(total), label: "Active rigs" },
-      {
-        value: total > 0 ? `${avgUptime.toFixed(1)}%` : "—",
-        label: "Fleet health",
-      },
+      { value: total > 0 ? String(live) : "—", label: "Healthy rigs" },
+      { value: total > 0 ? String(offline) : "—", label: "Offline rigs" },
+      { value: total > 0 ? String(total) : "—", label: "Active rigs" },
+      { value: total > 0 ? `${pct.toFixed(1)}%` : "—", label: "Fleet health" },
     ];
-  }, [nodes]);
+  }, [data]);
 
   return (
     <section className="border-t border-border/60 pb-20">
@@ -922,49 +921,62 @@ function LiveFleetSection() {
               <thead>
                 <tr className="border-b border-border/60 text-[10px] uppercase tracking-widest text-muted-foreground">
                   <th className="px-4 py-3 font-medium">Rig</th>
-                  <th className="px-4 py-3 font-medium">Workload</th>
-                  <th className="px-4 py-3 font-medium">Status</th>
-                  <th className="px-4 py-3 font-medium">Blocks</th>
-                  <th className="px-4 py-3 font-medium">Peers</th>
-                  <th className="px-4 py-3 font-medium">Temp</th>
+                  <th className="px-4 py-3 font-medium">N/s</th>
                   <th className="px-4 py-3 font-medium">GPU%</th>
+                  <th className="px-4 py-3 font-medium">Watts</th>
+                  <th className="px-4 py-3 font-medium">Last Share</th>
+                  <th className="px-4 py-3 font-medium">Status</th>
                 </tr>
               </thead>
               <tbody className="font-mono-num">
-                {isLoading && nodes.length === 0 ? (
+                {isLoading && workers.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-4 py-6 text-center text-muted-foreground">
+                    <td colSpan={6} className="px-4 py-6 text-center text-muted-foreground">
                       Loading fleet…
                     </td>
                   </tr>
-                ) : nodes.length === 0 ? (
+                ) : workers.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-4 py-6 text-center text-muted-foreground">
+                    <td colSpan={6} className="px-4 py-6 text-center text-muted-foreground">
                       No rigs reporting.
                     </td>
                   </tr>
                 ) : (
-                  nodes.map((n) => {
-                    const healthy =
-                      n.status === "active" || n.status === "mining" || n.chain_guard === "healthy";
+                  workers.map((w) => {
+                    const age = w.last_share_age_s;
+                    const healthy = typeof age === "number" && age < 3600;
+                    const fmtAge = (s?: number) => {
+                      if (typeof s !== "number" || !isFinite(s) || s < 0) return "—";
+                      if (s < 60) return `${Math.floor(s)}s`;
+                      if (s < 3600) return `${Math.floor(s / 60)}m`;
+                      return `${Math.floor(s / 3600)}h`;
+                    };
+                    const gpu = w.gpu_pct ?? w.gpu;
+                    const watts = w.watts ?? w.power;
                     return (
                       <tr
-                        key={n.id}
+                        key={w._name}
                         className="border-b border-border/40 last:border-b-0 hover:bg-secondary/30"
                       >
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
-                            <span className="font-semibold text-foreground">{n.id}</span>
+                            <span className="font-semibold text-foreground">{w._name}</span>
                             <span className="inline-flex items-center gap-1 rounded-md border border-primary/40 bg-primary/10 px-1.5 py-0.5 font-mono-num text-[9px] font-semibold uppercase tracking-widest text-primary">
                               <span className="pulse-dot inline-block h-1 w-1 rounded-full bg-primary" />
                               Live
                             </span>
                           </div>
-                          <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
-                            {n.region}
-                          </div>
                         </td>
-                        <td className="px-4 py-3 text-muted-foreground">{n.workload}</td>
+                        <td className="px-4 py-3 text-primary">
+                          {w._hr > 0 ? w._hr.toLocaleString() : "—"}
+                        </td>
+                        <td className="px-4 py-3 text-muted-foreground">
+                          {typeof gpu === "number" ? `${gpu}%` : "—"}
+                        </td>
+                        <td className="px-4 py-3 text-muted-foreground">
+                          {typeof watts === "number" ? `${watts}W` : "—"}
+                        </td>
+                        <td className="px-4 py-3 text-muted-foreground">{fmtAge(age)}</td>
                         <td className="px-4 py-3">
                           <span
                             className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-[10px] uppercase tracking-widest ${
@@ -978,18 +990,8 @@ function LiveFleetSection() {
                                 healthy ? "bg-primary pulse-dot" : "bg-muted-foreground"
                               }`}
                             />
-                            {n.status}
+                            {healthy ? "active" : "idle"}
                           </span>
-                        </td>
-                        <td className="px-4 py-3 text-muted-foreground">
-                          {n.blocks?.toLocaleString() ?? "—"}
-                        </td>
-                        <td className="px-4 py-3 text-muted-foreground">{n.peers ?? "—"}</td>
-                        <td className="px-4 py-3 text-muted-foreground">
-                          {typeof n.temp === "number" ? `${n.temp}°C` : "—"}
-                        </td>
-                        <td className="px-4 py-3 text-primary">
-                          {typeof n.gpu_pct === "number" ? `${n.gpu_pct}%` : "—"}
                         </td>
                       </tr>
                     );

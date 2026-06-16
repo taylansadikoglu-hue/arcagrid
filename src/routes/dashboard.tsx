@@ -14,12 +14,12 @@ import {
 import {
   fetchOperatorWallet,
   setAutoheal,
-  setTuning,
   rentRigs,
-  CLEAN_FLEET_GPU_ALLOWLIST,
-  CLEAN_FLEET_FILTERS,
+  fetchMineBtxWorkers,
+  restartRig,
+  type MineBtxWorker,
 } from "@/lib/api/fleet-ops.functions";
-import { fetchPoolMiners, fetchPoolOverview, type PoolMiner } from "@/lib/api/grid-api";
+import { fetchPoolOverview } from "@/lib/api/grid-api";
 import { useAuth } from "@/lib/use-auth";
 import { captureError } from "@/lib/observability";
 
@@ -683,10 +683,10 @@ function fmtDuration(ms: number) {
 const OPERATOR_EMAIL = "taylan.sadikoglu@gmail.com";
 
 interface OperatorWallet {
-  balance?: number;
+  btx_balance?: number;
+  clore_balance?: number;
+  active_rigs?: number;
   address?: string;
-  blocks_found?: number;
-  total_earned?: number;
 }
 
 interface PoolOverviewLike {
@@ -705,9 +705,10 @@ function OperatorPanel() {
   return (
     <div className="mt-6 grid gap-4">
       <WalletPanel />
-      <PoolMinersTable />
+      <MyRigsTable />
       <FleetControls />
       <PoolStatsPanel />
+      <OrchestraOsPanel />
     </div>
   );
 }
@@ -717,8 +718,9 @@ function WalletPanel() {
   const { data, isLoading, error } = useQuery({
     queryKey: ["operator-wallet"],
     queryFn: () => fetchWallet() as Promise<OperatorWallet>,
-    refetchInterval: 30_000,
-    staleTime: 25_000,
+    refetchInterval: 60_000,
+    staleTime: 55_000,
+    placeholderData: keepPreviousData,
   });
   const w = (data ?? {}) as OperatorWallet;
   const addr = w.address
@@ -744,66 +746,68 @@ function WalletPanel() {
       <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Metric
           label="BTX Balance"
-          value={typeof w.balance === "number" ? w.balance.toFixed(4) : "—"}
+          value={typeof w.btx_balance === "number" ? w.btx_balance.toFixed(4) : "—"}
+        />
+        <Metric
+          label="CLORE Balance"
+          value={typeof w.clore_balance === "number" ? w.clore_balance.toFixed(4) : "—"}
+        />
+        <Metric
+          label="Active Rigs"
+          value={typeof w.active_rigs === "number" ? w.active_rigs.toLocaleString() : "—"}
         />
         <Metric label="Address" value={addr} />
-        <Metric
-          label="Blocks Found"
-          value={typeof w.blocks_found === "number" ? w.blocks_found.toLocaleString() : "—"}
-        />
-        <Metric
-          label="Total Earned"
-          value={
-            typeof w.total_earned === "number" ? `${w.total_earned.toFixed(4)} BTX` : "—"
-          }
-        />
       </div>
     </div>
   );
 }
 
-function hashrateToKhs(h: PoolMiner["hashrate"]): number {
-  if (typeof h === "number") return h / 1000;
-  if (h && typeof h === "object") {
-    const raw = typeof h.raw === "number" ? h.raw : h.value;
-    if (typeof raw === "number") {
-      const unit = (h.unit ?? "").toLowerCase();
-      if (unit.includes("kh")) return raw;
-      if (unit.includes("mh")) return raw * 1000;
-      if (unit.includes("gh")) return raw * 1_000_000;
-      return raw / 1000;
-    }
-  }
-  return 0;
+/* -------------------------------------------------------------------------- */
+/*  MY RIGS — workers from pool.minebtx.com filtered to operator's fleet      */
+/* -------------------------------------------------------------------------- */
+
+function isMyRig(name: string): boolean {
+  const n = (name ?? "").trim();
+  if (!n) return false;
+  return n.toLowerCase().includes("arcagrid") || n.startsWith("O-178");
 }
 
-function PoolMinersTable() {
-  const [now, setNow] = useState(Date.now());
-  useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(id);
-  }, []);
+function MyRigsTable() {
+  const fetchWorkers = useServerFn(fetchMineBtxWorkers);
+  const restart = useServerFn(restartRig);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [msg, setMsg] = useState<string | null>(null);
   const { data, isLoading, error } = useQuery({
-    queryKey: ["operator-pool-miners"],
-    queryFn: ({ signal }) => fetchPoolMiners(signal),
+    queryKey: ["operator-minebtx-workers"],
+    queryFn: () => fetchWorkers() as Promise<MineBtxWorker[]>,
     refetchInterval: 15_000,
     staleTime: 10_000,
+    placeholderData: keepPreviousData,
   });
-  const minersRaw = data ?? [];
-  // Drop dead gtx1060 rows: hashrate 0 and last seen > 10 minutes ago.
-  const miners = minersRaw.filter((m) => {
-    const name = (m.worker_name ?? "").toLowerCase();
-    if (!name.includes("gtx1060")) return true;
-    const hr = hashrateToKhs(m.hashrate);
-    const last = Number(m.last_seen) || 0;
-    const lastMs = last < 1e12 ? last * 1000 : last;
-    const ageSec = Math.max(0, Math.floor((now - lastMs) / 1000));
-    return !(hr === 0 && ageSec > 600);
-  });
-  const action = async (worker: string, kind: "restart" | "kill") => {
-    // Optimistic UX — endpoint is not yet wired; surface intent only.
-    console.info(`[operator] ${kind} requested for ${worker}`);
+  const rows = (data ?? [])
+    .map((w) => ({ ...w, _name: w.worker ?? w.name ?? "" }))
+    .filter((w) => isMyRig(w._name));
+
+  const fmtAge = (s?: number) => {
+    if (typeof s !== "number" || !isFinite(s) || s < 0) return "—";
+    if (s < 60) return `${Math.floor(s)}s ago`;
+    if (s < 3600) return `${Math.floor(s / 60)}m ago`;
+    return `${Math.floor(s / 3600)}h ago`;
   };
+
+  const doRestart = async (worker: string) => {
+    setBusy(worker);
+    setMsg(null);
+    try {
+      await restart({ data: { worker } });
+      setMsg(`Restart requested for ${worker}.`);
+    } catch (e) {
+      setMsg(`Restart failed: ${(e as Error).message}`);
+    } finally {
+      setBusy(null);
+    }
+  };
+
   return (
     <div
       className="rounded-2xl border border-border bg-card p-6"
@@ -812,60 +816,64 @@ function PoolMinersTable() {
       <div className="flex items-baseline justify-between">
         <div>
           <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
-            My Rigs (Pool)
+            My Rigs
           </h2>
           <p className="mt-1 text-xs text-muted-foreground">
-            Live workers from the ARCA GRID pool · polled every 15s
+            Live workers · polled every 15s
           </p>
         </div>
         <span className="font-mono-num text-[11px] uppercase tracking-widest text-muted-foreground">
-          {miners.length} workers
+          {rows.length} rigs
         </span>
       </div>
+      {msg && (
+        <p className="mt-3 rounded border border-border bg-secondary/40 px-3 py-2 text-xs text-muted-foreground">
+          {msg}
+        </p>
+      )}
       <div className="mt-4 overflow-x-auto">
-        {isLoading && miners.length === 0 ? (
+        {isLoading && rows.length === 0 ? (
           <p className="text-xs text-muted-foreground">Loading…</p>
-        ) : error && miners.length === 0 ? (
-          <p className="text-xs text-destructive">Unable to load miners.</p>
-        ) : miners.length === 0 ? (
-          <p className="text-xs text-muted-foreground">No workers connected.</p>
+        ) : error && rows.length === 0 ? (
+          <p className="text-xs text-destructive">Unable to load workers.</p>
+        ) : rows.length === 0 ? (
+          <p className="text-xs text-muted-foreground">No rigs reporting.</p>
         ) : (
-          <table className="w-full min-w-[640px] text-left text-xs">
+          <table className="w-full min-w-[720px] text-left text-xs">
             <thead>
               <tr className="border-b border-border/60 text-[10px] uppercase tracking-widest text-muted-foreground">
                 <th className="px-3 py-2 font-medium">Worker</th>
-                <th className="px-3 py-2 font-medium">Hashrate (kH/s)</th>
-                <th className="px-3 py-2 font-medium">Valid Shares</th>
-                <th className="px-3 py-2 font-medium">Last Seen</th>
+                <th className="px-3 py-2 font-medium">N/s</th>
+                <th className="px-3 py-2 font-medium">GPU%</th>
+                <th className="px-3 py-2 font-medium">Watts</th>
+                <th className="px-3 py-2 font-medium">Last Share</th>
                 <th className="px-3 py-2 font-medium">Status</th>
                 <th className="px-3 py-2 font-medium">Actions</th>
               </tr>
             </thead>
             <tbody className="font-mono-num">
-              {miners.map((m) => {
-                const last = Number(m.last_seen) || 0;
-                const lastMs = last < 1e12 ? last * 1000 : last;
-                const ageSec = Math.max(0, Math.floor((now - lastMs) / 1000));
-                const healthy = ageSec < 60;
+              {rows.map((w) => {
+                const age = typeof w.last_share_age_s === "number" ? w.last_share_age_s : undefined;
+                const healthy = typeof age === "number" && age < 3600;
+                const ns = w.hashrate_ns ?? w.hashrate;
+                const gpu = w.gpu_pct ?? w.gpu;
+                const watts = w.watts ?? w.power;
                 return (
                   <tr
-                    key={m.worker_name}
+                    key={w._name}
                     className="border-b border-border/40 last:border-b-0 hover:bg-secondary/30"
                   >
-                    <td className="px-3 py-2 font-semibold text-foreground">
-                      {m.worker_name}
-                    </td>
+                    <td className="px-3 py-2 font-semibold text-foreground">{w._name}</td>
                     <td className="px-3 py-2 text-primary">
-                      {hashrateToKhs(m.hashrate).toFixed(2)}
+                      {typeof ns === "number" ? ns.toLocaleString() : "—"}
                     </td>
                     <td className="px-3 py-2 text-muted-foreground">
-                      {Number(m.shares_valid ?? 0).toLocaleString()}
+                      {typeof gpu === "number" ? `${gpu}%` : "—"}
                     </td>
                     <td className="px-3 py-2 text-muted-foreground">
-                      {ageSec < 60
-                        ? `${ageSec}s ago`
-                        : `${Math.floor(ageSec / 60)}m ago`}
+                      {typeof watts === "number" ? `${watts}W` : "—"}
                     </td>
+                    <td className="px-3 py-2 text-muted-foreground">{fmtAge(age)}</td>
                     <td className="px-3 py-2">
                       <span
                         className={`inline-block h-2 w-2 rounded-full ${
@@ -874,20 +882,13 @@ function PoolMinersTable() {
                       />
                     </td>
                     <td className="px-3 py-2">
-                      <div className="flex gap-1">
-                        <button
-                          onClick={() => action(m.worker_name, "restart")}
-                          className="rounded border border-border bg-secondary/50 px-2 py-1 text-[10px] uppercase tracking-wider text-foreground hover:bg-secondary"
-                        >
-                          Restart
-                        </button>
-                        <button
-                          onClick={() => action(m.worker_name, "kill")}
-                          className="rounded border border-destructive/40 bg-destructive/10 px-2 py-1 text-[10px] uppercase tracking-wider text-destructive hover:bg-destructive/20"
-                        >
-                          Kill
-                        </button>
-                      </div>
+                      <button
+                        onClick={() => doRestart(w._name)}
+                        disabled={busy === w._name}
+                        className="rounded border border-border bg-secondary/50 px-2 py-1 text-[10px] uppercase tracking-wider text-foreground hover:bg-secondary disabled:opacity-50"
+                      >
+                        {busy === w._name ? "…" : "Restart"}
+                      </button>
                     </td>
                   </tr>
                 );
@@ -900,28 +901,25 @@ function PoolMinersTable() {
   );
 }
 
+/* -------------------------------------------------------------------------- */
+/*  FLEET CONTROLS — Rent Tier 1 / Rent Tier 2 / Auto-heal toggle              */
+/* -------------------------------------------------------------------------- */
+
 function FleetControls() {
   const autohealFn = useServerFn(setAutoheal);
-  const tuningFn = useServerFn(setTuning);
   const rentFn = useServerFn(rentRigs);
   const [autoheal, setAutohealLocal] = useState(true);
-  const [maxWatts, setMaxWatts] = useState(200);
-  const [turbo, setTurbo] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
-  const [err, setErr] = useState<string | null>(null);
-  const [rentOpen, setRentOpen] = useState(false);
-  const [rentCount, setRentCount] = useState(1);
-  const [renting, setRenting] = useState(false);
-  const [rentMsg, setRentMsg] = useState<string | null>(null);
-  const [cleanFleetOnly, setCleanFleetOnly] = useState(true);
+  const [msg, setMsg] = useState<string | null>(null);
 
-  const wrap = async (key: string, fn: () => Promise<unknown>) => {
+  const wrap = async (key: string, label: string, fn: () => Promise<unknown>) => {
     setBusy(key);
-    setErr(null);
+    setMsg(null);
     try {
       await fn();
+      setMsg(`${label} OK`);
     } catch (e) {
-      setErr((e as Error).message);
+      setMsg(`${label} failed: ${(e as Error).message}`);
     } finally {
       setBusy(null);
     }
@@ -936,230 +934,60 @@ function FleetControls() {
         <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
           Fleet Controls
         </h2>
+        {msg && (
+          <span className="font-mono-num text-[11px] uppercase tracking-widest text-muted-foreground">
+            {msg}
+          </span>
+        )}
+      </div>
+      <div className="mt-5 flex flex-wrap gap-3">
         <button
-          onClick={() => setRentOpen(true)}
-          className="rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:brightness-110"
+          onClick={() =>
+            wrap("t1", "Rent Tier 1", () =>
+              rentFn({ data: { tier: 1, count: 1, clean_fleet_only: false } }),
+            )
+          }
+          disabled={busy === "t1"}
+          className="rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:brightness-110 disabled:opacity-50"
         >
-          + Rent New Rig
+          {busy === "t1" ? "Renting…" : "Rent Tier 1"}
+        </button>
+        <button
+          onClick={() =>
+            wrap("t2", "Rent Tier 2", () =>
+              rentFn({ data: { tier: 2, count: 1, clean_fleet_only: false } }),
+            )
+          }
+          disabled={busy === "t2"}
+          className="rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:brightness-110 disabled:opacity-50"
+        >
+          {busy === "t2" ? "Renting…" : "Rent Tier 2"}
+        </button>
+        <button
+          onClick={() => {
+            const next = !autoheal;
+            setAutohealLocal(next);
+            void wrap("ah", `Auto-heal ${next ? "ON" : "OFF"}`, () =>
+              autohealFn({ data: { enabled: next } }),
+            );
+          }}
+          disabled={busy === "ah"}
+          className={`rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors disabled:opacity-50 ${
+            autoheal
+              ? "bg-primary/20 text-primary border border-primary/40"
+              : "bg-secondary text-muted-foreground border border-border"
+          }`}
+        >
+          Auto-heal {autoheal ? "ON" : "OFF"}
         </button>
       </div>
-
-      <div className="mt-5 grid gap-4 md:grid-cols-3">
-        {/* AUTO-HEAL TOGGLE */}
-        <div className="rounded-lg border border-border bg-background/40 p-4">
-          <div className="flex items-center justify-between">
-            <span className="text-xs uppercase tracking-widest text-muted-foreground">
-              Auto-heal
-            </span>
-            <button
-              onClick={() => {
-                const next = !autoheal;
-                setAutohealLocal(next);
-                void wrap("autoheal", () => autohealFn({ data: { enabled: next } }));
-              }}
-              disabled={busy === "autoheal"}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                autoheal ? "bg-primary" : "bg-secondary"
-              }`}
-            >
-              <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-background transition-transform ${
-                  autoheal ? "translate-x-6" : "translate-x-1"
-                }`}
-              />
-            </button>
-          </div>
-          <p className="mt-2 text-[11px] text-muted-foreground">
-            Reallocate dead nodes automatically.
-          </p>
-        </div>
-
-        {/* MAX WATTS SLIDER */}
-        <div className="rounded-lg border border-border bg-background/40 p-4">
-          <div className="flex items-center justify-between">
-            <span className="text-xs uppercase tracking-widest text-muted-foreground">
-              Max Watts / Rig
-            </span>
-            <span className="font-mono-num text-sm font-semibold text-primary">
-              {maxWatts}W
-            </span>
-          </div>
-          <input
-            type="range"
-            min={50}
-            max={300}
-            step={10}
-            value={maxWatts}
-            onChange={(e) => setMaxWatts(Number(e.target.value))}
-            onMouseUp={() =>
-              void wrap("watts", () => tuningFn({ data: { max_watts: maxWatts } }))
-            }
-            onTouchEnd={() =>
-              void wrap("watts", () => tuningFn({ data: { max_watts: maxWatts } }))
-            }
-            className="mt-3 w-full accent-primary"
-          />
-        </div>
-
-        {/* TURBO TOGGLE */}
-        <div className="rounded-lg border border-border bg-background/40 p-4">
-          <div className="flex items-center justify-between">
-            <span className="text-xs uppercase tracking-widest text-muted-foreground">
-              Turbo Mode
-            </span>
-            <button
-              onClick={() => {
-                const next = !turbo;
-                setTurbo(next);
-                void wrap("turbo", () => tuningFn({ data: { turbo: next } }));
-              }}
-              disabled={busy === "turbo"}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                turbo ? "bg-amber-400" : "bg-secondary"
-              }`}
-            >
-              <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-background transition-transform ${
-                  turbo ? "translate-x-6" : "translate-x-1"
-                }`}
-              />
-            </button>
-          </div>
-          <p className="mt-2 text-[11px] text-muted-foreground">
-            Burst throughput; raises thermals.
-          </p>
-        </div>
-      </div>
-
-      {err && (
-        <p className="mt-3 rounded border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
-          {err}
-        </p>
-      )}
-
-      {rentOpen && (
-        <div
-          className="fixed inset-0 z-50 grid place-items-center bg-background/80 backdrop-blur-sm"
-          onClick={() => !renting && setRentOpen(false)}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-sm rounded-2xl border border-border bg-card p-6"
-            style={{ boxShadow: "var(--shadow-card)" }}
-          >
-            <h3 className="text-base font-semibold">Rent New Rigs</h3>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Allocate additional capacity to the grid mesh.
-            </p>
-            <div className="mt-5">
-              <label className="text-xs uppercase tracking-widest text-muted-foreground">
-                Count
-              </label>
-              <div className="mt-2 flex items-center gap-3">
-                <input
-                  type="range"
-                  min={1}
-                  max={10}
-                  step={1}
-                  value={rentCount}
-                  onChange={(e) => setRentCount(Number(e.target.value))}
-                  className="flex-1 accent-primary"
-                />
-                <span className="font-mono-num w-10 text-right text-lg font-semibold text-primary">
-                  {rentCount}
-                </span>
-              </div>
-            </div>
-            <div className="mt-5 rounded-lg border border-border bg-background/40 p-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <span className="text-xs font-semibold uppercase tracking-widest text-foreground">
-                    Clean Fleet Only
-                  </span>
-                  <p className="mt-0.5 text-[11px] text-muted-foreground">
-                    Enforce GPU allowlist + minimum specs.
-                  </p>
-                </div>
-                <button
-                  onClick={() => setCleanFleetOnly((v) => !v)}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                    cleanFleetOnly ? "bg-primary" : "bg-secondary"
-                  }`}
-                >
-                  <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-background transition-transform ${
-                      cleanFleetOnly ? "translate-x-6" : "translate-x-1"
-                    }`}
-                  />
-                </button>
-              </div>
-              {cleanFleetOnly && (
-                <ul className="font-mono-num mt-3 space-y-1 text-[11px] text-muted-foreground">
-                  <li>
-                    GPUs:{" "}
-                    <span className="text-foreground">
-                      {CLEAN_FLEET_GPU_ALLOWLIST.join(" · ")}
-                    </span>
-                  </li>
-                  <li>
-                    Min VRAM:{" "}
-                    <span className="text-foreground">
-                      {CLEAN_FLEET_FILTERS.min_vram_gb} GB
-                    </span>{" "}
-                    · CC ≥{" "}
-                    <span className="text-foreground">
-                      {CLEAN_FLEET_FILTERS.min_compute_capability.toFixed(1)}
-                    </span>
-                  </li>
-                  <li>
-                    Max price:{" "}
-                    <span className="text-foreground">
-                      ${CLEAN_FLEET_FILTERS.max_price_usd_per_day.toFixed(2)}/day
-                    </span>
-                  </li>
-                </ul>
-              )}
-            </div>
-            {rentMsg && (
-              <p className="mt-3 rounded border border-border bg-secondary/40 px-3 py-2 text-xs text-muted-foreground">
-                {rentMsg}
-              </p>
-            )}
-            <div className="mt-5 flex justify-end gap-2">
-              <button
-                onClick={() => setRentOpen(false)}
-                disabled={renting}
-                className="rounded-lg border border-border bg-secondary px-4 py-2 text-xs hover:bg-secondary/70"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={async () => {
-                  setRenting(true);
-                  setRentMsg(null);
-                  try {
-                    await rentFn({
-                      data: { count: rentCount, clean_fleet_only: cleanFleetOnly },
-                    });
-                    setRentMsg(`Allocation request submitted for ${rentCount} rig(s).`);
-                  } catch (e) {
-                    setRentMsg(`Failed: ${(e as Error).message}`);
-                  } finally {
-                    setRenting(false);
-                  }
-                }}
-                disabled={renting}
-                className="rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:brightness-110"
-              >
-                {renting ? "Allocating…" : `Rent ${rentCount}`}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
+
+/* -------------------------------------------------------------------------- */
+/*  POOL STATS — pool.arcgrid.dev/api/pool                                    */
+/* -------------------------------------------------------------------------- */
 
 function PoolStatsPanel() {
   const { data, isLoading, error } = useQuery({
@@ -1169,19 +997,12 @@ function PoolStatsPanel() {
     staleTime: 25_000,
     placeholderData: keepPreviousData,
   });
-  // Source of truth for connected miners is the workers table — the
-  // pool /api/pool counter has lagged behind reality, so we use the
-  // same query the My Rigs (Pool) table renders from.
-  const { data: minersData } = useQuery({
-    queryKey: ["operator-pool-miners"],
-    queryFn: ({ signal }) => fetchPoolMiners(signal),
-    refetchInterval: 15_000,
-    staleTime: 10_000,
-    placeholderData: keepPreviousData,
-  });
-  const connectedMiners = (minersData ?? []).length;
-  const p = (data ?? {}) as PoolOverviewLike;
-  const hashrate = p.pool_hashrate;
+  const p = (data ?? {}) as {
+    pool_hashrate?: number;
+    connected_miners?: number;
+    blocks_found?: number;
+    fee?: number;
+  };
   const fmtHash = (v?: number) => {
     if (typeof v !== "number" || !isFinite(v)) return "—";
     if (v >= 1e9) return `${(v / 1e9).toFixed(2)} GH/s`;
@@ -1202,11 +1023,15 @@ function PoolStatsPanel() {
           {isLoading && !data ? "loading…" : error && !data ? "stale" : "live"}
         </span>
       </div>
-      <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-5">
-        <Metric label="Pool Hashrate" value={fmtHash(hashrate)} />
+      <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <Metric label="Pool Hashrate" value={fmtHash(p.pool_hashrate)} />
         <Metric
           label="Connected Miners"
-          value={connectedMiners.toLocaleString()}
+          value={
+            typeof p.connected_miners === "number"
+              ? p.connected_miners.toLocaleString()
+              : "—"
+          }
         />
         <Metric
           label="Blocks Found"
@@ -1215,18 +1040,48 @@ function PoolStatsPanel() {
           }
         />
         <Metric
-          label="Est. Next Block"
-          value={
-            p.estimated_next_block != null ? String(p.estimated_next_block) : "—"
-          }
-        />
-        <Metric
-          label="Round Luck"
-          value={
-            typeof p.round_luck === "number" ? `${(p.round_luck * 100).toFixed(1)}%` : "—"
-          }
+          label="Fee"
+          value={typeof p.fee === "number" ? `${p.fee.toFixed(1)}%` : "—"}
         />
       </div>
+    </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/*  ORCHESTRA OS — DC Deployment one-liner                                    */
+/* -------------------------------------------------------------------------- */
+
+function OrchestraOsPanel() {
+  const cmd = "curl -s https://api.arcgrid.dev/install | bash";
+  const [copied, setCopied] = useState(false);
+  const copy = () => {
+    navigator.clipboard?.writeText(cmd);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
+  return (
+    <div
+      className="rounded-2xl border border-primary/30 bg-card p-6"
+      style={{ boxShadow: "var(--shadow-card)" }}
+    >
+      <h2 className="text-sm font-semibold uppercase tracking-widest text-primary">
+        Orchestra OS — DC Deployment
+      </h2>
+      <div className="mt-4 flex flex-wrap items-center gap-2">
+        <pre className="flex-1 overflow-x-auto rounded-lg border border-border bg-background/70 px-4 py-3 text-xs">
+          <code className="font-mono-num text-foreground">{cmd}</code>
+        </pre>
+        <button
+          onClick={copy}
+          className="rounded-lg border border-border bg-secondary/50 px-3 py-2 text-xs font-medium text-foreground hover:bg-secondary"
+        >
+          {copied ? "Copied" : "Copy"}
+        </button>
+      </div>
+      <p className="mt-3 text-xs text-muted-foreground">
+        Deploy to any CUDA server. GPU detected automatically. Mining in under 5 minutes.
+      </p>
     </div>
   );
 }
