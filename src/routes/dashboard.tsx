@@ -289,7 +289,7 @@ function DashboardPage() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <SiteNav />
-      {session && session.status !== "mining" && (
+      {session && session.status !== "mining" && !isOperator && (
         <div className="border-b border-amber-500/30 bg-amber-500/5 backdrop-blur-sm">
           <div className="mx-auto flex max-w-6xl flex-col items-start justify-between gap-3 px-6 py-4 sm:flex-row sm:items-center">
             <p className="text-sm text-amber-200">
@@ -306,7 +306,7 @@ function DashboardPage() {
         </div>
       )}
       <div className="mx-auto max-w-6xl px-6 py-10">
-        {session && (
+        {session && !isOperator && (
           <>
 
         {/* HEADER */}
