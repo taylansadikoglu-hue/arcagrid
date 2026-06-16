@@ -761,7 +761,6 @@ function WalletPanel() {
     </div>
   );
 }
-}
 
 /* -------------------------------------------------------------------------- */
 /*  MY RIGS — workers from pool.minebtx.com filtered to operator's fleet      */
