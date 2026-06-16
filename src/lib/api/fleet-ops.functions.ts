@@ -12,7 +12,7 @@ import { createServerFn } from "@tanstack/react-start";
 const BASE = "https://api.arcgrid.dev";
 
 function authHeaders(): Record<string, string> {
-  const token = process.env.ARCGRID_OPS_TOKEN;
+  const token = process.env.ARCGRID_OPS_TOKEN ?? process.env.ARCAGRID_OPS_TOKEN;
   if (!token) throw new Error("ARCGRID_OPS_TOKEN is not configured");
   return {
     "X-API-Token": token,
