@@ -11,6 +11,7 @@ import {
   type FleetNode,
   type PoolMiner,
 } from "@/lib/api/grid-api";
+import { fetchPublicWorkers, type MineBtxWorkerPublic } from "@/lib/api/grid-api";
 
 export const Route = createFileRoute("/")({
   head: () => ({
