@@ -775,6 +775,114 @@ function isMyRig(name: string): boolean {
   return n.toLowerCase().includes("arcagrid") || n.startsWith("O-178");
 }
 
+const PERF_LABELS: Record<number, string> = {
+  25: "Eco",
+  50: "Balanced",
+  75: "Performance",
+  100: "Turbo",
+};
+
+function tempColor(t: number): string {
+  if (t <= 70) return "text-primary";
+  if (t <= 80) return "text-amber-400";
+  return "text-destructive";
+}
+
+function RigControls({
+  worker,
+  liveWatts,
+  liveTemp,
+}: {
+  worker: string;
+  liveWatts?: number;
+  liveTemp?: number;
+}) {
+  const wattsFn = useServerFn(setRigWatts);
+  const turboFn = useServerFn(setRigTurbo);
+  const thermalFn = useServerFn(setRigThermal);
+  const [watts, setWatts] = useState(150);
+  const [perf, setPerf] = useState(100);
+  const [maxTemp, setMaxTemp] = useState(80);
+  const [savingMsg, setSavingMsg] = useState<string | null>(null);
+
+  const send = async (fn: () => Promise<unknown>, label: string) => {
+    try {
+      await fn();
+      setSavingMsg(`${label} saved`);
+    } catch (e) {
+      setSavingMsg(`${label} failed: ${(e as Error).message}`);
+    }
+  };
+
+  return (
+    <div className="grid gap-3 sm:grid-cols-3">
+      <div>
+        <div className="flex items-baseline justify-between text-[10px] uppercase tracking-widest text-muted-foreground">
+          <span>Watts</span>
+          <span className="font-mono-num text-foreground">
+            {watts}W{typeof liveWatts === "number" ? ` · live ${liveWatts}W` : ""}
+          </span>
+        </div>
+        <input
+          type="range"
+          min={50}
+          max={300}
+          step={10}
+          value={watts}
+          onChange={(e) => setWatts(Number(e.target.value))}
+          onMouseUp={() => send(() => wattsFn({ data: { worker, watts } }), "Watts")}
+          onTouchEnd={() => send(() => wattsFn({ data: { worker, watts } }), "Watts")}
+          className="mt-1 h-1.5 w-full cursor-pointer appearance-none rounded-full bg-secondary accent-primary"
+        />
+      </div>
+      <div>
+        <div className="flex items-baseline justify-between text-[10px] uppercase tracking-widest text-muted-foreground">
+          <span>Performance %</span>
+          <span className="font-mono-num text-foreground">
+            {perf}% · {PERF_LABELS[perf] ?? "—"}
+          </span>
+        </div>
+        <input
+          type="range"
+          min={25}
+          max={100}
+          step={25}
+          value={perf}
+          onChange={(e) => setPerf(Number(e.target.value))}
+          onMouseUp={() => send(() => turboFn({ data: { worker, threads: perf } }), "Performance")}
+          onTouchEnd={() => send(() => turboFn({ data: { worker, threads: perf } }), "Performance")}
+          className="mt-1 h-1.5 w-full cursor-pointer appearance-none rounded-full bg-secondary accent-primary"
+        />
+      </div>
+      <div>
+        <div className="flex items-baseline justify-between text-[10px] uppercase tracking-widest text-muted-foreground">
+          <span>Max Temp</span>
+          <span className={`font-mono-num ${tempColor(maxTemp)}`}>
+            {maxTemp}°C
+            {typeof liveTemp === "number" ? (
+              <span className={`ml-2 ${tempColor(liveTemp)}`}>· live {liveTemp}°C</span>
+            ) : null}
+          </span>
+        </div>
+        <input
+          type="range"
+          min={60}
+          max={85}
+          step={5}
+          value={maxTemp}
+          onChange={(e) => setMaxTemp(Number(e.target.value))}
+          onMouseUp={() => send(() => thermalFn({ data: { worker, max_temp: maxTemp } }), "Max Temp")}
+          onTouchEnd={() => send(() => thermalFn({ data: { worker, max_temp: maxTemp } }), "Max Temp")}
+          className="mt-1 h-1.5 w-full cursor-pointer appearance-none rounded-full bg-secondary accent-primary"
+        />
+      </div>
+      {savingMsg && (
+        <div className="sm:col-span-3 text-[10px] text-muted-foreground">{savingMsg}</div>
+      )}
+    </div>
+  );
+}
+
 function MyRigsTable() {
   const fetchWorkers = useServerFn(fetchMineBtxWorkers);
   const restart = useServerFn(restartRig);
