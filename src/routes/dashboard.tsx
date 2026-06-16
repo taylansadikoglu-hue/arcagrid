@@ -771,12 +771,6 @@ function WalletPanel() {
 /*  MY RIGS — workers from pool.arcgrid.dev filtered to operator's fleet      */
 /* -------------------------------------------------------------------------- */
 
-function isMyRig(name: string): boolean {
-  const n = (name ?? "").trim();
-  if (!n) return false;
-  return n.toLowerCase().includes("arcagrid") || n.startsWith("O-178");
-}
-
 const PERF_LABELS: Record<number, string> = {
   25: "Eco",
   50: "Balanced",
