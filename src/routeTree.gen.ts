@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as SupportRouteImport } from './routes/support'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as PoolRouteImport } from './routes/pool'
 import { Route as JoinRouteImport } from './routes/join'
 import { Route as FleetRouteImport } from './routes/fleet'
 import { Route as DeployRouteImport } from './routes/deploy'
@@ -43,6 +44,11 @@ const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PoolRoute = PoolRouteImport.update({
+  id: '/pool',
+  path: '/pool',
   getParentRoute: () => rootRouteImport,
 } as any)
 const JoinRoute = JoinRouteImport.update({
@@ -143,6 +149,7 @@ export interface FileRoutesByFullPath {
   '/deploy': typeof DeployRoute
   '/fleet': typeof FleetRoute
   '/join': typeof JoinRoute
+  '/pool': typeof PoolRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/support': typeof SupportRoute
@@ -165,6 +172,7 @@ export interface FileRoutesByTo {
   '/deploy': typeof DeployRoute
   '/fleet': typeof FleetRoute
   '/join': typeof JoinRoute
+  '/pool': typeof PoolRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/support': typeof SupportRoute
@@ -188,6 +196,7 @@ export interface FileRoutesById {
   '/deploy': typeof DeployRoute
   '/fleet': typeof FleetRoute
   '/join': typeof JoinRoute
+  '/pool': typeof PoolRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/support': typeof SupportRoute
@@ -212,6 +221,7 @@ export interface FileRouteTypes {
     | '/deploy'
     | '/fleet'
     | '/join'
+    | '/pool'
     | '/reset-password'
     | '/sitemap.xml'
     | '/support'
@@ -234,6 +244,7 @@ export interface FileRouteTypes {
     | '/deploy'
     | '/fleet'
     | '/join'
+    | '/pool'
     | '/reset-password'
     | '/sitemap.xml'
     | '/support'
@@ -256,6 +267,7 @@ export interface FileRouteTypes {
     | '/deploy'
     | '/fleet'
     | '/join'
+    | '/pool'
     | '/reset-password'
     | '/sitemap.xml'
     | '/support'
@@ -279,6 +291,7 @@ export interface RootRouteChildren {
   DeployRoute: typeof DeployRoute
   FleetRoute: typeof FleetRoute
   JoinRoute: typeof JoinRoute
+  PoolRoute: typeof PoolRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   SupportRoute: typeof SupportRoute
@@ -313,6 +326,13 @@ declare module '@tanstack/react-router' {
       path: '/reset-password'
       fullPath: '/reset-password'
       preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pool': {
+      id: '/pool'
+      path: '/pool'
+      fullPath: '/pool'
+      preLoaderRoute: typeof PoolRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/join': {
@@ -458,6 +478,7 @@ const rootRouteChildren: RootRouteChildren = {
   DeployRoute: DeployRoute,
   FleetRoute: FleetRoute,
   JoinRoute: JoinRoute,
+  PoolRoute: PoolRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   SupportRoute: SupportRoute,

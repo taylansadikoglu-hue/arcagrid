@@ -41,7 +41,7 @@ export function SiteNav() {
         </div>
         <nav className="flex items-center gap-1 text-sm">
           <Link
-            to="/join"
+            to="/pool"
             className="rounded-md px-3 py-1.5 text-muted-foreground transition-colors hover:text-foreground"
             activeProps={{ className: "text-foreground" }}
           >
