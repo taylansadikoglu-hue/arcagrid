@@ -621,7 +621,7 @@ function PricingSectionInner() {
 function RoiCalculator() {
   const [rigCost, setRigCost] = useState(3.6); // $/day
   const [gpuCount, setGpuCount] = useState(1);
-  const [gpuModel, setGpuModel] = useState<keyof typeof GPU_NS>("RTX 5060 Ti");
+  const [gpuModel, setGpuModel] = useState<GpuModel>("RTX 5060 Ti");
   const hashrate = GPU_NS[gpuModel] * gpuCount;
 
   const { data: priceData } = useQuery({
