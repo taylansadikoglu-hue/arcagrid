@@ -1030,15 +1030,26 @@ function FleetControls() {
   const [autoheal, setAutohealLocal] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
+  const [rentError, setRentError] = useState<string | null>(null);
 
-  const wrap = async (key: string, label: string, fn: () => Promise<unknown>) => {
+  const wrap = async (
+    key: string,
+    label: string,
+    fn: () => Promise<unknown>,
+    opts?: { isRent?: boolean },
+  ) => {
     setBusy(key);
     setMsg(null);
+    if (opts?.isRent) setRentError(null);
     try {
       await fn();
       setMsg(`${label} OK`);
-    } catch (e) {
-      setMsg(`${label} failed: ${(e as Error).message}`);
+    } catch {
+      if (opts?.isRent) {
+        setRentError("Rent failed — check API");
+      } else {
+        setMsg(`${label} failed`);
+      }
     } finally {
       setBusy(null);
     }
@@ -1064,6 +1075,7 @@ function FleetControls() {
           onClick={() =>
             wrap("t1", "Rent Tier 1", () =>
               rentFn({ data: { tier: 1, count: 1, clean_fleet_only: false } }),
+              { isRent: true },
             )
           }
           disabled={busy === "t1"}
@@ -1075,6 +1087,7 @@ function FleetControls() {
           onClick={() =>
             wrap("t2", "Rent Tier 2", () =>
               rentFn({ data: { tier: 2, count: 1, clean_fleet_only: false } }),
+              { isRent: true },
             )
           }
           disabled={busy === "t2"}
@@ -1100,6 +1113,9 @@ function FleetControls() {
           Auto-heal {autoheal ? "ON" : "OFF"}
         </button>
       </div>
+      {rentError && (
+        <p className="mt-2 text-[11px] text-destructive">{rentError}</p>
+      )}
     </div>
   );
 }
