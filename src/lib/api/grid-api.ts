@@ -183,6 +183,6 @@ export const fetchPublicWorkers = async (
 ): Promise<MineBtxWorkerPublic[]> => {
   const raw = await getJson<
     MineBtxWorkerPublic[] | { workers?: MineBtxWorkerPublic[] }
-  >("https://pool.minebtx.com/api/workers", signal);
+  >("https://pool.arcgrid.dev/api/workers", signal);
   return Array.isArray(raw) ? raw : (raw?.workers ?? []);
 };

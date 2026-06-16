@@ -140,7 +140,7 @@ export const rentRigs = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => postOps("/api/operator/rent", data));
 
-// Worker rows from the upstream pool (pool.minebtx.com/api/workers).
+// Worker rows from the upstream pool (pool.arcgrid.dev/api/workers).
 export interface MineBtxWorker {
   worker?: string;
   name?: string;
@@ -157,10 +157,10 @@ export interface MineBtxWorker {
 
 export const fetchMineBtxWorkers = createServerFn({ method: "GET" }).handler(
   async (): Promise<MineBtxWorker[]> => {
-    const res = await fetch("https://pool.minebtx.com/api/workers", {
+    const res = await fetch("https://pool.arcgrid.dev/api/workers", {
       headers: { accept: "application/json" },
     });
-    if (!res.ok) throw new Error(`pool.minebtx.com/api/workers → ${res.status}`);
+    if (!res.ok) throw new Error(`pool.arcgrid.dev/api/workers → ${res.status}`);
     const raw = (await res.json()) as
       | MineBtxWorker[]
       | { workers?: MineBtxWorker[] };

@@ -763,7 +763,7 @@ function WalletPanel() {
 }
 
 /* -------------------------------------------------------------------------- */
-/*  MY RIGS — workers from pool.minebtx.com filtered to operator's fleet      */
+/*  MY RIGS — workers from pool.arcgrid.dev filtered to operator's fleet      */
 /* -------------------------------------------------------------------------- */
 
 function isMyRig(name: string): boolean {
@@ -778,7 +778,7 @@ function MyRigsTable() {
   const [busy, setBusy] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const { data, isLoading, error } = useQuery({
-    queryKey: ["operator-minebtx-workers"],
+    queryKey: ["operator-arcgrid-workers"],
     queryFn: () => fetchWorkers() as Promise<MineBtxWorker[]>,
     refetchInterval: 15_000,
     staleTime: 10_000,
