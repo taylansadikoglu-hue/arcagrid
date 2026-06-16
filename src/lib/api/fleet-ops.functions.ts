@@ -153,6 +153,9 @@ export interface MineBtxWorker {
   last_share_age_s?: number;
   last_share?: number;
   last_seen?: number;
+  temp?: number;
+  gpu_temp?: number;
+  temperature?: number;
 }
 
 export const fetchMineBtxWorkers = createServerFn({ method: "GET" }).handler(
@@ -184,3 +187,38 @@ export const restartRig = createServerFn({ method: "POST" })
     }
     return (await res.json().catch(() => ({ ok: true }))) as Json;
   });
+
+async function postRig(worker: string, path: string, body: unknown): Promise<Json> {
+  const w = worker.trim();
+  if (!w) throw new Error("worker required");
+  const res = await fetch(
+    `${BASE}/api/operator/rig/${encodeURIComponent(w)}/${path}`,
+    { method: "POST", headers: authHeaders(), body: JSON.stringify(body) },
+  );
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`${path} ${w} → ${res.status} ${text}`.trim());
+  }
+  return (await res.json().catch(() => ({ ok: true }))) as Json;
+}
+
+export const setRigWatts = createServerFn({ method: "POST" })
+  .inputValidator((input: { worker: string; watts: number }) => ({
+    worker: String(input?.worker ?? "").trim(),
+    watts: Math.max(50, Math.min(300, Math.round(Number(input?.watts ?? 150)))),
+  }))
+  .handler(async ({ data }) => postRig(data.worker, "watts", { watts: data.watts }));
+
+export const setRigTurbo = createServerFn({ method: "POST" })
+  .inputValidator((input: { worker: string; threads: number }) => ({
+    worker: String(input?.worker ?? "").trim(),
+    threads: Math.max(25, Math.min(100, Math.round(Number(input?.threads ?? 100)))),
+  }))
+  .handler(async ({ data }) => postRig(data.worker, "turbo", { threads: data.threads }));
+
+export const setRigThermal = createServerFn({ method: "POST" })
+  .inputValidator((input: { worker: string; max_temp: number }) => ({
+    worker: String(input?.worker ?? "").trim(),
+    max_temp: Math.max(60, Math.min(85, Math.round(Number(input?.max_temp ?? 80)))),
+  }))
+  .handler(async ({ data }) => postRig(data.worker, "thermal", { max_temp: data.max_temp }));

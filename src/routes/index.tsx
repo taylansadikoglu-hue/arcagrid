@@ -599,13 +599,13 @@ function PricingSectionInner() {
             Fast-Start Guarantee
           </span>
           <h3 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">
-            ⚡ Ready to Mine in Under 30 Minutes
+            ⚡ Ready to Mine in Under 5 Minutes
           </h3>
           <p className="mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
             No long sync times, no complex configurations. Select your tier,
             complete your secure payment routing, and our automated Cloudflare
             R2 fast-bootstrap engine will have your allocated grid hashing and
-            streaming live payouts straight to your wallet in under 30 minutes.
+            streaming live payouts straight to your wallet in under 5 minutes.
             Guaranteed.
           </p>
         </div>
@@ -619,8 +619,19 @@ function PricingSectionInner() {
 /* -------------------------------------------------------------------------- */
 
 function RoiCalculator() {
+  const GPU_NS = {
+    "RTX 5060 Ti": 3500,
+    "RTX 3070": 1800,
+    "RTX 3080": 2800,
+    "RTX 4070": 3200,
+    "RTX 4090": 9000,
+    Other: 1000,
+  } as const;
+  type GpuModel = keyof typeof GPU_NS;
   const [rigCost, setRigCost] = useState(3.6); // $/day
-  const [hashrate, setHashrate] = useState(883); // N/s
+  const [gpuCount, setGpuCount] = useState(1);
+  const [gpuModel, setGpuModel] = useState<GpuModel>("RTX 5060 Ti");
+  const hashrate = GPU_NS[gpuModel] * gpuCount;
 
   const { data: priceData } = useQuery({
     queryKey: ["btx-price"],
@@ -688,16 +699,39 @@ function RoiCalculator() {
                 format={(v) => `$${v.toFixed(2)}`}
                 onChange={setRigCost}
               />
-              <RoiSlider
-                label="Expected hashrate"
-                unit="N/s"
-                value={hashrate}
-                min={100}
-                max={5000}
-                step={10}
-                format={(v) => `${v.toFixed(0)} N/s`}
-                onChange={setHashrate}
-              />
+              <label className="block">
+                <div className="flex items-baseline justify-between">
+                  <span className="text-sm font-medium text-foreground">How many GPUs do you have?</span>
+                  <span className="font-mono-num text-[10px] uppercase tracking-widest text-muted-foreground">count</span>
+                </div>
+                <input
+                  type="number"
+                  min={1}
+                  max={64}
+                  step={1}
+                  value={gpuCount}
+                  onChange={(e) => setGpuCount(Math.max(1, Math.min(64, Number(e.target.value) || 1)))}
+                  className="font-mono-num mt-2 w-full rounded-md border border-input bg-background/60 px-3 py-1.5 text-xs outline-none focus:border-primary/60 focus:ring-2 focus:ring-primary/20"
+                />
+              </label>
+              <label className="block">
+                <div className="flex items-baseline justify-between">
+                  <span className="text-sm font-medium text-foreground">What GPU do you have?</span>
+                  <span className="font-mono-num text-[10px] uppercase tracking-widest text-muted-foreground">model</span>
+                </div>
+                <select
+                  value={gpuModel}
+                  onChange={(e) => setGpuModel(e.target.value as keyof typeof GPU_NS)}
+                  className="font-mono-num mt-2 w-full rounded-md border border-input bg-background/60 px-3 py-1.5 text-xs outline-none focus:border-primary/60 focus:ring-2 focus:ring-primary/20"
+                >
+                  {(Object.keys(GPU_NS) as GpuModel[]).map((g) => (
+                    <option key={g} value={g}>{g} — {GPU_NS[g]} N/s</option>
+                  ))}
+                </select>
+                <div className="font-mono-num mt-1 text-[11px] text-primary">
+                  Total: {hashrate.toLocaleString()} N/s
+                </div>
+              </label>
               <div className="rounded-lg border border-border bg-background/50 px-4 py-3 text-[11px] text-muted-foreground">
                 Defaults match a single tuned CUDA worker on the ARCA mesh
                 (~883 N/s @ $3.60/day cost basis).
@@ -712,7 +746,7 @@ function RoiCalculator() {
                 tone="muted"
               />
               <RoiOutput
-                label="Daily yield (BTX)"
+                label="Daily earnings (BTX)"
                 value={`${result.dailyBtx.toFixed(3)} BTX`}
                 tone="primary"
                 glow
@@ -724,7 +758,7 @@ function RoiCalculator() {
                 glow
               />
               <RoiOutput
-                label="30-day net profit"
+                label="Monthly take-home (USD)"
                 value={`${result.net30 >= 0 ? "+" : ""}$${result.net30.toFixed(0)}`}
                 tone={result.net30 >= 0 ? "primary" : "destructive"}
                 glow
