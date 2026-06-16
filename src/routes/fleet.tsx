@@ -376,6 +376,31 @@ function FleetConsole({ userId, email }: { userId: string; email: string }) {
   );
   const isLoading = nodesLoading;
 
+  // Live pool hashrate — used to compute real daily yield (price × hashrate
+  // via the ROI oracle) instead of the previous hardcoded heuristic.
+  const { data: poolOverview } = useQuery({
+    queryKey: ["grid-api", "pool-overview"],
+    queryFn: ({ signal }) => fetchPoolOverview(signal),
+    refetchInterval: 30_000,
+    staleTime: 15_000,
+    placeholderData: keepPreviousData,
+    retry: 1,
+  });
+  const poolHashrate =
+    (poolOverview?.pool_hashrate as number | undefined) ??
+    ((poolOverview as unknown as { totals?: { miner_hashrate_sum?: number } } | undefined)
+      ?.totals?.miner_hashrate_sum) ??
+    0;
+  const { data: yieldRoi } = useQuery({
+    queryKey: ["grid-api", "roi-yield", poolHashrate],
+    queryFn: ({ signal }) => fetchRoi(0, poolHashrate, signal),
+    enabled: poolHashrate > 0,
+    refetchInterval: 60_000,
+    staleTime: 30_000,
+    placeholderData: keepPreviousData,
+    retry: 1,
+  });
+
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const selected = useMemo(
     () => nodes.find((n) => n.id === selectedId) ?? nodes[0],
@@ -391,19 +416,23 @@ function FleetConsole({ userId, email }: { userId: string; email: string }) {
     const active = summary?.healthy_nodes ?? 0;
     const blocks = nodes.reduce((s, n) => s + n.blocks_found, 0);
     const costDay = active * HOURLY * 24;
-    const walletWorth = blocks * 20 * btxPrice;
-    const yieldDay = walletWorth;
+    // Daily yield = real BTX price × actual pool hashrate, via ROI oracle.
+    const yieldDay = Number.isFinite(yieldRoi?.daily_usd)
+      ? (yieldRoi!.daily_usd as number)
+      : 0;
+    const haveYield = typeof yieldRoi?.daily_usd === "number";
     return {
       total,
       active,
       blocks,
       costDay,
       yieldDay,
-      walletWorth,
+      haveYield,
+      walletWorth: yieldDay,
       hourly: HOURLY,
       net: yieldDay - costDay,
     };
-  }, [summary, nodes, btxPrice]);
+  }, [summary, nodes, yieldRoi]);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -430,11 +459,16 @@ function FleetConsole({ userId, email }: { userId: string; email: string }) {
                 : "—",
             accent: "primary",
           },
-          { k: "Daily yield", v: `$${totals.yieldDay.toFixed(2)}` },
+          {
+            k: "Daily yield",
+            v: totals.haveYield ? `$${totals.yieldDay.toFixed(2)}` : "—",
+          },
           { k: "Daily cost", v: `$${totals.costDay.toFixed(2)}` },
           {
             k: "Net",
-            v: `${totals.net >= 0 ? "+" : ""}$${totals.net.toFixed(2)}`,
+            v: totals.haveYield
+              ? `${totals.net >= 0 ? "+" : ""}$${totals.net.toFixed(2)}`
+              : "—",
             accent: totals.net >= 0 ? "primary" : "destructive",
           },
           { k: "Blocks", v: String(totals.blocks) },
