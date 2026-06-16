@@ -26,6 +26,7 @@ import {
   fetchFleetNodes,
   fetchBtxPrice,
   fetchRoi,
+  fetchPoolOverview,
   type FleetNode,
   type FleetSummary,
 } from "@/lib/api/grid-api";
