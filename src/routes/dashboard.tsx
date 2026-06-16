@@ -886,26 +886,37 @@ function RigControls({
 }
 
 function MyRigsTable() {
-  const fetchWorkers = useServerFn(fetchMineBtxWorkers);
   const restart = useServerFn(restartRig);
   const [busy, setBusy] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
-  const { data, isLoading, error } = useQuery({
-    queryKey: ["operator-arcgrid-workers"],
-    queryFn: () => fetchWorkers() as Promise<MineBtxWorker[]>,
-    refetchInterval: 15_000,
-    staleTime: 10_000,
-    placeholderData: keepPreviousData,
-  });
-  const rows = (data ?? [])
-    .map((w) => ({ ...w, _name: w.worker ?? w.name ?? "" }))
-    .filter((w) => isMyRig(w._name));
+  const { data: rows = [], isLoading, error } = useMyRigs();
 
-  const fmtAge = (s?: number) => {
-    if (typeof s !== "number" || !isFinite(s) || s < 0) return "—";
+  const hashrateNumber = (
+    h: PoolMiner["hashrate"],
+  ): number | undefined => {
+    if (typeof h === "number") return h;
+    if (h && typeof h === "object") {
+      if (typeof h.raw === "number") return h.raw;
+      if (typeof h.value === "number") return h.value;
+    }
+    return undefined;
+  };
+
+  const fmtAge = (lastSeen?: number) => {
+    if (typeof lastSeen !== "number" || !isFinite(lastSeen)) return "—";
+    // last_seen may be unix seconds (large) or already an "age in seconds".
+    const nowSec = Date.now() / 1000;
+    const s = lastSeen > 1e9 ? nowSec - lastSeen : lastSeen;
+    if (s < 0 || !isFinite(s)) return "—";
     if (s < 60) return `${Math.floor(s)}s ago`;
     if (s < 3600) return `${Math.floor(s / 60)}m ago`;
     return `${Math.floor(s / 3600)}h ago`;
+  };
+
+  const ageSeconds = (lastSeen?: number): number | undefined => {
+    if (typeof lastSeen !== "number" || !isFinite(lastSeen)) return undefined;
+    const nowSec = Date.now() / 1000;
+    return lastSeen > 1e9 ? nowSec - lastSeen : lastSeen;
   };
 
   const doRestart = async (worker: string) => {
@@ -957,8 +968,7 @@ function MyRigsTable() {
               <tr className="border-b border-border/60 text-[10px] uppercase tracking-widest text-muted-foreground">
                 <th className="px-3 py-2 font-medium">Worker</th>
                 <th className="px-3 py-2 font-medium">N/s</th>
-                <th className="px-3 py-2 font-medium">GPU%</th>
-                <th className="px-3 py-2 font-medium">Watts</th>
+                <th className="px-3 py-2 font-medium">Shares</th>
                 <th className="px-3 py-2 font-medium">Last Share</th>
                 <th className="px-3 py-2 font-medium">Status</th>
                 <th className="px-3 py-2 font-medium">Actions</th>
@@ -966,26 +976,23 @@ function MyRigsTable() {
             </thead>
             <tbody className="font-mono-num">
               {rows.map((w) => {
-                const age = typeof w.last_share_age_s === "number" ? w.last_share_age_s : undefined;
+                const name = w.worker_name;
+                const age = ageSeconds(w.last_seen);
                 const healthy = typeof age === "number" && age < 3600;
-                const ns = w.hashrate_ns ?? w.hashrate;
-                const gpu = w.gpu_pct ?? w.gpu;
-                const watts = w.watts ?? w.power;
-                const temp = w.temp ?? w.gpu_temp ?? w.temperature;
+                const ns = hashrateNumber(w.hashrate);
                 return (
-                  <Fragment key={w._name}>
+                  <Fragment key={name}>
                   <tr className="border-b border-border/40 hover:bg-secondary/30">
-                    <td className="px-3 py-2 font-semibold text-foreground">{w._name}</td>
+                    <td className="px-3 py-2 font-semibold text-foreground">{name}</td>
                     <td className="px-3 py-2 text-primary">
                       {typeof ns === "number" ? ns.toLocaleString() : "—"}
                     </td>
                     <td className="px-3 py-2 text-muted-foreground">
-                      {typeof gpu === "number" ? `${gpu}%` : "—"}
+                      {typeof w.shares_valid === "number"
+                        ? w.shares_valid.toLocaleString()
+                        : "—"}
                     </td>
-                    <td className="px-3 py-2 text-muted-foreground">
-                      {typeof watts === "number" ? `${watts}W` : "—"}
-                    </td>
-                    <td className="px-3 py-2 text-muted-foreground">{fmtAge(age)}</td>
+                    <td className="px-3 py-2 text-muted-foreground">{fmtAge(w.last_seen)}</td>
                     <td className="px-3 py-2">
                       <span
                         className={`inline-block h-2 w-2 rounded-full ${
@@ -995,21 +1002,17 @@ function MyRigsTable() {
                     </td>
                     <td className="px-3 py-2">
                       <button
-                        onClick={() => doRestart(w._name)}
-                        disabled={busy === w._name}
+                        onClick={() => doRestart(name)}
+                        disabled={busy === name}
                         className="rounded border border-border bg-secondary/50 px-2 py-1 text-[10px] uppercase tracking-wider text-foreground hover:bg-secondary disabled:opacity-50"
                       >
-                        {busy === w._name ? "…" : "Restart"}
+                        {busy === name ? "…" : "Restart"}
                       </button>
                     </td>
                   </tr>
                   <tr className="border-b border-border/40 last:border-b-0 bg-background/40">
-                    <td colSpan={7} className="px-3 py-3">
-                      <RigControls
-                        worker={w._name}
-                        liveWatts={typeof watts === "number" ? watts : undefined}
-                        liveTemp={typeof temp === "number" ? temp : undefined}
-                      />
+                    <td colSpan={6} className="px-3 py-3">
+                      <RigControls worker={name} />
                     </td>
                   </tr>
                   </Fragment>
