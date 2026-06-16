@@ -617,9 +617,13 @@ function FleetConsole({ userId, email }: { userId: string; email: string }) {
 
           {selected ? (
             <NodeDetail node={selected} userId={userId} />
+          ) : isLoading ? (
+            <div className="rounded-xl border border-border bg-card p-10 text-center text-sm text-muted-foreground">
+              Loading fleet nodes…
+            </div>
           ) : (
             <div className="rounded-xl border border-border bg-card p-10 text-center text-sm text-muted-foreground">
-              Provisioning your first node…
+              No fleet nodes online.
             </div>
           )}
 
@@ -1608,8 +1612,8 @@ function Sparkline({
 }
 
 function RoiPanel({ blocks }: { blocks: number }) {
-  const [cost, setCost] = useState(100);
-  const [hashrate, setHashrate] = useState(50);
+  const [cost, setCost] = useState(0);
+  const [hashrate, setHashrate] = useState(0);
   const { data, isLoading, isFetching, isError } = useQuery({
     queryKey: ["grid-api", "roi", cost, hashrate],
     queryFn: ({ signal }) => fetchRoi(cost, hashrate, signal),
