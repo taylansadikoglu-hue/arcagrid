@@ -45,7 +45,7 @@ export function SiteNav() {
             className="rounded-md px-3 py-1.5 text-muted-foreground transition-colors hover:text-foreground"
             activeProps={{ className: "text-foreground" }}
           >
-            Join Pool →
+            Join Pool
           </Link>
           <Link
             to="/dashboard"
