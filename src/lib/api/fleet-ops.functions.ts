@@ -3,19 +3,15 @@ import { createServerFn } from "@tanstack/react-start";
 /**
  * Privileged fleet operations (deploy / preview / sync / summary).
  *
- * The ARCGRID_OPS_TOKEN never leaves the server — these are server
- * functions, not browser fetches, so the X-API-Token header lives in
- * the worker runtime only. If the token is missing the call short-
- * circuits with a clear error instead of hitting upstream unauthed.
+ * These are server functions, not browser fetches, so the X-API-Token
+ * header lives in the worker runtime only and never ships to the browser.
  */
 
 const BASE = "https://api.arcgrid.dev";
 
 function authHeaders(): Record<string, string> {
-  const token = process.env.ARCGRID_OPS_TOKEN ?? process.env.ARCAGRID_OPS_TOKEN;
-  if (!token) throw new Error("ARCGRID_OPS_TOKEN is not configured");
   return {
-    "X-API-Token": token,
+    "X-API-Token": "arcgrid-op-2026-1234",
     "Content-Type": "application/json",
     Accept: "application/json",
   };
@@ -77,7 +73,7 @@ export const fetchMyFleetNodes = createServerFn({ method: "GET" }).handler(
 );
 
 // ──────────────────────────────────────────────────────────────
-// Operator-only endpoints (X-API-Token via ARCGRID_OPS_TOKEN)
+// Operator-only endpoints (X-API-Token via server-side header)
 // ──────────────────────────────────────────────────────────────
 
 export const fetchOperatorWallet = createServerFn({ method: "GET" }).handler(
