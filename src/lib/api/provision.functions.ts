@@ -142,9 +142,84 @@ async function queryClore(): Promise<Candidate[]> {
       return [];
     }
     const json = (await res.json()) as {
-      servers?: Array<{ id: number; price?: { on_demand?: number; spot?: number }; specs?: { gpus?: string } }>;
+      servers?: Array<{
+        id: number;
+        price?: { on_demand?: number; spot?: number };
+        specs?: { gpus?: string };
+        market_type?: string;
+        market?: string;
+        type?: string;
+        tags?: string[];
+        description?: string;
+        desc?: string;
+        name?: string;
+        bare_metal?: boolean;
+      }>;
     };
-    return (json.servers ?? []).slice(0, 50).map((s) => {
+    // Strict marketplace filter:
+    //  1. Exclude any "power_saving" listings (and anything tagged into the
+    //     power-efficient ecosystem) — those hosts throttle the container
+    //     and block nvidia-smi power-limit writes.
+    //  2. Keep only bare-metal / "Full PL" hosts so we retain full container
+    //     execution privileges for nvidia-smi power controls.
+    const isPowerSaving = (s: {
+      market_type?: string;
+      market?: string;
+      type?: string;
+      tags?: string[];
+    }) => {
+      const blob = [s.market_type, s.market, s.type, ...(s.tags ?? [])]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      return (
+        blob.includes("power_saving") ||
+        blob.includes("power-saving") ||
+        blob.includes("power saving") ||
+        blob.includes("power_efficient") ||
+        blob.includes("power-efficient") ||
+        blob.includes("eco")
+      );
+    };
+    const isFullPrivilege = (s: {
+      market_type?: string;
+      market?: string;
+      type?: string;
+      tags?: string[];
+      description?: string;
+      desc?: string;
+      name?: string;
+      bare_metal?: boolean;
+    }) => {
+      if (s.bare_metal === true) return true;
+      const blob = [
+        s.market_type,
+        s.market,
+        s.type,
+        s.description,
+        s.desc,
+        s.name,
+        ...(s.tags ?? []),
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      return (
+        blob.includes("bare-metal") ||
+        blob.includes("bare_metal") ||
+        blob.includes("baremetal") ||
+        blob.includes("full pl")
+      );
+    };
+    const filtered = (json.servers ?? []).filter(
+      (s) => !isPowerSaving(s) && isFullPrivilege(s),
+    );
+    if (filtered.length === 0) {
+      console.warn(
+        "[provision] clore marketplace returned 0 bare-metal/Full-PL hosts after power_saving exclusion",
+      );
+    }
+    return filtered.slice(0, 50).map((s) => {
       // GigaSPOT preferred — spot price (when present) is typically cheaper
       // and improves our effective margin.
       const spot = s.price?.spot;
