@@ -8,6 +8,7 @@ import { createServerFn } from "@tanstack/react-start";
  */
 
 const BASE = "https://api.arcgrid.dev";
+const RIG_OPS_BASE = "http://37.27.0.36:8080";
 
 function authHeaders(): Record<string, string> {
   return {
@@ -174,7 +175,7 @@ export const restartRig = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     if (!data.worker) throw new Error("worker required");
     const res = await fetch(
-      `${BASE}/api/operator/rig/${encodeURIComponent(data.worker)}/restart`,
+      `${RIG_OPS_BASE}/api/operator/rig/${encodeURIComponent(data.worker)}/restart`,
       { method: "POST", headers: authHeaders() },
     );
     if (!res.ok) {
@@ -188,7 +189,7 @@ async function postRig(worker: string, path: string, body: unknown): Promise<Jso
   const w = worker.trim();
   if (!w) throw new Error("worker required");
   const res = await fetch(
-    `${BASE}/api/operator/rig/${encodeURIComponent(w)}/${path}`,
+    `${RIG_OPS_BASE}/api/operator/rig/${encodeURIComponent(w)}/${path}`,
     { method: "POST", headers: authHeaders(), body: JSON.stringify(body) },
   );
   if (!res.ok) {
