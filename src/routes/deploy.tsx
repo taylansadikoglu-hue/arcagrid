@@ -1,449 +1,493 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { createFileRoute } from "@tanstack/react-router";
+import { useState, useCallback } from "react";
 
 import { SiteNav } from "@/components/SiteNav";
-import {
-  TIERS,
-  type MiningMode,
-  type TierId,
-  loadPrefs,
-  savePrefs,
-} from "@/lib/miner-store";
+import { GRID_API_BASE, POOL_API_BASE } from "@/lib/api/grid-api";
 
 export const Route = createFileRoute("/deploy")({
   head: () => ({
     meta: [
-      { title: "Deploy a Node — Arca Grid" },
+      { title: "Deploy to Arca Grid — DC Operator Onboarding" },
       {
         name: "description",
         content:
-          "Provision a tuned CUDA worker on the Arca Grid mesh. Per-day or monthly compute tiers with autonomous spot-market allocation.",
+          "Connect your data centre GPUs to the Arca Grid BTX mining network. One Docker command, automatic GPU detection, earnings tracked by wallet.",
       },
-      { property: "og:title", content: "Deploy a Node — Arca Grid" },
+      { property: "og:title", content: "Deploy to Arca Grid — DC Operator Onboarding" },
       {
         property: "og:description",
         content:
-          "Per-day or monthly compute tiers on ARCA — Autonomous Remote Cluster Architecture. Autonomous allocation, hard-capped thermal routing, immutable provisioning.",
+          "One docker run command. GPU detected automatically. Mining starts within 5 minutes. Earnings tracked by wallet address.",
       },
       { property: "og:url", content: "https://arcgrid.dev/deploy" },
     ],
     links: [{ rel: "canonical", href: "https://arcgrid.dev/deploy" }],
-    scripts: [
-      {
-        type: "application/ld+json",
-        children: JSON.stringify({
-          "@context": "https://schema.org",
-          "@graph": TIERS.filter((t) => t.id !== "partner_share").map((t) => ({
-            "@type": "Product",
-            name: `ARCA GRID ${t.name} — ${t.tagline}`,
-            description: t.description ?? `${t.name} compute tier on the ARCA GRID Sovereign Distributed Grid Mesh.`,
-            brand: { "@type": "Brand", name: "ARCA GRID" },
-            offers: {
-              "@type": "Offer",
-              price: t.price.toFixed(2),
-              priceCurrency: "USD",
-              availability: "https://schema.org/InStock",
-              url: `https://arcgrid.dev/checkout?tier=${t.id}`,
-            },
-          })),
-        }),
-      },
-    ],
   }),
   component: DeployPage,
 });
 
-function DeployPage() {
-  const navigate = useNavigate();
-  const [wallet, setWallet] = useState("");
-  const [mode, setMode] = useState<MiningMode>("pool");
-  const [error, setError] = useState<string | null>(null);
-  const [walletHelpOpen, setWalletHelpOpen] = useState(false);
+const DOCKER_CMD = `docker run -d --gpus all --restart=unless-stopped \\
+  -e USER_WALLET=<btx_wallet> \\
+  -e DC_NAME="YourDC" \\
+  -e NODE_NAME="gpu-01" \\
+  taylans/orchestra-os:lite`;
 
-  useEffect(() => {
-    const p = loadPrefs();
-    setWallet(p.wallet);
-    setMode(p.mode);
+const SUPPORTED_GPUS = [
+  "RTX 3070, 3080, 3090 — 8 GB+ VRAM",
+  "RTX 4070, 4080, 4090",
+  "RTX 5060 Ti, 5070, 5080, 5090",
+  "Minimum 8 GB VRAM, SM86 architecture or newer",
+];
+
+const UNSUPPORTED_GPUS = [
+  "GTX 1060, 1070, 1080 series — incompatible CUDA",
+  "Any GPU under 8 GB VRAM",
+  "AMD GPUs",
+  "Laptop GPUs (not recommended)",
+  "Windows containers",
+  "Virtualised / shared GPUs",
+];
+
+const SOFTWARE_REQS = [
+  "Ubuntu 20.04 / 22.04 / 24.04",
+  "Docker 24.0+",
+  "NVIDIA Container Toolkit (nvidia-docker2)",
+  "NVIDIA Driver 525+",
+  "CUDA 12.0+ (CUDA 12.8+ recommended)",
+];
+
+const HARDWARE_REQS = [
+  "16 GB RAM minimum",
+  "50 GB free disk space",
+  "Stable power — GPU runs at sustained load",
+];
+
+const NETWORK_REQS = [
+  "Outbound TCP 3333 — pool stratum",
+  "Outbound TCP 443 — API reporting",
+  "10 Mbps minimum",
+];
+
+const AFTER_DEPLOY = [
+  {
+    step: "01",
+    title: "GPU detected automatically",
+    body: "Orchestra OS probes nvidia-smi at startup, selects the best available device, and configures the MatMul solver to match your GPU's SM architecture.",
+  },
+  {
+    step: "02",
+    title: "Mining starts within 5 minutes",
+    body: "The container connects to pool.arcgrid.dev:3333, receives the current job, and begins submitting shares. No manual configuration required.",
+  },
+  {
+    step: "03",
+    title: "Earnings tracked by wallet",
+    body: "Every valid share is credited to the USER_WALLET you supplied. PPLNS payouts are processed every 24 hours once minimum threshold is reached.",
+  },
+  {
+    step: "04",
+    title: "Check earnings at pool.arcgrid.dev",
+    body: "View live hashrate, share count, and pending balance by searching your wallet address on the pool dashboard.",
+  },
+];
+
+interface EarningsResult {
+  btx_price: number;
+  btx_earned_today: number;
+  usd_earned_today: number;
+  total_shares: number;
+  rigs: Array<{
+    rig_id: string;
+    gpu: string;
+    shares: number;
+    share_pct: number;
+    btx_earned_est: number;
+    usd_value: number;
+    hashrate: string;
+  }>;
+}
+
+interface WalletResult {
+  address?: string;
+  balance?: number;
+  pending?: number;
+  paid?: number;
+  hashrate?: number | { display?: string };
+  shares_valid?: number;
+  error?: string;
+}
+
+function DeployPage() {
+  const [copied, setCopied] = useState(false);
+  const [wallet, setWallet] = useState("");
+  const [checking, setChecking] = useState(false);
+  const [earnings, setEarnings] = useState<EarningsResult | null>(null);
+  const [walletData, setWalletData] = useState<WalletResult | null>(null);
+  const [checkError, setCheckError] = useState<string | null>(null);
+
+  const copyCommand = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(DOCKER_CMD);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // fallback — select the text
+    }
   }, []);
 
-  const select = (tier: TierId) => {
-    if (wallet.trim() && wallet.trim().length < 20) {
-      setError("Enter a valid wallet address (20+ chars) to continue.");
-      document.getElementById("launch-card")?.scrollIntoView({ behavior: "smooth" });
+  const checkEarnings = useCallback(async () => {
+    const addr = wallet.trim();
+    if (!addr || addr.length < 20) {
+      setCheckError("Enter a valid BTX wallet address (20+ characters).");
       return;
     }
-    setError(null);
-    savePrefs({ wallet: wallet.trim(), mode });
-    navigate({ to: "/checkout", search: { tier } });
-  };
+    setCheckError(null);
+    setChecking(true);
+    setEarnings(null);
+    setWalletData(null);
+
+    const [earningsRes, walletRes] = await Promise.allSettled([
+      fetch(`${GRID_API_BASE}/api/fleet/earnings`).then((r) => {
+        if (!r.ok) throw new Error(`earnings ${r.status}`);
+        return r.json() as Promise<EarningsResult>;
+      }),
+      fetch(`${POOL_API_BASE}/api/wallet/${encodeURIComponent(addr)}`).then(
+        (r) => r.json() as Promise<WalletResult>,
+      ),
+    ]);
+
+    if (earningsRes.status === "fulfilled") setEarnings(earningsRes.value);
+    if (walletRes.status === "fulfilled") setWalletData(walletRes.value);
+
+    if (earningsRes.status === "rejected" && walletRes.status === "rejected") {
+      setCheckError("Could not reach the Arca Grid API. Please try again shortly.");
+    }
+
+    setChecking(false);
+  }, [wallet]);
+
+  const hasResults = earnings !== null || walletData !== null;
 
   return (
     <div className="min-h-screen bg-background text-foreground">
       <SiteNav />
 
+      {/* ── Hero ──────────────────────────────────────────────────────────── */}
       <section className="relative overflow-hidden">
         <div
           className="pointer-events-none absolute inset-0"
           style={{ background: "var(--gradient-glow)" }}
         />
         <div className="bg-grid pointer-events-none absolute inset-0 opacity-60" />
-        <div className="relative mx-auto max-w-7xl px-6 pt-20 pb-12 sm:pt-24">
+        <div className="relative mx-auto max-w-7xl px-6 pt-20 pb-16 sm:pt-28">
           <div className="mx-auto max-w-3xl text-center">
             <span className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
               <span className="pulse-dot inline-block h-1.5 w-1.5 rounded-full bg-primary" />
-              Retail Node Deployment
+              DC Operator Onboarding
             </span>
             <h1 className="mt-6 text-balance text-4xl font-semibold tracking-tight sm:text-5xl">
-              Provision a tuned CUDA worker in one click
+              Connect your GPUs to the Arca Grid network
             </h1>
             <p className="mx-auto mt-5 max-w-xl text-balance text-base text-muted-foreground sm:text-lg">
-              Per-day or monthly compute tiers on ARCA — Autonomous Remote Cluster Architecture.
-              Autonomous spot-market allocation locks the cheapest qualified
-              node before your container ships.
+              One Docker command deploys Orchestra OS on any qualified NVIDIA GPU.
+              Mining starts within 5 minutes. Earnings accumulate directly to your BTX wallet.
             </p>
           </div>
 
-          <div
-            id="launch-card"
-            className="mx-auto mt-12 max-w-2xl rounded-2xl border border-border bg-card p-1"
-            style={{ boxShadow: "var(--shadow-card)" }}
-          >
-            <div className="rounded-[14px] bg-gradient-to-b from-secondary/40 to-transparent p-6 sm:p-8">
-              <div className="flex items-center justify-between">
-                <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
-                  Configure worker
-                </h2>
-                <span className="font-mono-num text-xs text-muted-foreground">
-                  arcagrid/cuda-worker:pinned
-                </span>
-              </div>
-
-              <label
-                htmlFor="payout-wallet"
-                className="mt-5 block text-sm font-medium"
-              >
-                Payout Wallet Address
-              </label>
-              <input
-                id="payout-wallet"
-                value={wallet}
-                onChange={(e) => setWallet(e.target.value)}
-                placeholder="btx1q…"
-                spellCheck={false}
-                className="font-mono-num mt-2 w-full rounded-lg border border-input bg-background/60 px-4 py-3 text-sm outline-none transition-colors placeholder:text-muted-foreground/60 focus:border-primary/60 focus:ring-2 focus:ring-primary/20"
-              />
-              <button
-                type="button"
-                onClick={() => setWalletHelpOpen(true)}
-                className="mt-2 text-xs font-medium text-primary underline-offset-4 transition-colors hover:text-primary/80 hover:underline"
-              >
-                Need a wallet? Three secure setup paths. →
-              </button>
-              {error && <p className="mt-2 text-xs text-destructive">{error}</p>}
-
-              <div className="mt-5">
-                <span className="text-sm font-medium">Allocation Mode</span>
-                <div className="mt-2 grid grid-cols-2 gap-2 rounded-lg border border-border bg-background/60 p-1">
-                  {(["pool", "solo"] as MiningMode[]).map((m) => (
-                    <button
-                      key={m}
-                      onClick={() => setMode(m)}
-                      className={`rounded-md px-3 py-2 text-sm font-medium transition-all ${
-                        mode === m
-                          ? "bg-primary text-primary-foreground shadow-sm"
-                          : "text-muted-foreground hover:text-foreground"
-                      }`}
-                    >
-                      {m === "pool" ? "Shared Pool" : "Dedicated Solo"}
-                    </button>
-                  ))}
+          {/* Deploy command */}
+          <div className="mx-auto mt-12 max-w-3xl">
+            <div className="rounded-2xl border border-border bg-card overflow-hidden" style={{ boxShadow: "var(--shadow-card)" }}>
+              <div className="flex items-center justify-between border-b border-border bg-secondary/30 px-5 py-3">
+                <div className="flex items-center gap-2">
+                  <span className="h-3 w-3 rounded-full bg-destructive/60" />
+                  <span className="h-3 w-3 rounded-full bg-accent/60" />
+                  <span className="h-3 w-3 rounded-full bg-primary/60" />
                 </div>
-                <p className="mt-2 text-xs text-muted-foreground">
-                  {mode === "pool"
-                    ? "Steady payouts, lower variance. Recommended for sub-monthly runs."
-                    : "Higher variance, full block rewards when your worker wins."}
-                </p>
-              </div>
-
-              <div className="mt-6 grid grid-cols-3 gap-3 text-center">
-                <Stat label="Routing" value="Mesh" />
-                <Stat label="Runtime" value="CUDA 12" />
-                <Stat label="Telemetry" value="Live" />
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section id="pricing" className="relative border-t border-border/60 py-20">
-        <div className="mx-auto max-w-7xl px-6">
-          <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-              Pick your compute tier
-            </h2>
-            <p className="mt-3 text-muted-foreground">
-              Subscribe monthly for sustained throughput, or bring your own
-              rigs. Every tier inherits hard-capped thermal routing and
-              immutable, tag-pinned container releases.
-            </p>
-          </div>
-
-          <div className="mt-12 grid gap-5 md:grid-cols-2 lg:grid-cols-4">
-            {TIERS.filter((t) => t.unit !== "24h").map((tier) => (
-              <article
-                key={tier.id}
-                className={`group relative flex flex-col rounded-2xl border p-6 transition-all ${
-                  tier.highlight
-                    ? "border-primary/50 bg-card"
-                    : "border-border bg-card/60 hover:border-border/80"
-                }`}
-                style={
-                  tier.highlight
-                    ? { boxShadow: "var(--shadow-glow), var(--shadow-card)" }
-                    : undefined
-                }
-              >
-                {tier.highlight && (
-                  <span className="absolute -top-2.5 left-6 rounded-full bg-primary px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-primary-foreground">
-                    Most Popular
-                  </span>
-                )}
-                <div className="flex items-baseline justify-between">
-                  <h3 className="text-lg font-semibold">{tier.name}</h3>
-                  <span className="text-xs text-muted-foreground">{tier.tagline}</span>
-                </div>
-                <div className="mt-4 flex items-baseline gap-1">
-                  <span className="font-mono-num text-4xl font-semibold tracking-tight">
-                    ${tier.price}
-                  </span>
-                  <span className="text-sm text-muted-foreground">/ {tier.unit}</span>
-                </div>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  <span className="text-primary/90">{tier.hardware}</span>
-                </p>
-                {tier.description && (
-                  <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
-                    {tier.description}
-                  </p>
-                )}
-                <ul className="mt-5 space-y-2.5 text-sm">
-                  {tier.features.map((f) => (
-                    <li key={f} className="flex items-start gap-2 text-muted-foreground">
-                      <Check />
-                      <span className="text-foreground/90">{f}</span>
-                    </li>
-                  ))}
-                </ul>
+                <span className="font-mono text-xs text-muted-foreground">terminal</span>
                 <button
-                  onClick={() => select(tier.id)}
-                  className={`mt-6 w-full rounded-lg px-4 py-2.5 text-sm font-semibold transition-all ${
-                    tier.highlight
-                      ? "bg-primary text-primary-foreground hover:brightness-110"
-                      : "border border-border bg-secondary/60 text-foreground hover:border-primary/40 hover:bg-secondary"
-                  }`}
+                  onClick={copyCommand}
+                  className="flex items-center gap-1.5 rounded-md border border-border bg-secondary/60 px-3 py-1 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
                 >
-                  Launch {tier.name}
+                  {copied ? (
+                    <>
+                      <CheckIcon className="h-3.5 w-3.5 text-primary" />
+                      Copied
+                    </>
+                  ) : (
+                    <>
+                      <CopyIcon className="h-3.5 w-3.5" />
+                      Copy
+                    </>
+                  )}
                 </button>
-              </article>
-            ))}
+              </div>
+              <pre className="overflow-x-auto px-6 py-5 text-sm leading-relaxed text-foreground/90 font-mono">
+                <span className="text-muted-foreground select-none">$ </span>
+                {DOCKER_CMD}
+              </pre>
+            </div>
+            <p className="mt-3 text-center text-xs text-muted-foreground">
+              Replace <span className="font-mono text-primary">&lt;btx_wallet&gt;</span> with your BTX wallet address before running.
+            </p>
           </div>
         </div>
       </section>
 
+      {/* ── After deploy ──────────────────────────────────────────────────── */}
       <section className="border-t border-border/60 py-20">
         <div className="mx-auto max-w-5xl px-6">
           <h2 className="text-center text-3xl font-semibold tracking-tight">
-            Click to hashed in minutes
+            What happens after deploy
           </h2>
-          <ol className="mt-12 grid gap-6 md:grid-cols-3">
-            {[
-              {
-                step: "01",
-                title: "Drop your wallet",
-                body: "Paste your payout address. We inject it into the container as USER_WALLET — no custody, ever.",
-              },
-              {
-                step: "02",
-                title: "Autonomous allocation",
-                body: "The spot-market allocator locks the cheapest qualified worker and signs the lease before your container ships.",
-              },
-              {
-                step: "03",
-                title: "Monitor & withdraw",
-                body: "Live status, batch metrics, and a one-tap Stop button. Rewards stream straight to your wallet.",
-              },
-            ].map((s) => (
+          <ol className="mt-12 grid gap-5 sm:grid-cols-2">
+            {AFTER_DEPLOY.map((s) => (
               <li
                 key={s.step}
                 className="rounded-xl border border-border bg-card/60 p-6"
               >
-                <span className="font-mono-num text-xs text-primary">{s.step}</span>
+                <span className="font-mono text-xs text-primary">{s.step}</span>
                 <h3 className="mt-2 text-base font-semibold">{s.title}</h3>
-                <p className="mt-2 text-sm text-muted-foreground">{s.body}</p>
+                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{s.body}</p>
               </li>
             ))}
           </ol>
         </div>
       </section>
 
+      {/* ── Requirements ──────────────────────────────────────────────────── */}
+      <section className="border-t border-border/60 py-20">
+        <div className="mx-auto max-w-5xl px-6">
+          <h2 className="text-center text-3xl font-semibold tracking-tight">
+            System requirements
+          </h2>
+          <p className="mx-auto mt-3 max-w-xl text-center text-sm text-muted-foreground">
+            Orchestra OS requires specific GPU capabilities. Check your hardware before deploying.
+          </p>
+
+          {/* GPU supported / not supported */}
+          <div className="mt-12 grid gap-5 sm:grid-cols-2">
+            <div className="rounded-xl border border-primary/30 bg-card/60 p-6">
+              <h3 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-widest text-primary">
+                <CheckIcon className="h-4 w-4" />
+                Supported GPUs — NVIDIA only
+              </h3>
+              <ul className="mt-5 space-y-3">
+                {SUPPORTED_GPUS.map((g) => (
+                  <li key={g} className="flex items-start gap-2.5 text-sm">
+                    <CheckIcon className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                    <span className="text-foreground/90">{g}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="rounded-xl border border-destructive/30 bg-card/60 p-6">
+              <h3 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-widest text-destructive">
+                <XIcon className="h-4 w-4" />
+                Not supported
+              </h3>
+              <ul className="mt-5 space-y-3">
+                {UNSUPPORTED_GPUS.map((g) => (
+                  <li key={g} className="flex items-start gap-2.5 text-sm">
+                    <XIcon className="mt-0.5 h-4 w-4 shrink-0 text-destructive/80" />
+                    <span className="text-muted-foreground">{g}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+
+          {/* Software / Hardware / Network */}
+          <div className="mt-5 grid gap-5 sm:grid-cols-3">
+            <ReqBlock title="Software" items={SOFTWARE_REQS} />
+            <ReqBlock title="Hardware" items={HARDWARE_REQS} />
+            <ReqBlock title="Network" items={NETWORK_REQS} />
+          </div>
+        </div>
+      </section>
+
+      {/* ── Earnings checker ──────────────────────────────────────────────── */}
+      <section className="border-t border-border/60 py-20">
+        <div className="mx-auto max-w-2xl px-6">
+          <h2 className="text-center text-3xl font-semibold tracking-tight">
+            Check your earnings
+          </h2>
+          <p className="mx-auto mt-3 max-w-md text-center text-sm text-muted-foreground">
+            Enter your BTX wallet address to view shares submitted and estimated earnings.
+          </p>
+
+          <div className="mt-10 rounded-2xl border border-border bg-card p-6 sm:p-8" style={{ boxShadow: "var(--shadow-card)" }}>
+            <label htmlFor="wallet-check" className="block text-sm font-medium">
+              BTX Wallet Address
+            </label>
+            <div className="mt-2 flex gap-2">
+              <input
+                id="wallet-check"
+                value={wallet}
+                onChange={(e) => setWallet(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && checkEarnings()}
+                placeholder="btx1q…"
+                spellCheck={false}
+                className="font-mono min-w-0 flex-1 rounded-lg border border-input bg-background/60 px-4 py-3 text-sm outline-none transition-colors placeholder:text-muted-foreground/60 focus:border-primary/60 focus:ring-2 focus:ring-primary/20"
+              />
+              <button
+                onClick={checkEarnings}
+                disabled={checking}
+                className="shrink-0 rounded-lg bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground transition-all hover:brightness-110 disabled:opacity-60"
+              >
+                {checking ? "Checking…" : "Check"}
+              </button>
+            </div>
+            {checkError && (
+              <p className="mt-2 text-xs text-destructive">{checkError}</p>
+            )}
+
+            {hasResults && (
+              <div className="mt-8 space-y-6">
+                {/* Fleet earnings */}
+                {earnings && (
+                  <div>
+                    <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                      Fleet Earnings — Today
+                    </p>
+                    <div className="grid grid-cols-3 gap-3">
+                      <EarningsStat
+                        label="Total Shares"
+                        value={earnings.total_shares.toLocaleString()}
+                      />
+                      <EarningsStat
+                        label="Est. BTX"
+                        value={earnings.btx_earned_today.toFixed(6)}
+                      />
+                      <EarningsStat
+                        label="USD Value"
+                        value={`$${earnings.usd_earned_today.toFixed(4)}`}
+                      />
+                    </div>
+                    <p className="mt-2 text-[11px] text-muted-foreground">
+                      BTX price: ${earnings.btx_price} · Earnings reset at 00:00 UTC
+                    </p>
+                  </div>
+                )}
+
+                {/* Wallet-specific from pool */}
+                {walletData && !walletData.error && (
+                  <div>
+                    <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                      Wallet Balance
+                    </p>
+                    <div className="grid grid-cols-3 gap-3">
+                      <EarningsStat
+                        label="Confirmed"
+                        value={
+                          walletData.balance !== undefined
+                            ? `${Number(walletData.balance).toFixed(6)} BTX`
+                            : "—"
+                        }
+                      />
+                      <EarningsStat
+                        label="Pending"
+                        value={
+                          walletData.pending !== undefined
+                            ? `${Number(walletData.pending).toFixed(6)} BTX`
+                            : "—"
+                        }
+                      />
+                      <EarningsStat
+                        label="Total Paid"
+                        value={
+                          walletData.paid !== undefined
+                            ? `${Number(walletData.paid).toFixed(6)} BTX`
+                            : "—"
+                        }
+                      />
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex items-center gap-2 rounded-lg border border-border bg-secondary/30 px-4 py-3">
+                  <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+                  <p className="text-xs text-muted-foreground">
+                    Full pool stats and payout history at{" "}
+                    <a
+                      href="https://pool.arcgrid.dev"
+                      target="_blank"
+                      rel="noreferrer noopener"
+                      className="font-medium text-primary hover:underline"
+                    >
+                      pool.arcgrid.dev
+                    </a>
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Footer ────────────────────────────────────────────────────────── */}
       <footer className="border-t border-border/60 py-8">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-6 text-xs text-muted-foreground sm:flex-row">
           <span>© {new Date().getFullYear()} Arca Grid</span>
-          <span className="font-mono-num text-muted-foreground">
-            Arca Grid · Autonomous Remote Cluster Architecture
+          <span className="font-mono text-muted-foreground">
+            Orchestra OS · taylans/orchestra-os:lite
           </span>
         </div>
       </footer>
-      <WalletHelpModal open={walletHelpOpen} onClose={() => setWalletHelpOpen(false)} />
     </div>
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function ReqBlock({ title, items }: { title: string; items: string[] }) {
   return (
-    <div className="rounded-md border border-border bg-background/60 px-3 py-2">
-      <div className="font-mono-num text-base text-primary">{value}</div>
-      <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+    <div className="rounded-xl border border-border bg-card/60 p-6">
+      <h3 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
+        {title}
+      </h3>
+      <ul className="mt-4 space-y-2.5">
+        {items.map((item) => (
+          <li key={item} className="flex items-start gap-2 text-sm">
+            <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+            <span className="text-foreground/90">{item}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function EarningsStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg border border-border bg-background/60 px-3 py-3">
+      <div className="font-mono text-base font-semibold text-primary">{value}</div>
+      <div className="mt-0.5 text-[10px] uppercase tracking-wider text-muted-foreground">
         {label}
       </div>
     </div>
   );
 }
 
-function Check() {
+function CheckIcon({ className }: { className?: string }) {
   return (
-    <svg
-      className="mt-0.5 h-4 w-4 shrink-0 text-primary"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
       <path d="M20 6L9 17l-5-5" />
     </svg>
   );
 }
 
-function WalletHelpModal({
-  open,
-  onClose,
-}: {
-  open: boolean;
-  onClose: () => void;
-}) {
-  useEffect(() => {
-    if (!open) return;
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [open, onClose]);
-
-  if (!open) return null;
-
-  const options = [
-    {
-      tag: "Option 1",
-      title: "Desktop Node Client",
-      body: "Run the official full node locally. Most secure — you hold the keys end-to-end.",
-      cta: "Open releases",
-      href: "https://github.com/btxchain/btx/releases",
-      external: true,
-    },
-    {
-      tag: "Option 2",
-      title: "Ecosystem Web Address",
-      body: "Generate a direct funding address on a supported exchange or web wallet. Fastest path to a live address.",
-      cta: "Browse supported wallets",
-      href: "https://github.com/btxchain/btx#wallets",
-      external: true,
-    },
-    {
-      tag: "Option 3",
-      title: "1-Click Escrow Sandbox",
-      body: "Leave the wallet field blank. Earnings accumulate in a secure internal ledger tied to your authenticated email — withdraw externally any time.",
-      cta: "Continue without a wallet",
-      href: null,
-      external: false,
-    },
-  ];
-
+function XIcon({ className }: { className?: string }) {
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 px-4 py-6 backdrop-blur-sm"
-      onClick={onClose}
-      role="dialog"
-      aria-modal="true"
-    >
-      <div
-        className="relative w-full max-w-lg rounded-2xl border border-border bg-card p-6 sm:p-8"
-        style={{ boxShadow: "var(--shadow-card)" }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="text-xs uppercase tracking-widest text-primary">
-              Wallet Setup
-            </p>
-            <h3 className="mt-1 text-xl font-semibold tracking-tight">
-              Three secure ways to receive payouts
-            </h3>
-          </div>
-          <button
-            onClick={onClose}
-            className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-            aria-label="Close"
-          >
-            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M18 6L6 18M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M18 6L6 18M6 6l12 12" />
+    </svg>
+  );
+}
 
-        <div className="mt-5 space-y-3">
-          {options.map((o) => (
-            <div
-              key={o.title}
-              className="rounded-xl border border-border bg-background/50 p-4 transition-colors hover:border-primary/40"
-            >
-              <div className="flex items-baseline justify-between">
-                <span className="text-[10px] font-bold uppercase tracking-widest text-primary">
-                  {o.tag}
-                </span>
-              </div>
-              <h4 className="mt-1 text-sm font-semibold">{o.title}</h4>
-              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                {o.body}
-              </p>
-              {o.href ? (
-                <a
-                  href={o.href}
-                  target={o.external ? "_blank" : undefined}
-                  rel={o.external ? "noreferrer noopener" : undefined}
-                  className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
-                >
-                  {o.cta} →
-                </a>
-              ) : (
-                <button
-                  onClick={onClose}
-                  className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
-                >
-                  {o.cta} →
-                </button>
-              )}
-            </div>
-          ))}
-        </div>
-
-        <p className="mt-5 text-[11px] text-muted-foreground">
-          Arca Grid never takes custody of your funds. Wallet addresses are
-          injected into the provisioned worker as <span className="font-mono-num">USER_WALLET</span>.
-        </p>
-      </div>
-    </div>
+function CopyIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="9" y="9" width="13" height="13" rx="2" />
+      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+    </svg>
   );
 }
